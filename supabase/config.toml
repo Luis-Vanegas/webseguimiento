@@ -1,0 +1,2 @@
+[functions.obras-proxy]
+verify_jwt = false

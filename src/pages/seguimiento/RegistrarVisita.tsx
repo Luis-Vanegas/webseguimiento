@@ -1,0 +1,352 @@
+import { useEffect, useMemo, useState } from 'react'
+import { useForm, useFieldArray, Controller } from 'react-hook-form'
+import { yupResolver } from '@hookform/resolvers/yup'
+import * as yup from 'yup'
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  Divider,
+  IconButton,
+  MenuItem,
+  Paper,
+  TextField,
+  Typography,
+} from '@mui/material'
+import DeleteIcon from '@mui/icons-material/Delete'
+import AddIcon from '@mui/icons-material/Add'
+import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
+import CloseIcon from '@mui/icons-material/Close'
+import { useNavigate, useParams } from 'react-router-dom'
+import { useAppDispatch, useAppSelector } from '../../store/hooks'
+import { useUsuarioActual } from '../../features/auth/useUsuarioActual'
+import {
+  crearVisitaSolicitada,
+  listarVisitasDeObraSolicitada,
+} from '../../features/seguimiento/seguimientoSlice'
+import * as seguimientoApi from '../../features/seguimiento/seguimientoApi'
+import { useDatosFiltro } from '../../features/seguimiento/useDatosFiltro'
+import { compararVisitas } from '../../utils/seguimiento/visita-comparator.util'
+import { CambioVisitaItem } from '../../components/seguimiento/CambioVisitaItem'
+import type { TipoAlerta, VisitaSeguimiento } from '../../types/seguimiento.types'
+
+const esquemaVisita = yup.object({
+  fechaVisita: yup.string().required('La fecha de visita es obligatoria'),
+  fechaProximaVisita: yup.string().nullable().defined(),
+  porcentajeAvanceCampo: yup
+    .number()
+    .typeError('Ingresá un número')
+    .min(0)
+    .max(100)
+    .required('Obligatorio'),
+  presupuestoObservadoCampo: yup
+    .number()
+    .typeError('Ingresá un número')
+    .min(0)
+    .required('Obligatorio'),
+  observaciones: yup.string().default(''),
+  alertas: yup
+    .array(
+      yup.object({
+        tipoAlertaId: yup.string().required(),
+        severidad: yup.string().oneOf(['baja', 'media', 'alta']).required(),
+        detalle: yup.string().nullable().defined(),
+      }),
+    )
+    .default([]),
+})
+
+type FormVisita = yup.InferType<typeof esquemaVisita>
+
+// Secciones de un mismo Paper, con título uniforme — reutilizado tres veces
+// en este formulario para no repetir el mismo bloque de estilos.
+function Seccion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, mb: 2.5 }}>
+      <Typography variant="subtitle2" sx={{ mb: 2 }}>
+        {titulo}
+      </Typography>
+      {children}
+    </Paper>
+  )
+}
+
+export function RegistrarVisita() {
+  const { obraId } = useParams<{ obraId: string }>()
+  const obraIdNum = Number(obraId)
+  const navigate = useNavigate()
+  const dispatch = useAppDispatch()
+  const { usuario } = useUsuarioActual()
+  const { nombrePorObra } = useDatosFiltro()
+  const { visitasObraActual } = useAppSelector((state) => state.seguimiento)
+  const [tiposAlerta, setTiposAlerta] = useState<TipoAlerta[]>([])
+  const [fotos, setFotos] = useState<File[]>([])
+  const [enviando, setEnviando] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const {
+    control,
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<FormVisita>({
+    resolver: yupResolver(esquemaVisita),
+    defaultValues: {
+      fechaVisita: new Date().toISOString().slice(0, 10),
+      fechaProximaVisita: null,
+      porcentajeAvanceCampo: 0,
+      presupuestoObservadoCampo: 0,
+      observaciones: '',
+      alertas: [],
+    },
+  })
+
+  const { fields, append, remove } = useFieldArray({ control, name: 'alertas' })
+
+  useEffect(() => {
+    if (obraIdNum) dispatch(listarVisitasDeObraSolicitada({ obraId: obraIdNum }))
+    seguimientoApi.listarTiposAlerta().then(setTiposAlerta)
+  }, [dispatch, obraIdNum])
+
+  const visitaAnterior = useMemo(
+    () => (visitasObraActual.length > 0 ? visitasObraActual[visitasObraActual.length - 1] : null),
+    [visitasObraActual],
+  )
+
+  // Tarjeta de contexto: compara el borrador actual del form contra la
+  // última visita registrada para esta obra (sección 7 del brief).
+  const avanceCampo = watch('porcentajeAvanceCampo')
+  const presupuestoCampo = watch('presupuestoObservadoCampo')
+  const alertasForm = watch('alertas')
+
+  const cambios = useMemo(() => {
+    const borrador: VisitaSeguimiento = {
+      id: 'borrador',
+      obraId: obraIdNum,
+      autorId: usuario?.id ?? '',
+      autorRol: usuario?.rol ?? 'visitador',
+      fechaVisita: new Date().toISOString(),
+      fechaProximaVisita: null,
+      porcentajeAvanceCampo: Number(avanceCampo) || 0,
+      presupuestoObservadoCampo: Number(presupuestoCampo) || 0,
+      observaciones: '',
+      estado: 'pendiente_revisar',
+      revisadoPor: null,
+      fechaRevision: null,
+      createdAt: '',
+      updatedAt: '',
+      alertas: (alertasForm ?? []).map((a, i) => ({
+        id: `borrador-${i}`,
+        visitaId: 'borrador',
+        tipoAlertaId: a.tipoAlertaId,
+        detalle: a.detalle ?? null,
+        severidad: a.severidad as 'baja' | 'media' | 'alta',
+      })),
+      fotos: [],
+    }
+    return compararVisitas(borrador, visitaAnterior)
+  }, [avanceCampo, presupuestoCampo, alertasForm, visitaAnterior, obraIdNum, usuario])
+
+  function onSubmit(datos: FormVisita) {
+    if (!usuario) return
+    setEnviando(true)
+    setError(null)
+
+    dispatch(
+      crearVisitaSolicitada({
+        obraId: obraIdNum,
+        autorId: usuario.id,
+        autorRol: usuario.rol,
+        fechaVisita: datos.fechaVisita,
+        // El input date deja '' (no null) cuando queda vacío; la columna es
+        // `date` nullable en Postgres, así que hay que normalizar a null.
+        fechaProximaVisita: datos.fechaProximaVisita || null,
+        porcentajeAvanceCampo: datos.porcentajeAvanceCampo,
+        presupuestoObservadoCampo: datos.presupuestoObservadoCampo,
+        observaciones: datos.observaciones ?? '',
+        alertas: (datos.alertas ?? []).map((a) => ({
+          tipoAlertaId: a.tipoAlertaId,
+          detalle: a.detalle ?? null,
+          severidad: a.severidad,
+        })),
+        fotos,
+      }),
+    )
+  }
+
+  // La saga marca cargando=false al terminar (éxito o error). Si veníamos
+  // enviando y no quedó un error, la visita se creó: navegamos.
+  const { cargando: cargandoStore, error: errorStore } = useAppSelector((state) => state.seguimiento)
+  useEffect(() => {
+    if (enviando && !cargandoStore) {
+      if (errorStore) {
+        setError(errorStore)
+      } else {
+        navigate('/seguimiento/mis-visitas')
+      }
+      setEnviando(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cargandoStore])
+
+  return (
+    <Box sx={{ maxWidth: 560, mx: 'auto' }} component="form" onSubmit={handleSubmit(onSubmit)}>
+      <Typography variant="h5">Registrar visita</Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+        {nombrePorObra.get(obraIdNum) ?? `Obra ${obraId}`}
+      </Typography>
+
+      {visitaAnterior && (
+        <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, mb: 2.5, bgcolor: '#f7f9fc' }}>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+            Respecto a la visita anterior ({visitaAnterior.fechaVisita})
+          </Typography>
+          {cambios.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">
+              Sin cambios todavía — completá los datos de abajo.
+            </Typography>
+          ) : (
+            cambios.map((c) => <CambioVisitaItem key={c.campo} cambio={c} />)
+          )}
+        </Paper>
+      )}
+
+      <Seccion titulo="Datos de la visita">
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
+          <TextField
+            label="Fecha de visita"
+            type="date"
+            InputLabelProps={{ shrink: true }}
+            sx={{ flex: '1 1 200px' }}
+            {...register('fechaVisita')}
+            error={!!errors.fechaVisita}
+            helperText={errors.fechaVisita?.message}
+          />
+          <TextField
+            label="Próxima visita estimada"
+            type="date"
+            InputLabelProps={{ shrink: true }}
+            sx={{ flex: '1 1 200px' }}
+            {...register('fechaProximaVisita')}
+          />
+        </Box>
+
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
+          <TextField
+            label="% de avance observado en campo"
+            type="number"
+            sx={{ flex: '1 1 200px' }}
+            {...register('porcentajeAvanceCampo')}
+            error={!!errors.porcentajeAvanceCampo}
+            helperText={errors.porcentajeAvanceCampo?.message}
+          />
+          <TextField
+            label="Presupuesto observado en campo"
+            type="number"
+            sx={{ flex: '1 1 200px' }}
+            {...register('presupuestoObservadoCampo')}
+            error={!!errors.presupuestoObservadoCampo}
+            helperText={errors.presupuestoObservadoCampo?.message}
+          />
+        </Box>
+
+        <TextField
+          label="Observaciones"
+          multiline
+          minRows={3}
+          fullWidth
+          {...register('observaciones')}
+        />
+      </Seccion>
+
+      <Seccion titulo="Alertas de campo">
+        {fields.length === 0 && (
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            Sin alertas registradas.
+          </Typography>
+        )}
+        {fields.map((field, index) => (
+          <Box key={field.id}>
+            {index > 0 && <Divider sx={{ my: 1.5 }} />}
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <Controller
+                control={control}
+                name={`alertas.${index}.tipoAlertaId`}
+                render={({ field: f }) => (
+                  <TextField {...f} select label="Tipo de alerta" sx={{ flex: 2, minWidth: 120 }}>
+                    {tiposAlerta.map((t) => (
+                      <MenuItem key={t.id} value={t.id}>
+                        {t.nombre}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                )}
+              />
+              <Controller
+                control={control}
+                name={`alertas.${index}.severidad`}
+                render={({ field: f }) => (
+                  <TextField {...f} select label="Severidad" sx={{ flex: 1, minWidth: 100 }}>
+                    <MenuItem value="baja">Baja</MenuItem>
+                    <MenuItem value="media">Media</MenuItem>
+                    <MenuItem value="alta">Alta</MenuItem>
+                  </TextField>
+                )}
+              />
+              <IconButton onClick={() => remove(index)} size="small" sx={{ flexShrink: 0 }}>
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Box>
+          </Box>
+        ))}
+        <Button
+          size="small"
+          startIcon={<AddIcon />}
+          sx={{ mt: fields.length > 0 ? 2 : 0 }}
+          onClick={() => append({ tipoAlertaId: tiposAlerta[0]?.id ?? '', severidad: 'media', detalle: null })}
+          disabled={tiposAlerta.length === 0}
+        >
+          Agregar alerta
+        </Button>
+      </Seccion>
+
+      <Seccion titulo="Fotos">
+        <Button component="label" variant="outlined" fullWidth startIcon={<PhotoCameraIcon />}>
+          Tomar o adjuntar fotos
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            multiple
+            hidden
+            onChange={(e) => setFotos((prev) => [...prev, ...Array.from(e.target.files ?? [])])}
+          />
+        </Button>
+        {fotos.length > 0 && (
+          <Box sx={{ mt: 1.5, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            {fotos.map((f, i) => (
+              <Chip
+                key={`${f.name}-${i}`}
+                label={f.name}
+                onDelete={() => setFotos((prev) => prev.filter((_, idx) => idx !== i))}
+                deleteIcon={<CloseIcon fontSize="small" />}
+              />
+            ))}
+          </Box>
+        )}
+      </Seccion>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      <Button type="submit" variant="contained" fullWidth size="large" sx={{ mb: 4 }} disabled={enviando}>
+        {enviando ? 'Guardando…' : 'Guardar visita'}
+      </Button>
+    </Box>
+  )
+}
