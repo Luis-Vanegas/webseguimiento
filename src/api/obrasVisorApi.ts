@@ -24,15 +24,27 @@ export function obtenerObras(): Promise<ObraVisor[]> {
   return obrasCache
 }
 
+// La API externa devuelve los campos numéricos como texto (ej. LATITUD:
+// "6.24"); sin coerción, sumar esos valores en el mapa (cálculo de centroide
+// por comuna) concatena strings en vez de sumar y termina en NaN.
+function numeroOrNull(valor: unknown): number | null {
+  if (valor === null || valor === undefined || valor === '') return null
+  const n = Number(valor)
+  return Number.isFinite(n) ? n : null
+}
+
 function mapObraRow(row: any): ObraVisor {
   return {
     obraId: row.id,
     nombre: row.NOMBRE,
     dependencia: row.DEPENDENCIA ?? null,
-    latitud: row.LATITUD ?? null,
-    longitud: row.LONGITUD ?? null,
-    presupuestoOficial: row['COSTO TOTAL ACTUALIZADO'] ?? row['COSTO ESTIMADO TOTAL'] ?? 0,
-    porcentajeAvanceOficial: row['AVANCE GENERAL MANUAL'] ?? row['PORCENTAJE Planeación (MGA)'] ?? 0,
+    comuna: row['COMUNA O CORREGIMIENTO'] ?? null,
+    barrio: row.BARRIO ?? null,
+    direccion: row['DIRECCIÓN'] ?? null,
+    latitud: numeroOrNull(row.LATITUD),
+    longitud: numeroOrNull(row.LONGITUD),
+    presupuestoOficial: Number(row['COSTO TOTAL ACTUALIZADO'] ?? row['COSTO ESTIMADO TOTAL'] ?? 0) || 0,
+    porcentajeAvanceOficial: Number(row['AVANCE GENERAL MANUAL'] ?? row['PORCENTAJE Planeación (MGA)'] ?? 0) || 0,
     proyectoEstrategico: row['PROYECTO ESTRATÉGICO'] ?? null,
     entregada: row['¿OBRA ENTREGADA?'] === 'Sí' || row['¿OBRA ENTREGADA?'] === true,
   }

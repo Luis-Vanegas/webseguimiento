@@ -5,6 +5,7 @@ import { store } from './store/store'
 import { theme } from './theme/theme'
 import { SeguimientoLayout } from './components/layout/SeguimientoLayout'
 import { RutaProtegida } from './components/layout/RutaProtegida'
+import { ErrorBoundary } from './components/layout/ErrorBoundary'
 import { LoginSeguimiento } from './pages/seguimiento/LoginSeguimiento'
 import { MisVisitas } from './pages/seguimiento/MisVisitas'
 import { RegistrarVisita } from './pages/seguimiento/RegistrarVisita'
@@ -18,19 +19,21 @@ function App() {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Navigate to="/seguimiento/mis-visitas" replace />} />
-            <Route path="/seguimiento/login" element={<LoginSeguimiento />} />
-            <Route element={<RutaProtegida />}>
-              <Route path="/seguimiento" element={<SeguimientoLayout />}>
-                <Route path="mis-visitas" element={<MisVisitas />} />
-                <Route path="registrar/:obraId" element={<RegistrarVisita />} />
-                <Route path="revisar" element={<RevisarVisitas />} />
-                <Route path="historial/:obraId" element={<HistorialObra />} />
-                <Route path="mapa" element={<MapaSeguimiento />} />
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/" element={<Navigate to="/seguimiento/mis-visitas" replace />} />
+              <Route path="/seguimiento/login" element={<LoginSeguimiento />} />
+              <Route element={<RutaProtegida />}>
+                <Route path="/seguimiento" element={<SeguimientoLayout />}>
+                  <Route path="mis-visitas" element={<MisVisitas />} />
+                  <Route path="registrar/:obraId" element={<RegistrarVisita />} />
+                  <Route path="revisar" element={<RevisarVisitas />} />
+                  <Route path="historial/:obraId" element={<HistorialObra />} />
+                  <Route path="mapa" element={<MapaSeguimiento />} />
+                </Route>
               </Route>
-            </Route>
-          </Routes>
+            </Routes>
+          </ErrorBoundary>
         </BrowserRouter>
       </ThemeProvider>
     </Provider>
