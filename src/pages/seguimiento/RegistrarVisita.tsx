@@ -288,7 +288,7 @@ export function RegistrarVisita() {
               Sin cambios todavía — completá los datos de abajo.
             </Typography>
           ) : (
-            cambios.map((c) => <CambioVisitaItem key={c.campo} cambio={c} />)
+            cambios.map((c) => <CambioVisitaItem key={c.campo} cambio={c} tiposAlerta={tiposAlerta} />)
           )}
         </Paper>
       )}

@@ -2,6 +2,7 @@ import { Box, Typography } from '@mui/material'
 import TrendingUpIcon from '@mui/icons-material/TrendingUp'
 import TrendingDownIcon from '@mui/icons-material/TrendingDown'
 import type { CambioVisita } from '../../utils/seguimiento/visita-comparator.util'
+import type { TipoAlerta } from '../../types/seguimiento.types'
 
 const ETIQUETA_CAMPO: Record<string, string> = {
   porcentajeAvanceCampo: 'Avance observado',
@@ -11,24 +12,39 @@ const ETIQUETA_CAMPO: Record<string, string> = {
   cantidadFotos: 'Fotos',
 }
 
-function formatearValor(campo: string, valor: unknown): string {
+const CAMPOS_ALERTAS = new Set(['alertasNuevas', 'alertasResueltas', 'alertasPersistentes'])
+
+function formatearValor(campo: string, valor: unknown, nombrePorTipoAlerta: Map<string, string>): string {
   if (valor === null || valor === undefined) return '—'
-  if (Array.isArray(valor)) return valor.length === 0 ? '—' : valor.join(', ')
+  if (Array.isArray(valor)) {
+    if (valor.length === 0) return '—'
+    if (CAMPOS_ALERTAS.has(campo)) {
+      return valor.map((id) => nombrePorTipoAlerta.get(id) ?? 'Alerta').join(', ')
+    }
+    return valor.join(', ')
+  }
   if (campo === 'porcentajeAvanceCampo') return `${valor}%`
   return String(valor)
+}
+
+interface CambioVisitaItemProps {
+  cambio: CambioVisita
+  tiposAlerta?: TipoAlerta[]
 }
 
 // Traduce un CambioVisita crudo (nombre de campo en camelCase, valores sin
 // formato) a una línea legible para quien revisa — se usa en la tarjeta de
 // contexto de RegistrarVisita y en el timeline de HistorialObra. Un solo
 // lugar para no repetir el formato en cada pantalla.
-export function CambioVisitaItem({ cambio }: { cambio: CambioVisita }) {
+export function CambioVisitaItem({ cambio, tiposAlerta = [] }: CambioVisitaItemProps) {
   const etiqueta = ETIQUETA_CAMPO[cambio.campo] ?? cambio.campo
+  const nombrePorTipoAlerta = new Map(tiposAlerta.map((t) => [t.id, t.nombre]))
 
   if (cambio.variacion === undefined) {
     return (
       <Typography variant="body2" sx={{ py: 0.25 }}>
-        <b>{etiqueta}:</b> {formatearValor(cambio.campo, cambio.valorNuevo ?? cambio.valorAnterior)}
+        <b>{etiqueta}:</b>{' '}
+        {formatearValor(cambio.campo, cambio.valorNuevo ?? cambio.valorAnterior, nombrePorTipoAlerta)}
       </Typography>
     )
   }
@@ -42,8 +58,8 @@ export function CambioVisitaItem({ cambio }: { cambio: CambioVisita }) {
         <TrendingDownIcon sx={{ fontSize: 16, color: '#c62828' }} />
       )}
       <Typography variant="body2">
-        <b>{etiqueta}:</b> {formatearValor(cambio.campo, cambio.valorAnterior)} →{' '}
-        {formatearValor(cambio.campo, cambio.valorNuevo)}
+        <b>{etiqueta}:</b> {formatearValor(cambio.campo, cambio.valorAnterior, nombrePorTipoAlerta)} →{' '}
+        {formatearValor(cambio.campo, cambio.valorNuevo, nombrePorTipoAlerta)}
         <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
           ({subio ? '+' : ''}
           {cambio.variacion}

@@ -116,7 +116,7 @@ export function HistorialObra() {
                     Sin cambios respecto a la visita anterior.
                   </Typography>
                 ) : (
-                  cambios.map((c) => <CambioVisitaItem key={c.campo} cambio={c} />)
+                  cambios.map((c) => <CambioVisitaItem key={c.campo} cambio={c} tiposAlerta={tiposAlerta} />)
                 )}
               </Box>
             )}
