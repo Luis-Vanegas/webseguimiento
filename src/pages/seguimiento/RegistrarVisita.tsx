@@ -31,33 +31,50 @@ import { compararVisitas } from '../../utils/seguimiento/visita-comparator.util'
 import { CambioVisitaItem } from '../../components/seguimiento/CambioVisitaItem'
 import type { TipoAlerta, VisitaSeguimiento } from '../../types/seguimiento.types'
 
-const esquemaVisita = yup.object({
-  fechaVisita: yup.string().required('La fecha de visita es obligatoria'),
-  fechaProximaVisita: yup.string().nullable().defined(),
-  porcentajeAvanceCampo: yup
-    .number()
-    .typeError('Ingresá un número')
-    .min(0)
-    .max(100)
-    .required('Obligatorio'),
-  presupuestoObservadoCampo: yup
-    .number()
-    .typeError('Ingresá un número')
-    .min(0)
-    .required('Obligatorio'),
-  observaciones: yup.string().default(''),
-  alertas: yup
-    .array(
-      yup.object({
-        tipoAlertaId: yup.string().required(),
-        severidad: yup.string().oneOf(['baja', 'media', 'alta']).required(),
-        detalle: yup.string().nullable().defined(),
-      }),
-    )
-    .default([]),
-})
+// El detalle es obligatorio solo para alertas de tipo "Otra" (regla de
+// negocio del schema, ver comentario en supabase/schema.sql). El esquema
+// depende del id real de ese tipo, que solo se conoce tras cargar el
+// catálogo — de ahí que sea una función y no una constante.
+function crearEsquemaVisita(idAlertaOtra: string | undefined) {
+  return yup.object({
+    fechaVisita: yup.string().required('La fecha de visita es obligatoria'),
+    fechaProximaVisita: yup.string().nullable().defined(),
+    porcentajeAvanceCampo: yup
+      .number()
+      .typeError('Ingresá un número')
+      .min(0)
+      .max(100)
+      .required('Obligatorio'),
+    presupuestoObservadoCampo: yup
+      .number()
+      .typeError('Ingresá un número')
+      .min(0)
+      .required('Obligatorio'),
+    observaciones: yup.string().default(''),
+    alertas: yup
+      .array(
+        yup.object({
+          tipoAlertaId: yup.string().required(),
+          severidad: yup.string().oneOf(['baja', 'media', 'alta']).required(),
+          detalle: yup
+            .string()
+            .nullable()
+            .defined()
+            .test(
+              'detalle-obligatorio-otra',
+              'Describí la alerta cuando el tipo es "Otra"',
+              function (valor) {
+                if (!idAlertaOtra || this.parent.tipoAlertaId !== idAlertaOtra) return true
+                return !!valor && valor.trim().length > 0
+              },
+            ),
+        }),
+      )
+      .default([]),
+  })
+}
 
-type FormVisita = yup.InferType<typeof esquemaVisita>
+type FormVisita = yup.InferType<ReturnType<typeof crearEsquemaVisita>>
 
 // Secciones de un mismo Paper, con título uniforme — reutilizado tres veces
 // en este formulario para no repetir el mismo bloque de estilos.
@@ -96,6 +113,9 @@ export function RegistrarVisita() {
   const [fotos, setFotos] = useState<File[]>([])
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const idAlertaOtra = useMemo(() => tiposAlerta.find((t) => t.nombre === 'Otra')?.id, [tiposAlerta])
+  const esquemaVisita = useMemo(() => crearEsquemaVisita(idAlertaOtra), [idAlertaOtra])
 
   const {
     control,
@@ -330,6 +350,20 @@ export function RegistrarVisita() {
                 <DeleteIcon fontSize="small" />
               </IconButton>
             </Box>
+            <TextField
+              label={
+                alertasForm?.[index]?.tipoAlertaId === idAlertaOtra
+                  ? 'Descripción de la alerta (obligatoria)'
+                  : 'Descripción de la alerta (opcional)'
+              }
+              multiline
+              minRows={2}
+              fullWidth
+              sx={{ mt: 1 }}
+              {...register(`alertas.${index}.detalle`)}
+              error={!!errors.alertas?.[index]?.detalle}
+              helperText={errors.alertas?.[index]?.detalle?.message}
+            />
           </Box>
         ))}
         <Button
