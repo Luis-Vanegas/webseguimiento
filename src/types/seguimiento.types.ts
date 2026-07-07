@@ -60,7 +60,6 @@ export interface VisitaSeguimiento {
   fechaVisita: string
   fechaProximaVisita: string | null
   porcentajeAvanceCampo: number
-  presupuestoObservadoCampo: number
   observaciones: string
   estado: EstadoVisita
   revisadoPor: string | null

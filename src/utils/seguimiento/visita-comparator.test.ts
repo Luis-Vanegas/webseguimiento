@@ -12,7 +12,6 @@ function visita(overrides: Partial<VisitaSeguimiento>): VisitaSeguimiento {
     fechaVisita: '2026-01-01',
     fechaProximaVisita: null,
     porcentajeAvanceCampo: 10,
-    presupuestoObservadoCampo: 1000,
     observaciones: '',
     estado: 'pendiente_revisar',
     revisadoPor: null,
@@ -30,17 +29,14 @@ test('primera visita a una obra no tiene cambios', () => {
   assert.deepEqual(compararVisitas(actual, null), [])
 })
 
-test('detecta variacion de avance y presupuesto', () => {
-  const anterior = visita({ porcentajeAvanceCampo: 10, presupuestoObservadoCampo: 1000 })
-  const actual = visita({ porcentajeAvanceCampo: 25, presupuestoObservadoCampo: 1500 })
+test('detecta variacion de avance', () => {
+  const anterior = visita({ porcentajeAvanceCampo: 10 })
+  const actual = visita({ porcentajeAvanceCampo: 25 })
 
   const cambios = compararVisitas(actual, anterior)
 
   const avance = cambios.find((c) => c.campo === 'porcentajeAvanceCampo')
   assert.equal(avance?.variacion, 15)
-
-  const presupuesto = cambios.find((c) => c.campo === 'presupuestoObservadoCampo')
-  assert.equal(presupuesto?.variacion, 500)
 })
 
 test('clasifica alertas nuevas, resueltas y persistentes', () => {

@@ -13,7 +13,6 @@ function visita(overrides: Partial<VisitaSeguimiento>): VisitaSeguimiento {
     fechaVisita: '2026-03-15',
     fechaProximaVisita: null,
     porcentajeAvanceCampo: 40,
-    presupuestoObservadoCampo: 1000,
     observaciones: '',
     estado: 'pendiente_revisar',
     revisadoPor: null,

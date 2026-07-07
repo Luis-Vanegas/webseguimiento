@@ -28,15 +28,6 @@ export const compararVisitas = (
     })
   }
 
-  if (actual.presupuestoObservadoCampo !== anterior.presupuestoObservadoCampo) {
-    cambios.push({
-      campo: 'presupuestoObservadoCampo',
-      valorAnterior: anterior.presupuestoObservadoCampo,
-      valorNuevo: actual.presupuestoObservadoCampo,
-      variacion: actual.presupuestoObservadoCampo - anterior.presupuestoObservadoCampo,
-    })
-  }
-
   const tiposAnteriores = new Set((anterior.alertas ?? []).map((a) => a.tipoAlertaId))
   const tiposActuales = new Set((actual.alertas ?? []).map((a) => a.tipoAlertaId))
 

@@ -5,7 +5,6 @@ import type { CambioVisita } from '../../utils/seguimiento/visita-comparator.uti
 
 const ETIQUETA_CAMPO: Record<string, string> = {
   porcentajeAvanceCampo: 'Avance observado',
-  presupuestoObservadoCampo: 'Presupuesto observado',
   alertasNuevas: 'Alertas nuevas',
   alertasResueltas: 'Alertas resueltas',
   alertasPersistentes: 'Alertas que continúan',
@@ -16,7 +15,6 @@ function formatearValor(campo: string, valor: unknown): string {
   if (valor === null || valor === undefined) return '—'
   if (Array.isArray(valor)) return valor.length === 0 ? '—' : valor.join(', ')
   if (campo === 'porcentajeAvanceCampo') return `${valor}%`
-  if (campo === 'presupuestoObservadoCampo') return `$${Number(valor).toLocaleString('es-CO')}`
   return String(valor)
 }
 
@@ -48,10 +46,8 @@ export function CambioVisitaItem({ cambio }: { cambio: CambioVisita }) {
         {formatearValor(cambio.campo, cambio.valorNuevo)}
         <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
           ({subio ? '+' : ''}
-          {cambio.campo === 'presupuestoObservadoCampo'
-            ? `$${cambio.variacion.toLocaleString('es-CO')}`
-            : `${cambio.variacion}${cambio.campo === 'porcentajeAvanceCampo' ? '%' : ''}`}
-          )
+          {cambio.variacion}
+          {cambio.campo === 'porcentajeAvanceCampo' ? '%' : ''})
         </Typography>
       </Typography>
     </Box>

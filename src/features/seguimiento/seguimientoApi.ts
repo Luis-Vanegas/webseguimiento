@@ -59,7 +59,6 @@ export interface NuevaVisitaInput {
   fechaVisita: string
   fechaProximaVisita: string | null
   porcentajeAvanceCampo: number
-  presupuestoObservadoCampo: number
   observaciones: string
   alertas: { tipoAlertaId: string; detalle: string | null; severidad: string }[]
 }
@@ -83,7 +82,6 @@ export async function crearVisita(input: NuevaVisitaInput): Promise<VisitaSeguim
       fecha_visita: input.fechaVisita,
       fecha_proxima_visita: input.fechaProximaVisita,
       porcentaje_avance_campo: input.porcentajeAvanceCampo,
-      presupuesto_observado_campo: input.presupuestoObservadoCampo,
       observaciones: input.observaciones,
       estado,
     })
@@ -151,7 +149,6 @@ export interface EditarVisitaInput {
   usuarioId: string
   cambios: Partial<{
     porcentajeAvanceCampo: number
-    presupuestoObservadoCampo: number
     observaciones: string
     fechaProximaVisita: string | null
   }>
@@ -163,7 +160,6 @@ export async function editarVisita(input: EditarVisitaInput): Promise<VisitaSegu
     .from('visitas_seguimiento')
     .update({
       porcentaje_avance_campo: input.cambios.porcentajeAvanceCampo,
-      presupuesto_observado_campo: input.cambios.presupuestoObservadoCampo,
       observaciones: input.cambios.observaciones,
       fecha_proxima_visita: input.cambios.fechaProximaVisita,
     })
@@ -273,7 +269,6 @@ function mapVisitaRow(row: any): VisitaSeguimiento {
     // PostgREST devuelve columnas `numeric` como string para no perder
     // precisión; se castea acá para que el resto del dominio trabaje con number.
     porcentajeAvanceCampo: Number(row.porcentaje_avance_campo),
-    presupuestoObservadoCampo: Number(row.presupuesto_observado_campo),
     observaciones: row.observaciones,
     estado: row.estado,
     revisadoPor: row.revisado_por,

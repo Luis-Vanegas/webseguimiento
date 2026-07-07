@@ -36,7 +36,6 @@ create table visitas_seguimiento (
   fecha_visita date not null,
   fecha_proxima_visita date,
   porcentaje_avance_campo numeric not null,
-  presupuesto_observado_campo numeric not null,
   observaciones text not null default '',
   estado text not null check (estado in ('pendiente_revisar', 'en_revision', 'revisada')),
   revisado_por uuid references usuarios_seguimiento (id),
@@ -171,3 +170,34 @@ create policy "leer_fotos_autenticados" on storage.objects for select to authent
 
 create policy "subir_fotos_autenticados" on storage.objects for insert to authenticated
   with check (bucket_id = 'fotos-seguimiento');
+
+-- ============================================================================
+-- MIGRACIONES MANUALES PENDIENTES — este archivo describe el esquema para una
+-- instalación NUEVA; el proyecto real ya tiene datos, así que estos cambios
+-- hay que correrlos a mano en el SQL Editor de Supabase. No se aplican solos.
+-- ============================================================================
+
+-- Migración 1 (DESTRUCTIVA, pide confirmación antes de correrla): se elimina
+-- el campo "presupuesto observado en campo" — el ingeniero de campo pidió
+-- sacarlo porque es muy difícil de estimar en obra. Esto borra el histórico
+-- de esa columna para siempre.
+--
+-- alter table visitas_seguimiento drop column presupuesto_observado_campo;
+
+-- Migración 2: permitir que el AUTOR de una visita la siga editando aunque
+-- ya esté en estado 'revisada' (hoy revisada es de solo lectura para
+-- siempre). Caso real: un ingeniero registra su propia visita (nace
+-- 'revisada' de una, ver estadoInicial() en seguimientoApi.ts) y le faltó
+-- cargar información — sin esto no tiene forma de completarla.
+--
+-- drop policy "editar_segun_estado_y_rol" on visitas_seguimiento;
+-- create policy "editar_segun_estado_y_rol" on visitas_seguimiento for update to authenticated
+--   using (
+--     (autor_id = auth.uid() and estado = 'pendiente_revisar' and rol_actual() = 'visitador')
+--     or (rol_actual() = 'ingeniero' and estado in ('pendiente_revisar', 'en_revision'))
+--     or (autor_id = auth.uid() and rol_actual() = 'ingeniero')
+--   )
+--   with check (
+--     (autor_id = auth.uid() and estado = 'pendiente_revisar' and rol_actual() = 'visitador')
+--     or (rol_actual() = 'ingeniero')
+--   );

@@ -45,11 +45,6 @@ function crearEsquemaVisita(idAlertaOtra: string | undefined) {
       .min(0)
       .max(100)
       .required('Obligatorio'),
-    presupuestoObservadoCampo: yup
-      .number()
-      .typeError('Ingresá un número')
-      .min(0)
-      .required('Obligatorio'),
     observaciones: yup.string().default(''),
     alertas: yup
       .array(
@@ -75,6 +70,22 @@ function crearEsquemaVisita(idAlertaOtra: string | undefined) {
 }
 
 type FormVisita = yup.InferType<ReturnType<typeof crearEsquemaVisita>>
+
+// Los iPhone guardan fotos en .HEIC/.HEIF por defecto; ningún navegador
+// salvo Safari puede decodificar ese formato en un <img>, así que se
+// convierte a JPEG acá antes de subir. El mime type de HEIC suele venir
+// vacío en Android/Chrome, de ahí el fallback a la extensión del nombre.
+// Import dinámico: heic2any carga un decodificador WASM pesado que no vale
+// la pena bajar si nadie sube una foto HEIC.
+async function convertirSiEsHeic(archivo: File): Promise<File> {
+  const esHeic = archivo.type === 'image/heic' || archivo.type === 'image/heif' || /\.hei[cf]$/i.test(archivo.name)
+  if (!esHeic) return archivo
+
+  const heic2any = (await import('heic2any')).default
+  const resultado = await heic2any({ blob: archivo, toType: 'image/jpeg', quality: 0.9 })
+  const blob = Array.isArray(resultado) ? resultado[0] : resultado
+  return new File([blob], archivo.name.replace(/\.hei[cf]$/i, '.jpg'), { type: 'image/jpeg' })
+}
 
 // Secciones de un mismo Paper, con título uniforme — reutilizado tres veces
 // en este formulario para no repetir el mismo bloque de estilos.
@@ -111,8 +122,30 @@ export function RegistrarVisita() {
   const { visitasObraActual } = useAppSelector((state) => state.seguimiento)
   const [tiposAlerta, setTiposAlerta] = useState<TipoAlerta[]>([])
   const [fotos, setFotos] = useState<File[]>([])
+  const [convirtiendoFotos, setConvirtiendoFotos] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  async function agregarFotos(archivos: FileList | null) {
+    if (!archivos || archivos.length === 0) return
+    setConvirtiendoFotos(true)
+    try {
+      // allSettled: si una foto falla al convertir (ej. un .heic corrupto),
+      // las demás del mismo lote no se pierden.
+      const resultados = await Promise.allSettled(Array.from(archivos).map(convertirSiEsHeic))
+      const convertidas = resultados
+        .filter((r): r is PromiseFulfilledResult<File> => r.status === 'fulfilled')
+        .map((r) => r.value)
+      if (convertidas.length > 0) setFotos((prev) => [...prev, ...convertidas])
+
+      const fallidas = resultados.filter((r) => r.status === 'rejected').length
+      if (fallidas > 0) {
+        setError(`No se pudo procesar ${fallidas} foto${fallidas > 1 ? 's' : ''}. Probá con otro formato.`)
+      }
+    } finally {
+      setConvirtiendoFotos(false)
+    }
+  }
 
   const idAlertaOtra = useMemo(() => tiposAlerta.find((t) => t.nombre === 'Otra')?.id, [tiposAlerta])
   const esquemaVisita = useMemo(() => crearEsquemaVisita(idAlertaOtra), [idAlertaOtra])
@@ -129,7 +162,6 @@ export function RegistrarVisita() {
       fechaVisita: new Date().toISOString().slice(0, 10),
       fechaProximaVisita: null,
       porcentajeAvanceCampo: 0,
-      presupuestoObservadoCampo: 0,
       observaciones: '',
       alertas: [],
     },
@@ -150,7 +182,6 @@ export function RegistrarVisita() {
   // Tarjeta de contexto: compara el borrador actual del form contra la
   // última visita registrada para esta obra (sección 7 del brief).
   const avanceCampo = watch('porcentajeAvanceCampo')
-  const presupuestoCampo = watch('presupuestoObservadoCampo')
   const alertasForm = watch('alertas')
 
   const cambios = useMemo(() => {
@@ -162,7 +193,6 @@ export function RegistrarVisita() {
       fechaVisita: new Date().toISOString(),
       fechaProximaVisita: null,
       porcentajeAvanceCampo: Number(avanceCampo) || 0,
-      presupuestoObservadoCampo: Number(presupuestoCampo) || 0,
       observaciones: '',
       estado: 'pendiente_revisar',
       revisadoPor: null,
@@ -179,7 +209,7 @@ export function RegistrarVisita() {
       fotos: [],
     }
     return compararVisitas(borrador, visitaAnterior)
-  }, [avanceCampo, presupuestoCampo, alertasForm, visitaAnterior, obraIdNum, usuario])
+  }, [avanceCampo, alertasForm, visitaAnterior, obraIdNum, usuario])
 
   function onSubmit(datos: FormVisita) {
     if (!usuario) return
@@ -196,7 +226,6 @@ export function RegistrarVisita() {
         // `date` nullable en Postgres, así que hay que normalizar a null.
         fechaProximaVisita: datos.fechaProximaVisita || null,
         porcentajeAvanceCampo: datos.porcentajeAvanceCampo,
-        presupuestoObservadoCampo: datos.presupuestoObservadoCampo,
         observaciones: datos.observaciones ?? '',
         alertas: (datos.alertas ?? []).map((a) => ({
           tipoAlertaId: a.tipoAlertaId,
@@ -284,24 +313,15 @@ export function RegistrarVisita() {
           />
         </Box>
 
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
-          <TextField
-            label="% de avance observado en campo"
-            type="number"
-            sx={{ flex: '1 1 200px' }}
-            {...register('porcentajeAvanceCampo')}
-            error={!!errors.porcentajeAvanceCampo}
-            helperText={errors.porcentajeAvanceCampo?.message}
-          />
-          <TextField
-            label="Presupuesto observado en campo"
-            type="number"
-            sx={{ flex: '1 1 200px' }}
-            {...register('presupuestoObservadoCampo')}
-            error={!!errors.presupuestoObservadoCampo}
-            helperText={errors.presupuestoObservadoCampo?.message}
-          />
-        </Box>
+        <TextField
+          label="% de avance observado en campo"
+          type="number"
+          fullWidth
+          sx={{ mb: 2 }}
+          {...register('porcentajeAvanceCampo')}
+          error={!!errors.porcentajeAvanceCampo}
+          helperText={errors.porcentajeAvanceCampo?.message}
+        />
 
         <TextField
           label="Observaciones"
@@ -378,15 +398,24 @@ export function RegistrarVisita() {
       </Seccion>
 
       <Seccion titulo="Fotos">
-        <Button component="label" variant="outlined" fullWidth startIcon={<PhotoCameraIcon />}>
-          Tomar o adjuntar fotos
+        <Button
+          component="label"
+          variant="outlined"
+          fullWidth
+          startIcon={<PhotoCameraIcon />}
+          disabled={convirtiendoFotos}
+        >
+          {convirtiendoFotos ? 'Procesando fotos…' : 'Tomar o adjuntar fotos'}
           <input
             type="file"
             accept="image/*"
             capture="environment"
             multiple
             hidden
-            onChange={(e) => setFotos((prev) => [...prev, ...Array.from(e.target.files ?? [])])}
+            onChange={(e) => {
+              agregarFotos(e.target.files)
+              e.target.value = ''
+            }}
           />
         </Button>
         {fotos.length > 0 && (
@@ -409,7 +438,14 @@ export function RegistrarVisita() {
         </Alert>
       )}
 
-      <Button type="submit" variant="contained" fullWidth size="large" sx={{ mb: 4 }} disabled={enviando}>
+      <Button
+        type="submit"
+        variant="contained"
+        fullWidth
+        size="large"
+        sx={{ mb: 4 }}
+        disabled={enviando || convirtiendoFotos}
+      >
         {enviando ? 'Guardando…' : 'Guardar visita'}
       </Button>
     </Box>

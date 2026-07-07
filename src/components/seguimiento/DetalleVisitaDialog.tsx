@@ -40,7 +40,6 @@ const COLOR_SEVERIDAD: Record<SeveridadAlerta, string> = {
 
 export interface CambiosVisitaEditables {
   porcentajeAvanceCampo: number
-  presupuestoObservadoCampo: number
   observaciones: string
   fechaProximaVisita: string | null
 }
@@ -48,12 +47,17 @@ export interface CambiosVisitaEditables {
 // Reglas de edición (espejo de las policies RLS del schema): el visitador
 // solo edita su propia visita mientras siga pendiente_revisar; el ingeniero
 // edita cualquiera que no esté revisada; revisada es de solo lectura para
-// todos — una corrección posterior es una visita nueva.
+// todos, EXCEPTO para el propio ingeniero autor — su visita nace revisada
+// de una (ver estadoInicial() en seguimientoApi.ts) y sin esta excepción no
+// tendría forma de completar información que le faltó cargar.
 function puedeEditarVisita(
   visita: VisitaSeguimiento,
   usuario: UsuarioSeguimiento | null,
 ): boolean {
-  if (!usuario || visita.estado === 'revisada') return false
+  if (!usuario) return false
+  if (visita.estado === 'revisada') {
+    return usuario.rol === 'ingeniero' && visita.autorId === usuario.id
+  }
   if (usuario.rol === 'ingeniero') return true
   return visita.autorId === usuario.id && visita.estado === 'pendiente_revisar'
 }
@@ -79,7 +83,6 @@ export function DetalleVisitaDialog({
   const editable = puedeEditarVisita(visita, usuario)
   const [editando, setEditando] = useState(false)
   const [avance, setAvance] = useState(visita.porcentajeAvanceCampo)
-  const [presupuesto, setPresupuesto] = useState(visita.presupuestoObservadoCampo)
   const [observaciones, setObservaciones] = useState(visita.observaciones)
   const [proximaVisita, setProximaVisita] = useState(visita.fechaProximaVisita ?? '')
 
@@ -89,7 +92,6 @@ export function DetalleVisitaDialog({
   function guardar() {
     onGuardar({
       porcentajeAvanceCampo: avance,
-      presupuestoObservadoCampo: presupuesto,
       observaciones,
       fechaProximaVisita: proximaVisita || null,
     })
@@ -118,7 +120,9 @@ export function DetalleVisitaDialog({
       <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {visita.estado === 'revisada' && (
           <Alert severity="success" sx={{ py: 0 }}>
-            Visita revisada: es de solo lectura. Una corrección posterior se registra como visita nueva.
+            {editable
+              ? 'Visita revisada: como autor, todavía podés completarla o corregirla.'
+              : 'Visita revisada: es de solo lectura. Una corrección posterior se registra como visita nueva.'}
           </Alert>
         )}
 
@@ -133,13 +137,6 @@ export function DetalleVisitaDialog({
                 sx={{ flex: '1 1 140px' }}
               />
               <TextField
-                label="Presupuesto observado"
-                type="number"
-                value={presupuesto}
-                onChange={(e) => setPresupuesto(Number(e.target.value))}
-                sx={{ flex: '1 1 140px' }}
-              />
-              <TextField
                 label="Próxima visita"
                 type="date"
                 value={proximaVisita}
@@ -151,10 +148,6 @@ export function DetalleVisitaDialog({
           ) : (
             <>
               <Dato etiqueta="Avance observado" valor={`${visita.porcentajeAvanceCampo}%`} />
-              <Dato
-                etiqueta="Presupuesto observado"
-                valor={`$${visita.presupuestoObservadoCampo.toLocaleString('es-CO')}`}
-              />
               <Dato etiqueta="Próxima visita" valor={visita.fechaProximaVisita ?? '—'} />
             </>
           )}
