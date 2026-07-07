@@ -1,8 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import MapGL, { Marker, NavigationControl, Popup } from 'react-map-gl'
 import maplibregl from 'maplibre-gl'
-import useSupercluster from 'use-supercluster'
-import { Box, Button, Chip, Typography } from '@mui/material'
+import {
+  Box,
+  Button,
+  Chip,
+  IconButton,
+  List,
+  ListItemButton,
+  ListItemText,
+  TextField,
+  Typography,
+} from '@mui/material'
+import SearchIcon from '@mui/icons-material/Search'
+import CloseIcon from '@mui/icons-material/Close'
+import InputAdornment from '@mui/material/InputAdornment'
 import { useNavigate } from 'react-router-dom'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import * as obrasVisorApi from '../../api/obrasVisorApi'
@@ -12,6 +24,7 @@ import type { ObraVisor } from '../../types/obra.types'
 ;(maplibregl as any).supported = () => true
 
 const DIAS_DESATENDIDA = 30
+const COLOR_COMUNA = '#f97316'
 
 const ESTILOS_MAPA = {
   calles: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
@@ -32,12 +45,31 @@ function estaDesatendida(ultimaVisita: string | undefined): boolean {
 }
 
 const LEYENDA: { color: string; label: string; border?: boolean }[] = [
-  { color: '#3b82f6', label: 'Entregada' },
-  { color: '#22c55e', label: 'Avance ≥ 70%' },
-  { color: '#eab308', label: 'Avance 35–70%' },
-  { color: '#ef4444', label: 'Avance < 35%' },
+  { color: COLOR_COMUNA, label: 'Cantidad de obras por comuna' },
+  { color: '#3b82f6', label: 'Obra seleccionada — entregada' },
+  { color: '#22c55e', label: 'Obra seleccionada — avance ≥ 70%' },
+  { color: '#eab308', label: 'Obra seleccionada — avance 35–70%' },
+  { color: '#ef4444', label: 'Obra seleccionada — avance < 35%' },
   { color: '#fff', label: 'Desatendida (>30 días)', border: true },
 ]
+
+// Centro geográfico de cada comuna: promedio de las coordenadas de sus obras
+// (no hay polígonos de comuna disponibles, solo el nombre en el dato oficial
+// "COMUNA O CORREGIMIENTO"). Suficiente para ubicar el círculo de conteo.
+function agruparPorComuna(obras: ObraVisor[]) {
+  const grupos = new Map<string, ObraVisor[]>()
+  for (const obra of obras) {
+    const clave = obra.comuna ?? 'Sin comuna registrada'
+    if (!grupos.has(clave)) grupos.set(clave, [])
+    grupos.get(clave)!.push(obra)
+  }
+  return [...grupos.entries()].map(([comuna, obrasComuna]) => ({
+    comuna,
+    obras: obrasComuna,
+    latitud: obrasComuna.reduce((s, o) => s + (o.latitud ?? 0), 0) / obrasComuna.length,
+    longitud: obrasComuna.reduce((s, o) => s + (o.longitud ?? 0), 0) / obrasComuna.length,
+  }))
+}
 
 export function MapaSeguimiento() {
   const navigate = useNavigate()
@@ -48,11 +80,18 @@ export function MapaSeguimiento() {
   const [obraSeleccionada, setObraSeleccionada] = useState<ObraVisor | null>(null)
   const [estiloMapa, setEstiloMapa] = useState<'calles' | 'satelite'>('calles')
   const [viewport, setViewport] = useState({ longitude: -75.58, latitude: 6.24, zoom: 10 })
-  const [bounds, setBounds] = useState<[number, number, number, number]>([-76, 5.7, -75, 6.8])
+  const [busqueda, setBusqueda] = useState('')
+  const [comunaActiva, setComunaActiva] = useState<string | null>(null)
 
   useEffect(() => {
-    obrasVisorApi.obtenerObras().then(setObras).catch(() => {})
-    seguimientoApi.obtenerUltimaVisitaPorObra().then(setUltimaVisitaPorObra).catch(() => {})
+    obrasVisorApi
+      .obtenerObras()
+      .then(setObras)
+      .catch(() => {})
+    seguimientoApi
+      .obtenerUltimaVisitaPorObra()
+      .then(setUltimaVisitaPorObra)
+      .catch(() => {})
   }, [])
 
   const obrasFiltradas = useMemo(() => {
@@ -61,22 +100,24 @@ export function MapaSeguimiento() {
     return conCoordenadas.filter((o) => ultimaVisitaPorObra.get(o.obraId) === fechaFiltro)
   }, [obras, fechaFiltro, ultimaVisitaPorObra])
 
-  const puntos = useMemo(
-    () =>
-      obrasFiltradas.map((obra) => ({
-        type: 'Feature' as const,
-        properties: { cluster: false, obraId: obra.obraId },
-        geometry: { type: 'Point' as const, coordinates: [obra.longitud!, obra.latitud!] },
-      })),
-    [obrasFiltradas],
+  const comunas = useMemo(() => agruparPorComuna(obrasFiltradas), [obrasFiltradas])
+
+  const resultadosBusqueda = useMemo(() => {
+    const texto = busqueda.trim().toLowerCase()
+    if (!texto) return []
+    return obrasFiltradas.filter((o) => o.nombre.toLowerCase().includes(texto)).slice(0, 30)
+  }, [busqueda, obrasFiltradas])
+
+  const obrasComunaActiva = useMemo(
+    () => comunas.find((c) => c.comuna === comunaActiva)?.obras ?? [],
+    [comunas, comunaActiva],
   )
 
-  const { clusters, supercluster } = useSupercluster({
-    points: puntos,
-    bounds,
-    zoom: viewport.zoom,
-    options: { radius: 60, maxZoom: 16 },
-  })
+  function seleccionarObra(obra: ObraVisor) {
+    if (obra.latitud === null || obra.longitud === null) return
+    setObraSeleccionada(obra)
+    setViewport((v) => ({ ...v, longitude: obra.longitud!, latitude: obra.latitud!, zoom: Math.max(v.zoom, 14) }))
+  }
 
   return (
     <Box sx={{ height: 'calc(100vh - 48px)', display: 'flex', flexDirection: 'column' }}>
@@ -133,220 +174,238 @@ export function MapaSeguimiento() {
         />
       </Box>
 
-      <Box sx={{ flex: 1, position: 'relative' }}>
-        <MapGL
-          ref={mapRef}
-          {...viewport}
-          mapLib={maplibregl}
-          mapStyle={ESTILOS_MAPA[estiloMapa]}
-          style={{ width: '100%', height: '100%' }}
-          onMove={(evt) => setViewport(evt.viewState)}
-          onMoveEnd={(evt) => {
-            const b = evt.target.getBounds()
-            setBounds([b.getWest(), b.getSouth(), b.getEast(), b.getNorth()])
-          }}
-          onError={(e: any) => {
-            if (e?.error?.message?.includes('supported')) return
-          }}
-        >
-          <NavigationControl position="top-right" />
-
-          {clusters.map((cluster) => {
-            const [longitude, latitude] = cluster.geometry.coordinates
-            const propiedades = cluster.properties as { cluster: boolean; point_count?: number; obraId?: number }
-            const { cluster: esCluster, point_count: cantidad } = propiedades
-
-            if (esCluster) {
-              // Escala logarítmica: 10 obras ≈ 38px, 100 ≈ 48px, 1000 ≈ 58px.
-              // Lineal quedaba gigante con clusters de cientos de obras.
-              const size = 28 + Math.log10(Math.max(cantidad ?? 1, 1)) * 10
-              return (
-                <Marker key={cluster.id} longitude={longitude} latitude={latitude}>
-                  <div
-                    onClick={() => {
-                      const zoomExpandido = supercluster?.getClusterExpansionZoom(Number(cluster.id))
-                      setViewport((v) => ({ ...v, longitude, latitude, zoom: zoomExpandido ?? v.zoom + 2 }))
-                    }}
-                    style={{
-                      width: size,
-                      height: size,
-                      borderRadius: '50%',
-                      background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-                      color: '#fff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 11,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 8px rgba(37,99,235,0.4)',
-                      border: '2px solid rgba(255,255,255,0.6)',
-                      transition: 'transform 0.15s',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                  >
-                    {cantidad}
-                  </div>
-                </Marker>
-              )
-            }
-
-            const obra = obrasFiltradas.find((o) => o.obraId === propiedades.obraId)
-            if (!obra) return null
-            const desatendida = estaDesatendida(ultimaVisitaPorObra.get(obra.obraId))
-            const { color } = infoObra(obra)
-            const mostrarLabel = viewport.zoom >= 13
-
-            return (
-              <Marker
-                key={obra.obraId}
-                longitude={longitude}
-                latitude={latitude}
-                onClick={() => setObraSeleccionada(obra)}
-              >
-                <Box
-                  sx={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 0,
-                    cursor: 'pointer',
-                    position: 'relative',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 14,
-                      height: 14,
-                      borderRadius: '50%',
-                      background: color,
-                      border: desatendida ? `3px solid #ef4444` : `2px solid #fff`,
-                      boxShadow: desatendida
-                        ? '0 0 0 2px #fff, 0 0 0 5px rgba(239,68,68,0.4)'
-                        : '0 1px 4px rgba(0,0,0,0.3)',
-                      transition: 'transform 0.15s',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.4)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                    title={`${obra.nombre} — ${infoObra(obra).etiqueta}`}
-                  />
-                  {mostrarLabel && (
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        fontSize: 9,
-                        lineHeight: 1.1,
-                        mt: 0.3,
-                        px: 0.5,
-                        py: 0.1,
-                        borderRadius: 0.5,
-                        bgcolor: 'rgba(255,255,255,0.85)',
-                        color: 'text.primary',
-                        maxWidth: 140,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        textAlign: 'center',
-                        fontWeight: 500,
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                      }}
-                    >
-                      {obra.nombre}
-                    </Typography>
-                  )}
-                </Box>
-              </Marker>
-            )
-          })}
-
-          {obraSeleccionada && (
-            <Popup
-              longitude={obraSeleccionada.longitud!}
-              latitude={obraSeleccionada.latitud!}
-              onClose={() => setObraSeleccionada(null)}
-              closeOnClick={false}
-              style={{ padding: 0 }}
-            >
-              <Box sx={{ p: 1.5, minWidth: 200 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, lineHeight: 1.3, mb: 0.5 }}>
-                  {obraSeleccionada.nombre}
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                  <Box
-                    sx={{
-                      width: 10,
-                      height: 10,
-                      borderRadius: '50%',
-                      background: infoObra(obraSeleccionada).color,
-                      flexShrink: 0,
-                    }}
-                  />
-                  <Typography variant="caption" color="text.secondary">
-                    {infoObra(obraSeleccionada).etiqueta}
-                  </Typography>
-                </Box>
-                {obraSeleccionada.dependencia && (
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                    {obraSeleccionada.dependencia}
-                  </Typography>
-                )}
-                <Box sx={{ display: 'flex', gap: 0.5, mt: 1 }}>
-                  <Button
-                    size="small"
-                    variant="contained"
-                    sx={{ fontSize: 11, py: 0.3 }}
-                    onClick={() => navigate(`/seguimiento/registrar/${obraSeleccionada.obraId}`)}
-                  >
-                    Visitar
-                  </Button>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    sx={{ fontSize: 11, py: 0.3 }}
-                    onClick={() => navigate(`/seguimiento/historial/${obraSeleccionada.obraId}`)}
-                  >
-                    Historial
-                  </Button>
-                </Box>
-              </Box>
-            </Popup>
-          )}
-        </MapGL>
-
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: 0 }}>
         <Box
           sx={{
-            position: 'absolute',
-            bottom: 20,
-            left: 10,
-            bgcolor: 'rgba(255,255,255,0.95)',
-            borderRadius: 1.5,
-            px: 1.5,
-            py: 1,
-            boxShadow: '0 2px 12px rgba(0,0,0,0.12)',
-            zIndex: 1,
+            width: { xs: '100%', md: 320 },
+            flexShrink: 0,
+            borderRight: { md: '1px solid' },
+            borderBottom: { xs: '1px solid', md: 'none' },
+            borderColor: 'divider',
+            display: 'flex',
+            flexDirection: 'column',
+            maxHeight: { xs: 260, md: 'none' },
           }}
         >
-          <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
-            {obrasFiltradas.length} obras
-          </Typography>
-          {LEYENDA.map((item) => (
-            <Box key={item.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.15 }}>
-              <Box
-                sx={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: '50%',
-                  bgcolor: item.color,
-                  border: item.border ? '2px solid #ef4444' : 'none',
-                  flexShrink: 0,
-                }}
-              />
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: 11 }}>
-                {item.label}
+          <Box sx={{ p: 1.5 }}>
+            <TextField
+              size="small"
+              fullWidth
+              placeholder="Buscar obra por nombre…"
+              value={busqueda}
+              onChange={(e) => {
+                setBusqueda(e.target.value)
+                setComunaActiva(null)
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+                endAdornment: busqueda && (
+                  <InputAdornment position="end">
+                    <IconButton size="small" onClick={() => setBusqueda('')}>
+                      <CloseIcon fontSize="small" />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
+
+          <Box sx={{ overflowY: 'auto', flex: 1 }}>
+            {busqueda && (
+              <List dense disablePadding>
+                {resultadosBusqueda.length === 0 && (
+                  <Typography variant="body2" color="text.secondary" sx={{ px: 2, py: 1 }}>
+                    Sin resultados para "{busqueda}".
+                  </Typography>
+                )}
+                {resultadosBusqueda.map((obra) => (
+                  <ListItemButton key={obra.obraId} onClick={() => seleccionarObra(obra)}>
+                    <ListItemText primary={obra.nombre} secondary={obra.comuna ?? 'Sin comuna registrada'} />
+                  </ListItemButton>
+                ))}
+              </List>
+            )}
+
+            {!busqueda && comunaActiva && (
+              <>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1 }}>
+                  <Typography variant="subtitle2">
+                    {comunaActiva} · {obrasComunaActiva.length} obras
+                  </Typography>
+                  <IconButton size="small" onClick={() => setComunaActiva(null)}>
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+                <List dense disablePadding>
+                  {obrasComunaActiva.map((obra) => (
+                    <ListItemButton key={obra.obraId} onClick={() => seleccionarObra(obra)}>
+                      <ListItemText primary={obra.nombre} secondary={infoObra(obra).etiqueta} />
+                    </ListItemButton>
+                  ))}
+                </List>
+              </>
+            )}
+
+            {!busqueda && !comunaActiva && (
+              <Typography variant="body2" color="text.secondary" sx={{ px: 2, py: 2 }}>
+                Buscá una obra por nombre o hacé clic en el número de una comuna en el mapa.
               </Typography>
-            </Box>
-          ))}
+            )}
+          </Box>
+        </Box>
+
+        <Box sx={{ flex: 1, position: 'relative', minHeight: 240 }}>
+          <MapGL
+            ref={mapRef}
+            {...viewport}
+            mapLib={maplibregl}
+            mapStyle={ESTILOS_MAPA[estiloMapa]}
+            style={{ width: '100%', height: '100%' }}
+            onMove={(evt) => setViewport(evt.viewState)}
+            onError={(e: any) => {
+              if (e?.error?.message?.includes('supported')) return
+            }}
+          >
+            <NavigationControl position="top-right" />
+
+            {comunas.map((grupo) => (
+              <Marker key={grupo.comuna} longitude={grupo.longitud} latitude={grupo.latitud}>
+                <div
+                  onClick={() => {
+                    setComunaActiva(grupo.comuna)
+                    setBusqueda('')
+                  }}
+                  title={grupo.comuna}
+                  style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: '50%',
+                    background: COLOR_COMUNA,
+                    color: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: comunaActiva === grupo.comuna ? '0 0 0 3px rgba(37,99,235,0.6)' : '0 2px 8px rgba(0,0,0,0.3)',
+                    border: '2px solid rgba(255,255,255,0.8)',
+                  }}
+                >
+                  {grupo.obras.length}
+                </div>
+              </Marker>
+            ))}
+
+            {obraSeleccionada && obraSeleccionada.latitud !== null && obraSeleccionada.longitud !== null && (
+              <Marker longitude={obraSeleccionada.longitud} latitude={obraSeleccionada.latitud}>
+                <div
+                  style={{
+                    width: 16,
+                    height: 16,
+                    borderRadius: '50%',
+                    background: infoObra(obraSeleccionada).color,
+                    border: estaDesatendida(ultimaVisitaPorObra.get(obraSeleccionada.obraId))
+                      ? '3px solid #ef4444'
+                      : '2px solid #fff',
+                    boxShadow: '0 0 0 3px rgba(37,99,235,0.5)',
+                  }}
+                />
+              </Marker>
+            )}
+
+            {obraSeleccionada && (
+              <Popup
+                longitude={obraSeleccionada.longitud!}
+                latitude={obraSeleccionada.latitud!}
+                onClose={() => setObraSeleccionada(null)}
+                closeOnClick={false}
+                style={{ padding: 0 }}
+              >
+                <Box sx={{ p: 1.5, minWidth: 200 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, lineHeight: 1.3, mb: 0.5 }}>
+                    {obraSeleccionada.nombre}
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                    <Box
+                      sx={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: '50%',
+                        background: infoObra(obraSeleccionada).color,
+                        flexShrink: 0,
+                      }}
+                    />
+                    <Typography variant="caption" color="text.secondary">
+                      {infoObra(obraSeleccionada).etiqueta}
+                    </Typography>
+                  </Box>
+                  {obraSeleccionada.dependencia && (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                      {obraSeleccionada.dependencia}
+                    </Typography>
+                  )}
+                  <Box sx={{ display: 'flex', gap: 0.5, mt: 1 }}>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      sx={{ fontSize: 11, py: 0.3 }}
+                      onClick={() => navigate(`/seguimiento/registrar/${obraSeleccionada.obraId}`)}
+                    >
+                      Visitar
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      sx={{ fontSize: 11, py: 0.3 }}
+                      onClick={() => navigate(`/seguimiento/historial/${obraSeleccionada.obraId}`)}
+                    >
+                      Historial
+                    </Button>
+                  </Box>
+                </Box>
+              </Popup>
+            )}
+          </MapGL>
+
+          <Box
+            sx={{
+              position: 'absolute',
+              bottom: 20,
+              left: 10,
+              bgcolor: 'rgba(255,255,255,0.95)',
+              borderRadius: 1.5,
+              px: 1.5,
+              py: 1,
+              boxShadow: '0 2px 12px rgba(0,0,0,0.12)',
+              zIndex: 1,
+            }}
+          >
+            <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
+              {obrasFiltradas.length} obras · {comunas.length} comunas
+            </Typography>
+            {LEYENDA.map((item) => (
+              <Box key={item.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.15 }}>
+                <Box
+                  sx={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: '50%',
+                    bgcolor: item.color,
+                    border: item.border ? '2px solid #ef4444' : 'none',
+                    flexShrink: 0,
+                  }}
+                />
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: 11 }}>
+                  {item.label}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
         </Box>
       </Box>
     </Box>

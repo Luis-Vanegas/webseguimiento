@@ -28,5 +28,7 @@ export function useDatosFiltro() {
 
   const nombrePorObra = useMemo(() => new Map(obras.map((o) => [o.obraId, o.nombre])), [obras])
 
-  return { proyectoEstrategicoPorObra, proyectosEstrategicos, tiposAlerta, nombrePorObra }
+  const obraPorId = useMemo(() => new Map(obras.map((o) => [o.obraId, o])), [obras])
+
+  return { proyectoEstrategicoPorObra, proyectosEstrategicos, tiposAlerta, nombrePorObra, obraPorId }
 }

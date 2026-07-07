@@ -6,6 +6,9 @@ export interface ObraVisor {
   obraId: number
   nombre: string
   dependencia: string | null
+  comuna: string | null
+  barrio: string | null
+  direccion: string | null
   latitud: number | null
   longitud: number | null
   presupuestoOficial: number

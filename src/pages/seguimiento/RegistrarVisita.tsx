@@ -72,13 +72,25 @@ function Seccion({ titulo, children }: { titulo: string; children: React.ReactNo
   )
 }
 
+function DatoObra({ etiqueta, valor }: { etiqueta: string; valor: string | null }) {
+  return (
+    <Box>
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+        {etiqueta}
+      </Typography>
+      <Typography variant="body2">{valor ?? '—'}</Typography>
+    </Box>
+  )
+}
+
 export function RegistrarVisita() {
   const { obraId } = useParams<{ obraId: string }>()
   const obraIdNum = Number(obraId)
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const { usuario } = useUsuarioActual()
-  const { nombrePorObra } = useDatosFiltro()
+  const { obraPorId } = useDatosFiltro()
+  const obra = obraPorId.get(obraIdNum)
   const { visitasObraActual } = useAppSelector((state) => state.seguimiento)
   const [tiposAlerta, setTiposAlerta] = useState<TipoAlerta[]>([])
   const [fotos, setFotos] = useState<File[]>([])
@@ -194,9 +206,28 @@ export function RegistrarVisita() {
   return (
     <Box sx={{ maxWidth: 560, mx: 'auto' }} component="form" onSubmit={handleSubmit(onSubmit)}>
       <Typography variant="h5">Registrar visita</Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        {nombrePorObra.get(obraIdNum) ?? `Obra ${obraId}`}
+      <Typography variant="body2" color="text.secondary" sx={{ mb: obra ? 0.5 : 3 }}>
+        {obra ? `${obra.nombre} (ID ${obraIdNum})` : `Obra sin datos oficiales (ID ${obraIdNum})`}
       </Typography>
+
+      {obra && (
+        <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, mb: 2.5 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1.5 }}>
+            Datos oficiales de la obra
+          </Typography>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1 }}>
+            <DatoObra etiqueta="Dependencia" valor={obra.dependencia} />
+            <DatoObra etiqueta="Comuna / corregimiento" valor={obra.comuna} />
+            <DatoObra etiqueta="Barrio" valor={obra.barrio} />
+            <DatoObra etiqueta="Dirección" valor={obra.direccion} />
+            <DatoObra
+              etiqueta="Presupuesto oficial"
+              valor={obra.presupuestoOficial.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
+            />
+            <DatoObra etiqueta="Avance oficial" valor={`${obra.porcentajeAvanceOficial}%`} />
+          </Box>
+        </Paper>
+      )}
 
       {visitaAnterior && (
         <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, mb: 2.5, bgcolor: '#f7f9fc' }}>
