@@ -28,6 +28,7 @@ import {
 import * as seguimientoApi from '../../features/seguimiento/seguimientoApi'
 import { useDatosFiltro } from '../../features/seguimiento/useDatosFiltro'
 import { compararVisitas } from '../../utils/seguimiento/visita-comparator.util'
+import { convertirBlobHeicAJpeg, esArchivoHeic } from '../../utils/seguimiento/heic.util'
 import { CambioVisitaItem } from '../../components/seguimiento/CambioVisitaItem'
 import type { TipoAlerta, VisitaSeguimiento } from '../../types/seguimiento.types'
 
@@ -71,19 +72,9 @@ function crearEsquemaVisita(idAlertaOtra: string | undefined) {
 
 type FormVisita = yup.InferType<ReturnType<typeof crearEsquemaVisita>>
 
-// Los iPhone guardan fotos en .HEIC/.HEIF por defecto; ningún navegador
-// salvo Safari puede decodificar ese formato en un <img>, así que se
-// convierte a JPEG acá antes de subir. El mime type de HEIC suele venir
-// vacío en Android/Chrome, de ahí el fallback a la extensión del nombre.
-// Import dinámico: heic2any carga un decodificador WASM pesado que no vale
-// la pena bajar si nadie sube una foto HEIC.
 async function convertirSiEsHeic(archivo: File): Promise<File> {
-  const esHeic = archivo.type === 'image/heic' || archivo.type === 'image/heif' || /\.hei[cf]$/i.test(archivo.name)
-  if (!esHeic) return archivo
-
-  const heic2any = (await import('heic2any')).default
-  const resultado = await heic2any({ blob: archivo, toType: 'image/jpeg', quality: 0.9 })
-  const blob = Array.isArray(resultado) ? resultado[0] : resultado
+  if (!esArchivoHeic(archivo)) return archivo
+  const blob = await convertirBlobHeicAJpeg(archivo)
   return new File([blob], archivo.name.replace(/\.hei[cf]$/i, '.jpg'), { type: 'image/jpeg' })
 }
 
