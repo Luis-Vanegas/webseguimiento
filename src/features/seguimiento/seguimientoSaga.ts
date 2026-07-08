@@ -46,10 +46,11 @@ function* listarMisVisitasWorker(action: PayloadAction<{ autorId: string }>) {
   }
 }
 
-function* listarPendientesWorker() {
+function* listarPendientesWorker(action: PayloadAction<{ usuarioId: string }>) {
   try {
     const visitas: Awaited<ReturnType<typeof api.listarPendientes>> = yield call(
       api.listarPendientes,
+      action.payload.usuarioId,
     )
     yield put(listarPendientesExito(visitas))
   } catch (err) {

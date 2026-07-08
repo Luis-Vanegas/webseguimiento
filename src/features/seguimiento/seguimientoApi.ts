@@ -4,6 +4,7 @@ import type {
   FotoVisita,
   RolUsuario,
   TipoAlerta,
+  UsuarioSeguimiento,
   VisitaSeguimiento,
 } from '../../types/seguimiento.types'
 
@@ -122,15 +123,30 @@ export async function listarMisVisitas(autorId: string): Promise<VisitaSeguimien
   return (data ?? []).map(mapVisitaRow)
 }
 
-export async function listarPendientes(): Promise<VisitaSeguimiento[]> {
+// Bandeja del ingeniero: lo pendiente de los visitadores, MÁS lo que
+// registraron otros ingenieros (nace 'revisada' de una, ver estadoInicial())
+// para que los ingenieros puedan auditarse entre sí. Nunca incluye las
+// propias del usuario actual — esas ya se ven en "Mis visitas".
+export async function listarPendientes(usuarioActualId: string): Promise<VisitaSeguimiento[]> {
   const { data, error } = await supabase
     .from('visitas_seguimiento')
     .select('*, alertas_visita(*), fotos_visita(*)')
-    .in('estado', ['pendiente_revisar', 'en_revision'])
+    .or(
+      `estado.in.(pendiente_revisar,en_revision),and(estado.eq.revisada,autor_rol.eq.ingeniero,autor_id.neq.${usuarioActualId})`,
+    )
     .order('fecha_visita', { ascending: false })
 
   if (error) throw error
   return (data ?? []).map(mapVisitaRow)
+}
+
+export async function listarUsuarios(): Promise<UsuarioSeguimiento[]> {
+  const { data, error } = await supabase
+    .from('usuarios_seguimiento')
+    .select('id, nombre, rol, activo')
+
+  if (error) throw error
+  return data ?? []
 }
 
 export async function listarVisitasDeObra(obraId: number): Promise<VisitaSeguimiento[]> {

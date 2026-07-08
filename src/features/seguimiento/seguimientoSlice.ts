@@ -46,7 +46,7 @@ const seguimientoSlice = createSlice({
     },
 
     // --- Listar pendientes (bandeja del ingeniero) ---
-    listarPendientesSolicitada: (state) => {
+    listarPendientesSolicitada: (state, _action: PayloadAction<{ usuarioId: string }>) => {
       state.cargando = true
       state.error = null
     },
