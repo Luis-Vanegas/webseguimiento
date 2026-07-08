@@ -131,9 +131,13 @@ export async function listarPendientes(usuarioActualId: string): Promise<VisitaS
   const { data, error } = await supabase
     .from('visitas_seguimiento')
     .select('*, alertas_visita(*), fotos_visita(*)')
-    .or(
-      `estado.in.(pendiente_revisar,en_revision),and(estado.eq.revisada,autor_rol.eq.ingeniero,autor_id.neq.${usuarioActualId})`,
-    )
+    // .neq() encadenado aplica a TODO el .or() que sigue, así la exclusión de
+    // "propias" cubre ambas ramas en vez de solo la de 'revisada' (antes,
+    // la rama pendiente/en_revision dependía de que un ingeniero nunca
+    // tenga ahí una visita suya — cierto hoy por estadoInicial(), pero no
+    // garantizado por esta query).
+    .neq('autor_id', usuarioActualId)
+    .or(`estado.in.(pendiente_revisar,en_revision),and(estado.eq.revisada,autor_rol.eq.ingeniero)`)
     .order('fecha_visita', { ascending: false })
 
   if (error) throw error

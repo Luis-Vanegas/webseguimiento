@@ -27,7 +27,7 @@ export function HistorialObra() {
   const obraIdNum = Number(obraId)
   const dispatch = useAppDispatch()
   const { visitasObraActual } = useAppSelector((state) => state.seguimiento)
-  const { proyectoEstrategicoPorObra, proyectosEstrategicos, tiposAlerta, nombrePorObra } =
+  const { proyectoEstrategicoPorObra, proyectosEstrategicos, tiposAlerta, obraPorId } =
     useDatosFiltro()
   const [filtros, setFiltros] = useState(FILTROS_VACIOS)
   const [puntos, setPuntos] = useState<PuntoReferenciaObra[]>([])
@@ -58,7 +58,7 @@ export function HistorialObra() {
   return (
     <Box sx={{ maxWidth: 760 }}>
       <PageHeader
-        titulo={nombrePorObra.get(obraIdNum) ?? `Obra ${obraId}`}
+        titulo={obraPorId.get(obraIdNum)?.nombre ?? `Obra ${obraId}`}
         subtitulo="Historial de visitas de campo"
         accion={
           <Button

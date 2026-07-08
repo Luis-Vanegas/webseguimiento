@@ -41,7 +41,7 @@ export function MisVisitas() {
   const dispatch = useAppDispatch()
   const { usuario } = useUsuarioActual()
   const { misVisitas, cargando } = useAppSelector((state) => state.seguimiento)
-  const { proyectoEstrategicoPorObra, proyectosEstrategicos, tiposAlerta, nombrePorObra } =
+  const { proyectoEstrategicoPorObra, proyectosEstrategicos, tiposAlerta, obraPorId } =
     useDatosFiltro()
   const [filtros, setFiltros] = useState(FILTROS_VACIOS)
   const [visitaSeleccionada, setVisitaSeleccionada] = useState<VisitaSeguimiento | null>(null)
@@ -100,7 +100,7 @@ export function MisVisitas() {
               <CardActionArea onClick={() => setVisitaSeleccionada(visita)} sx={{ p: 2 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, mb: 0.5 }}>
                   <Typography sx={{ fontWeight: 600, fontSize: 15, lineHeight: 1.3 }}>
-                    {nombrePorObra.get(visita.obraId) ?? `Obra ${visita.obraId}`}
+                    {obraPorId.get(visita.obraId)?.nombre ?? `Obra ${visita.obraId}`}
                   </Typography>
                   <Chip
                     size="small"
@@ -149,7 +149,7 @@ export function MisVisitas() {
           visita={misVisitas.find((v) => v.id === visitaSeleccionada.id) ?? visitaSeleccionada}
           usuario={usuario}
           nombreObra={
-            nombrePorObra.get(visitaSeleccionada.obraId) ?? `Obra ${visitaSeleccionada.obraId}`
+            obraPorId.get(visitaSeleccionada.obraId)?.nombre ?? `Obra ${visitaSeleccionada.obraId}`
           }
           tiposAlerta={tiposAlerta}
           onCerrar={() => setVisitaSeleccionada(null)}

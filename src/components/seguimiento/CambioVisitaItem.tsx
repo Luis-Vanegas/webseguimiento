@@ -14,12 +14,12 @@ const ETIQUETA_CAMPO: Record<string, string> = {
 
 const CAMPOS_ALERTAS = new Set(['alertasNuevas', 'alertasResueltas', 'alertasPersistentes'])
 
-function formatearValor(campo: string, valor: unknown, nombrePorTipoAlerta: Map<string, string>): string {
+function formatearValor(campo: string, valor: unknown, tiposAlerta: TipoAlerta[]): string {
   if (valor === null || valor === undefined) return '—'
   if (Array.isArray(valor)) {
     if (valor.length === 0) return '—'
     if (CAMPOS_ALERTAS.has(campo)) {
-      return valor.map((id) => nombrePorTipoAlerta.get(id) ?? 'Alerta').join(', ')
+      return valor.map((id) => tiposAlerta.find((t) => t.id === id)?.nombre ?? 'Alerta').join(', ')
     }
     return valor.join(', ')
   }
@@ -38,13 +38,12 @@ interface CambioVisitaItemProps {
 // lugar para no repetir el formato en cada pantalla.
 export function CambioVisitaItem({ cambio, tiposAlerta = [] }: CambioVisitaItemProps) {
   const etiqueta = ETIQUETA_CAMPO[cambio.campo] ?? cambio.campo
-  const nombrePorTipoAlerta = new Map(tiposAlerta.map((t) => [t.id, t.nombre]))
 
   if (cambio.variacion === undefined) {
     return (
       <Typography variant="body2" sx={{ py: 0.25 }}>
         <b>{etiqueta}:</b>{' '}
-        {formatearValor(cambio.campo, cambio.valorNuevo ?? cambio.valorAnterior, nombrePorTipoAlerta)}
+        {formatearValor(cambio.campo, cambio.valorNuevo ?? cambio.valorAnterior, tiposAlerta)}
       </Typography>
     )
   }
@@ -58,8 +57,8 @@ export function CambioVisitaItem({ cambio, tiposAlerta = [] }: CambioVisitaItemP
         <TrendingDownIcon sx={{ fontSize: 16, color: '#c62828' }} />
       )}
       <Typography variant="body2">
-        <b>{etiqueta}:</b> {formatearValor(cambio.campo, cambio.valorAnterior, nombrePorTipoAlerta)} →{' '}
-        {formatearValor(cambio.campo, cambio.valorNuevo, nombrePorTipoAlerta)}
+        <b>{etiqueta}:</b> {formatearValor(cambio.campo, cambio.valorAnterior, tiposAlerta)} →{' '}
+        {formatearValor(cambio.campo, cambio.valorNuevo, tiposAlerta)}
         <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
           ({subio ? '+' : ''}
           {cambio.variacion}

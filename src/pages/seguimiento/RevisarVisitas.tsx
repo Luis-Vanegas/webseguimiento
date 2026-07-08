@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import * as seguimientoApi from '../../features/seguimiento/seguimientoApi'
 import {
   Box,
   Button,
@@ -38,7 +37,7 @@ import { PageHeader } from '../../components/layout/PageHeader'
 import { filtrarVisitas } from '../../utils/seguimiento/filtrar-visitas.util'
 import { FILTROS_VACIOS } from '../../types/filtros.types'
 import { COLOR_ESTADO } from '../../theme/theme'
-import type { EstadoVisita, UsuarioSeguimiento, VisitaSeguimiento } from '../../types/seguimiento.types'
+import type { EstadoVisita, VisitaSeguimiento } from '../../types/seguimiento.types'
 
 const ETIQUETA_ESTADO: Record<EstadoVisita, string> = {
   pendiente_revisar: 'Pendiente de revisar',
@@ -52,18 +51,14 @@ export function RevisarVisitas() {
   const dispatch = useAppDispatch()
   const { usuario } = useUsuarioActual()
   const { pendientes, cargando } = useAppSelector((state) => state.seguimiento)
-  const { proyectoEstrategicoPorObra, proyectosEstrategicos, tiposAlerta, nombrePorObra } =
+  const { proyectoEstrategicoPorObra, proyectosEstrategicos, tiposAlerta, obraPorId, nombrePorAutor } =
     useDatosFiltro()
   const [filtros, setFiltros] = useState(FILTROS_VACIOS)
   const [visitaSeleccionada, setVisitaSeleccionada] = useState<VisitaSeguimiento | null>(null)
-  const [usuarios, setUsuarios] = useState<UsuarioSeguimiento[]>([])
 
   useEffect(() => {
     if (usuario) dispatch(listarPendientesSolicitada({ usuarioId: usuario.id }))
-    seguimientoApi.listarUsuarios().then(setUsuarios)
   }, [dispatch, usuario])
-
-  const nombrePorAutor = useMemo(() => new Map(usuarios.map((u) => [u.id, u.nombre])), [usuarios])
 
   const pendientesFiltradas = useMemo(
     () => filtrarVisitas(pendientes, filtros, proyectoEstrategicoPorObra),
@@ -95,7 +90,9 @@ export function RevisarVisitas() {
     dispatch(marcarRevisadaSolicitada({ id: visita.id, revisadoPor: usuario.id }))
   }
 
-  const nombreObra = (obraId: number) => nombrePorObra.get(obraId) ?? `Obra ${obraId}`
+  const nombreObra = (obraId: number) => obraPorId.get(obraId)?.nombre ?? `Obra ${obraId}`
+  const nombreAutor = (autorId: string) => nombrePorAutor.get(autorId) ?? 'Autor desconocido'
+  const puedeMarcarRevisada = (visita: VisitaSeguimiento) => visita.estado !== 'revisada'
 
   return (
     <Box sx={{ maxWidth: 1080 }}>
@@ -143,7 +140,7 @@ export function RevisarVisitas() {
                   />
                 </Box>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                  {nombrePorAutor.get(visita.autorId) ?? 'Autor desconocido'}
+                  {nombreAutor(visita.autorId)}
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', mb: 1.5 }}>
                   <Typography variant="body2" color="text.secondary">
@@ -163,9 +160,9 @@ export function RevisarVisitas() {
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1 }}>
                   <Button size="small" variant="outlined" onClick={() => abrirDetalle(visita)} sx={{ flex: 1 }}>
-                    {visita.estado === 'revisada' ? 'Ver' : 'Ver / editar'}
+                    {puedeMarcarRevisada(visita) ? 'Ver / editar' : 'Ver'}
                   </Button>
-                  {visita.estado !== 'revisada' && (
+                  {puedeMarcarRevisada(visita) && (
                     <Button size="small" variant="contained" onClick={() => marcarRevisada(visita)} sx={{ flex: 1 }}>
                       Revisada
                     </Button>
@@ -201,7 +198,7 @@ export function RevisarVisitas() {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" color="text.secondary">
-                        {nombrePorAutor.get(visita.autorId) ?? 'Autor desconocido'}
+                        {nombreAutor(visita.autorId)}
                       </Typography>
                     </TableCell>
                     <TableCell>{visita.fechaVisita}</TableCell>
@@ -231,9 +228,9 @@ export function RevisarVisitas() {
                     </TableCell>
                     <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                       <Button size="small" onClick={() => abrirDetalle(visita)}>
-                        {visita.estado === 'revisada' ? 'Ver' : 'Ver / editar'}
+                        {puedeMarcarRevisada(visita) ? 'Ver / editar' : 'Ver'}
                       </Button>
-                      {visita.estado !== 'revisada' && (
+                      {puedeMarcarRevisada(visita) && (
                         <Button size="small" onClick={() => marcarRevisada(visita)}>
                           Marcar revisada
                         </Button>

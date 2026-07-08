@@ -43,8 +43,8 @@ function mapObraRow(row: any): ObraVisor {
     direccion: row['DIRECCIÓN'] ?? null,
     latitud: numeroOrNull(row.LATITUD),
     longitud: numeroOrNull(row.LONGITUD),
-    presupuestoOficial: Number(row['COSTO TOTAL ACTUALIZADO'] ?? row['COSTO ESTIMADO TOTAL'] ?? 0) || 0,
-    porcentajeAvanceOficial: Number(row['AVANCE GENERAL MANUAL'] ?? row['PORCENTAJE Planeación (MGA)'] ?? 0) || 0,
+    presupuestoOficial: numeroOrNull(row['COSTO TOTAL ACTUALIZADO'] ?? row['COSTO ESTIMADO TOTAL']) ?? 0,
+    porcentajeAvanceOficial: numeroOrNull(row['AVANCE GENERAL MANUAL'] ?? row['PORCENTAJE Planeación (MGA)']) ?? 0,
     proyectoEstrategico: row['PROYECTO ESTRATÉGICO'] ?? null,
     entregada: row['¿OBRA ENTREGADA?'] === 'Sí' || row['¿OBRA ENTREGADA?'] === true,
   }
