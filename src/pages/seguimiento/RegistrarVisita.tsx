@@ -27,6 +27,7 @@ import { useDatosFiltro } from '../../features/seguimiento/useDatosFiltro'
 import { compararVisitas } from '../../utils/seguimiento/visita-comparator.util'
 import { convertirBlobHeicAJpeg, esArchivoHeic } from '../../utils/seguimiento/heic.util'
 import { CambioVisitaItem } from '../../components/seguimiento/CambioVisitaItem'
+import { Seccion } from '../../components/layout/Seccion'
 import type { TipoAlerta, VisitaSeguimiento } from '../../types/seguimiento.types'
 
 // El detalle es obligatorio solo para alertas de tipo "Otra" (regla de
@@ -77,17 +78,6 @@ async function convertirSiEsHeic(archivo: File): Promise<File> {
 
 // Secciones de un mismo Paper, con título uniforme — reutilizado tres veces
 // en este formulario para no repetir el mismo bloque de estilos.
-function Seccion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
-  return (
-    <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, mb: 2.5 }}>
-      <Typography variant="subtitle2" sx={{ mb: 2 }}>
-        {titulo}
-      </Typography>
-      {children}
-    </Paper>
-  )
-}
-
 function DatoObra({ etiqueta, valor }: { etiqueta: string; valor: string | null }) {
   return (
     <Box>

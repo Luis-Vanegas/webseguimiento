@@ -8,7 +8,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
   TextField,
   Typography,
 } from '@mui/material'
@@ -17,6 +16,7 @@ import HistoryIcon from '@mui/icons-material/History'
 import AddLocationAltIcon from '@mui/icons-material/AddLocationAlt'
 import { useNavigate } from 'react-router-dom'
 import { FotoVisitaImg } from './FotoVisitaImg'
+import { Seccion } from '../layout/Seccion'
 import { COLOR_ESTADO, ETIQUETA_ESTADO } from '../../theme/theme'
 import type {
   SeveridadAlerta,
@@ -91,7 +91,7 @@ export function DetalleVisitaDialog({
   }
 
   return (
-    <Dialog open onClose={onCerrar} fullWidth maxWidth="sm">
+    <Dialog open onClose={onCerrar} fullWidth maxWidth="md">
       <DialogTitle sx={{ pb: 1 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1 }}>
           <Box>
@@ -110,44 +110,45 @@ export function DetalleVisitaDialog({
         </Box>
       </DialogTitle>
 
-      <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <DialogContent sx={{ bgcolor: '#f7f9fc' }}>
         {visita.estado === 'revisada' && (
-          <Alert severity="success" sx={{ py: 0 }}>
+          <Alert severity="success" sx={{ mb: 2.5 }}>
             {editable
               ? 'Visita revisada: como autor, todavía podés completarla o corregirla.'
               : 'Visita revisada: es de solo lectura. Una corrección posterior se registra como visita nueva.'}
           </Alert>
         )}
 
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 0.5 }}>
-          {editando ? (
-            <>
-              <TextField
-                label="% avance observado"
-                type="number"
-                value={avance}
-                onChange={(e) => setAvance(Number(e.target.value))}
-                sx={{ flex: '1 1 140px' }}
-              />
-              <TextField
-                label="Próxima visita"
-                type="date"
-                value={proximaVisita}
-                onChange={(e) => setProximaVisita(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                sx={{ flex: '1 1 140px' }}
-              />
-            </>
-          ) : (
-            <>
-              <Dato etiqueta="Avance observado" valor={`${visita.porcentajeAvanceCampo}%`} />
-              <Dato etiqueta="Próxima visita" valor={visita.fechaProximaVisita ?? '—'} />
-            </>
-          )}
-        </Box>
+        <Seccion titulo="Datos de la visita">
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            {editando ? (
+              <>
+                <TextField
+                  label="% avance observado"
+                  type="number"
+                  value={avance}
+                  onChange={(e) => setAvance(Number(e.target.value))}
+                  sx={{ flex: '1 1 140px' }}
+                />
+                <TextField
+                  label="Próxima visita"
+                  type="date"
+                  value={proximaVisita}
+                  onChange={(e) => setProximaVisita(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ flex: '1 1 140px' }}
+                />
+              </>
+            ) : (
+              <>
+                <Dato etiqueta="Avance observado" valor={`${visita.porcentajeAvanceCampo}%`} />
+                <Dato etiqueta="Próxima visita" valor={visita.fechaProximaVisita ?? '—'} />
+              </>
+            )}
+          </Box>
+        </Seccion>
 
-        <Box>
-          <Typography variant="subtitle2">Observaciones</Typography>
+        <Seccion titulo="Observaciones">
           {editando ? (
             <TextField
               multiline
@@ -155,19 +156,17 @@ export function DetalleVisitaDialog({
               fullWidth
               value={observaciones}
               onChange={(e) => setObservaciones(e.target.value)}
-              sx={{ mt: 0.5 }}
             />
           ) : (
-            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.5 }}>
+            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
               {visita.observaciones || 'Sin observaciones.'}
             </Typography>
           )}
-        </Box>
+        </Seccion>
 
         {(visita.alertas?.length ?? 0) > 0 && (
-          <Box>
-            <Typography variant="subtitle2">Alertas de campo</Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mt: 0.5 }}>
+          <Seccion titulo="Alertas de campo">
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               {visita.alertas!.map((alerta) => (
                 <Box key={alerta.id} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <WarningAmberIcon sx={{ fontSize: 18, color: COLOR_SEVERIDAD[alerta.severidad] }} />
@@ -188,21 +187,19 @@ export function DetalleVisitaDialog({
                 </Box>
               ))}
             </Box>
-          </Box>
+          </Seccion>
         )}
 
         {(visita.fotos?.length ?? 0) > 0 && (
-          <Box>
-            <Typography variant="subtitle2">Fotos ({visita.fotos!.length})</Typography>
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 0.5 }}>
+          <Seccion titulo={`Fotos (${visita.fotos!.length})`}>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
               {visita.fotos!.map((foto) => (
                 <FotoVisitaImg key={foto.id} storagePath={foto.storagePath} />
               ))}
             </Box>
-          </Box>
+          </Seccion>
         )}
 
-        <Divider />
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           <Button
             size="small"
