@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Dialog } from '@mui/material'
 import { obtenerUrlFoto } from '../../features/seguimiento/seguimientoApi'
 import { convertirBlobHeicAJpeg, esRutaHeic } from '../../utils/seguimiento/heic.util'
 
@@ -33,6 +34,7 @@ async function resolverUrl(storagePath: string): Promise<string> {
 export function FotoVisitaImg({ storagePath }: { storagePath: string }) {
   const [url, setUrl] = useState<string | null>(null)
   const [error, setError] = useState(false)
+  const [expandida, setExpandida] = useState(false)
 
   useEffect(() => {
     let activo = true
@@ -77,5 +79,22 @@ export function FotoVisitaImg({ storagePath }: { storagePath: string }) {
 
   if (!url) return <div style={{ ...BASE_STYLE, background: '#eee' }} />
 
-  return <img src={url} alt="" style={{ ...BASE_STYLE, objectFit: 'cover' }} />
+  return (
+    <>
+      <img
+        src={url}
+        alt=""
+        style={{ ...BASE_STYLE, objectFit: 'cover', cursor: 'zoom-in' }}
+        onClick={() => setExpandida(true)}
+      />
+      <Dialog open={expandida} onClose={() => setExpandida(false)} maxWidth="lg">
+        <img
+          src={url}
+          alt=""
+          style={{ display: 'block', maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain' }}
+          onClick={() => setExpandida(false)}
+        />
+      </Dialog>
+    </>
+  )
 }
