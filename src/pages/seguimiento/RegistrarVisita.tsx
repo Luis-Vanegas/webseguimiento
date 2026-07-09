@@ -21,10 +21,7 @@ import CloseIcon from '@mui/icons-material/Close'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { useUsuarioActual } from '../../features/auth/useUsuarioActual'
-import {
-  crearVisitaSolicitada,
-  listarVisitasDeObraSolicitada,
-} from '../../features/seguimiento/seguimientoSlice'
+import { crearVisita, listarVisitasDeObra } from '../../features/seguimiento/seguimientoSlice'
 import * as seguimientoApi from '../../features/seguimiento/seguimientoApi'
 import { useDatosFiltro } from '../../features/seguimiento/useDatosFiltro'
 import { compararVisitas } from '../../utils/seguimiento/visita-comparator.util'
@@ -161,7 +158,7 @@ export function RegistrarVisita() {
   const { fields, append, remove } = useFieldArray({ control, name: 'alertas' })
 
   useEffect(() => {
-    if (obraIdNum) dispatch(listarVisitasDeObraSolicitada({ obraId: obraIdNum }))
+    if (obraIdNum) dispatch(listarVisitasDeObra(obraIdNum))
     seguimientoApi.listarTiposAlerta().then(setTiposAlerta)
   }, [dispatch, obraIdNum])
 
@@ -202,49 +199,41 @@ export function RegistrarVisita() {
     return compararVisitas(borrador, visitaAnterior)
   }, [avanceCampo, alertasForm, visitaAnterior, obraIdNum, usuario])
 
-  function onSubmit(datos: FormVisita) {
+  async function onSubmit(datos: FormVisita) {
     if (!usuario) return
     setEnviando(true)
     setError(null)
 
-    dispatch(
-      crearVisitaSolicitada({
-        obraId: obraIdNum,
-        autorId: usuario.id,
-        autorRol: usuario.rol,
-        fechaVisita: datos.fechaVisita,
-        // El input date deja '' (no null) cuando queda vacío; la columna es
-        // `date` nullable en Postgres, así que hay que normalizar a null.
-        fechaProximaVisita: datos.fechaProximaVisita || null,
-        porcentajeAvanceCampo: datos.porcentajeAvanceCampo,
-        observaciones: datos.observaciones ?? '',
-        alertas: (datos.alertas ?? []).map((a) => ({
-          tipoAlertaId: a.tipoAlertaId,
-          detalle: a.detalle ?? null,
-          severidad: a.severidad,
-        })),
-        fotos,
-      }),
-    )
-  }
-
-  // La saga marca cargando=false al terminar (éxito o error). Si veníamos
-  // enviando y no quedó un error, la visita se creó: navegamos.
-  const { cargando: cargandoStore, error: errorStore } = useAppSelector((state) => state.seguimiento)
-  useEffect(() => {
-    if (enviando && !cargandoStore) {
-      if (errorStore) {
-        setError(errorStore)
-      } else {
-        navigate('/seguimiento/mis-visitas')
-      }
+    try {
+      await dispatch(
+        crearVisita({
+          obraId: obraIdNum,
+          autorId: usuario.id,
+          autorRol: usuario.rol,
+          fechaVisita: datos.fechaVisita,
+          // El input date deja '' (no null) cuando queda vacío; la columna es
+          // `date` nullable en Postgres, así que hay que normalizar a null.
+          fechaProximaVisita: datos.fechaProximaVisita || null,
+          porcentajeAvanceCampo: datos.porcentajeAvanceCampo,
+          observaciones: datos.observaciones ?? '',
+          alertas: (datos.alertas ?? []).map((a) => ({
+            tipoAlertaId: a.tipoAlertaId,
+            detalle: a.detalle ?? null,
+            severidad: a.severidad,
+          })),
+          fotos,
+        }),
+      ).unwrap()
+      navigate('/seguimiento/mis-visitas')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error inesperado en seguimiento')
+    } finally {
       setEnviando(false)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cargandoStore])
+  }
 
   return (
-    <Box sx={{ maxWidth: 560, mx: 'auto' }} component="form" onSubmit={handleSubmit(onSubmit)}>
+    <Box sx={{ width: '100%', maxWidth: 720, mx: 'auto' }} component="form" onSubmit={handleSubmit(onSubmit)}>
       <Typography variant="h5">Registrar visita</Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: obra ? 0.5 : 3 }}>
         {obra ? `${obra.nombre} (ID ${obraIdNum})` : `Obra sin datos oficiales (ID ${obraIdNum})`}

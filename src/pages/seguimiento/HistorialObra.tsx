@@ -3,7 +3,7 @@ import { Box, Button, Chip, Paper, Typography } from '@mui/material'
 import { Link, useParams } from 'react-router-dom'
 import AddLocationAltIcon from '@mui/icons-material/AddLocationAlt'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
-import { listarVisitasDeObraSolicitada } from '../../features/seguimiento/seguimientoSlice'
+import { listarVisitasDeObra } from '../../features/seguimiento/seguimientoSlice'
 import * as seguimientoApi from '../../features/seguimiento/seguimientoApi'
 import { compararVisitas } from '../../utils/seguimiento/visita-comparator.util'
 import { filtrarVisitas } from '../../utils/seguimiento/filtrar-visitas.util'
@@ -13,14 +13,8 @@ import { CambioVisitaItem } from '../../components/seguimiento/CambioVisitaItem'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { FILTROS_VACIOS } from '../../types/filtros.types'
 import { FotoVisitaImg } from '../../components/seguimiento/FotoVisitaImg'
-import { COLOR_ESTADO } from '../../theme/theme'
-import type { EstadoVisita, PuntoReferenciaObra, VisitaSeguimiento } from '../../types/seguimiento.types'
-
-const ETIQUETA_ESTADO: Record<EstadoVisita, string> = {
-  pendiente_revisar: 'Pendiente de revisar',
-  en_revision: 'En revisión',
-  revisada: 'Revisada',
-}
+import { COLOR_ESTADO, ETIQUETA_ESTADO } from '../../theme/theme'
+import type { PuntoReferenciaObra, VisitaSeguimiento } from '../../types/seguimiento.types'
 
 export function HistorialObra() {
   const { obraId } = useParams<{ obraId: string }>()
@@ -34,7 +28,7 @@ export function HistorialObra() {
 
   useEffect(() => {
     if (obraIdNum) {
-      dispatch(listarVisitasDeObraSolicitada({ obraId: obraIdNum }))
+      dispatch(listarVisitasDeObra(obraIdNum))
       seguimientoApi.listarPuntosReferencia(obraIdNum).then(setPuntos)
     }
   }, [dispatch, obraIdNum])
@@ -56,7 +50,7 @@ export function HistorialObra() {
   )
 
   return (
-    <Box sx={{ maxWidth: 760 }}>
+    <Box sx={{ width: '100%', maxWidth: 1000 }}>
       <PageHeader
         titulo={obraPorId.get(obraIdNum)?.nombre ?? `Obra ${obraId}`}
         subtitulo="Historial de visitas de campo"

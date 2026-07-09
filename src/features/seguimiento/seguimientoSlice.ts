@@ -1,5 +1,6 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
+import { createAsyncThunk, createSlice, isAnyOf } from '@reduxjs/toolkit'
 import type { VisitaSeguimiento } from '../../types/seguimiento.types'
+import * as api from './seguimientoApi'
 import type { EditarVisitaInput, NuevaVisitaInput } from './seguimientoApi'
 
 export interface SeguimientoState {
@@ -18,91 +19,56 @@ const estadoInicial: SeguimientoState = {
   error: null,
 }
 
-const seguimientoSlice = createSlice({
-  name: 'seguimiento',
-  initialState: estadoInicial,
-  reducers: {
-    // --- Crear visita ---
-    crearVisitaSolicitada: (
-      state,
-      _action: PayloadAction<NuevaVisitaInput & { fotos?: File[] }>,
-    ) => {
-      state.cargando = true
-      state.error = null
-    },
-    crearVisitaExito: (state, action: PayloadAction<VisitaSeguimiento>) => {
-      state.misVisitas.unshift(action.payload)
-      state.cargando = false
-    },
-
-    // --- Listar mis visitas ---
-    listarMisVisitasSolicitada: (state, _action: PayloadAction<{ autorId: string }>) => {
-      state.cargando = true
-      state.error = null
-    },
-    listarMisVisitasExito: (state, action: PayloadAction<VisitaSeguimiento[]>) => {
-      state.misVisitas = action.payload
-      state.cargando = false
-    },
-
-    // --- Listar pendientes (bandeja del ingeniero) ---
-    listarPendientesSolicitada: (state, _action: PayloadAction<{ usuarioId: string }>) => {
-      state.cargando = true
-      state.error = null
-    },
-    listarPendientesExito: (state, action: PayloadAction<VisitaSeguimiento[]>) => {
-      state.pendientes = action.payload
-      state.cargando = false
-    },
-
-    // --- Listar visitas de una obra (para HistorialObra) ---
-    listarVisitasDeObraSolicitada: (state, _action: PayloadAction<{ obraId: number }>) => {
-      state.cargando = true
-      state.error = null
-    },
-    listarVisitasDeObraExito: (state, action: PayloadAction<VisitaSeguimiento[]>) => {
-      state.visitasObraActual = action.payload
-      state.cargando = false
-    },
-
-    // --- Editar visita ---
-    editarVisitaSolicitada: (state, _action: PayloadAction<EditarVisitaInput>) => {
-      state.cargando = true
-      state.error = null
-    },
-    editarVisitaExito: (state, action: PayloadAction<VisitaSeguimiento>) => {
-      reemplazarEnListas(state, action.payload)
-      state.cargando = false
-    },
-
-    // --- Marcar en revisión / revisada ---
-    marcarEnRevisionSolicitada: (
-      state,
-      _action: PayloadAction<{ id: string; usuarioId: string }>,
-    ) => {
-      state.cargando = true
-      state.error = null
-    },
-    marcarRevisadaSolicitada: (
-      state,
-      _action: PayloadAction<{ id: string; revisadoPor: string }>,
-    ) => {
-      state.cargando = true
-      state.error = null
-    },
-    marcarEstadoExito: (state, action: PayloadAction<VisitaSeguimiento>) => {
-      reemplazarEnListas(state, action.payload)
-      state.cargando = false
-      state.error = null
-    },
-
-    // --- Error genérico de cualquier operación anterior ---
-    operacionFallida: (state, action: PayloadAction<string>) => {
-      state.cargando = false
-      state.error = action.payload
-    },
+export const crearVisita = createAsyncThunk(
+  'seguimiento/crearVisita',
+  async (input: NuevaVisitaInput & { fotos?: File[] }) => {
+    const { fotos = [], ...datos } = input
+    const visita = await api.crearVisita(datos)
+    for (let i = 0; i < fotos.length; i++) {
+      await api.subirFoto(visita.id, fotos[i], null, i)
+    }
+    return visita
   },
-})
+)
+
+export const listarMisVisitas = createAsyncThunk('seguimiento/listarMisVisitas', (autorId: string) =>
+  api.listarMisVisitas(autorId),
+)
+
+export const listarPendientes = createAsyncThunk(
+  'seguimiento/listarPendientes',
+  (usuarioId: string) => api.listarPendientes(usuarioId),
+)
+
+export const listarVisitasDeObra = createAsyncThunk(
+  'seguimiento/listarVisitasDeObra',
+  (obraId: number) => api.listarVisitasDeObra(obraId),
+)
+
+export const editarVisita = createAsyncThunk(
+  'seguimiento/editarVisita',
+  (input: EditarVisitaInput) => api.editarVisita(input),
+)
+
+export const marcarEnRevision = createAsyncThunk(
+  'seguimiento/marcarEnRevision',
+  ({ id, usuarioId }: { id: string; usuarioId: string }) => api.marcarEnRevision(id, usuarioId),
+)
+
+export const marcarRevisada = createAsyncThunk(
+  'seguimiento/marcarRevisada',
+  ({ id, revisadoPor }: { id: string; revisadoPor: string }) => api.marcarRevisada(id, revisadoPor),
+)
+
+const thunksDeEstado = [
+  crearVisita,
+  listarMisVisitas,
+  listarPendientes,
+  listarVisitasDeObra,
+  editarVisita,
+  marcarEnRevision,
+  marcarRevisada,
+]
 
 function reemplazarEnListas(state: SeguimientoState, visita: VisitaSeguimiento) {
   for (const lista of ['misVisitas', 'pendientes', 'visitasObraActual'] as const) {
@@ -111,21 +77,45 @@ function reemplazarEnListas(state: SeguimientoState, visita: VisitaSeguimiento) 
   }
 }
 
-export const {
-  crearVisitaSolicitada,
-  crearVisitaExito,
-  listarMisVisitasSolicitada,
-  listarMisVisitasExito,
-  listarPendientesSolicitada,
-  listarPendientesExito,
-  listarVisitasDeObraSolicitada,
-  listarVisitasDeObraExito,
-  editarVisitaSolicitada,
-  editarVisitaExito,
-  marcarEnRevisionSolicitada,
-  marcarRevisadaSolicitada,
-  marcarEstadoExito,
-  operacionFallida,
-} = seguimientoSlice.actions
+const seguimientoSlice = createSlice({
+  name: 'seguimiento',
+  initialState: estadoInicial,
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      .addCase(crearVisita.fulfilled, (state, action) => {
+        state.misVisitas.unshift(action.payload)
+      })
+      .addCase(listarMisVisitas.fulfilled, (state, action) => {
+        state.misVisitas = action.payload
+      })
+      .addCase(listarPendientes.fulfilled, (state, action) => {
+        state.pendientes = action.payload
+      })
+      .addCase(listarVisitasDeObra.fulfilled, (state, action) => {
+        state.visitasObraActual = action.payload
+      })
+      .addCase(editarVisita.fulfilled, (state, action) => {
+        reemplazarEnListas(state, action.payload)
+      })
+      .addCase(marcarEnRevision.fulfilled, (state, action) => {
+        reemplazarEnListas(state, action.payload)
+      })
+      .addCase(marcarRevisada.fulfilled, (state, action) => {
+        reemplazarEnListas(state, action.payload)
+      })
+      .addMatcher(isAnyOf(...thunksDeEstado.map((t) => t.pending)), (state) => {
+        state.cargando = true
+        state.error = null
+      })
+      .addMatcher(isAnyOf(...thunksDeEstado.map((t) => t.fulfilled)), (state) => {
+        state.cargando = false
+      })
+      .addMatcher(isAnyOf(...thunksDeEstado.map((t) => t.rejected)), (state, action) => {
+        state.cargando = false
+        state.error = action.error.message ?? 'Error inesperado en seguimiento'
+      })
+  },
+})
 
 export const seguimientoReducer = seguimientoSlice.reducer

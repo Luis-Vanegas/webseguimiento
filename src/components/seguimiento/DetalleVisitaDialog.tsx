@@ -17,20 +17,13 @@ import HistoryIcon from '@mui/icons-material/History'
 import AddLocationAltIcon from '@mui/icons-material/AddLocationAlt'
 import { useNavigate } from 'react-router-dom'
 import { FotoVisitaImg } from './FotoVisitaImg'
-import { COLOR_ESTADO } from '../../theme/theme'
+import { COLOR_ESTADO, ETIQUETA_ESTADO } from '../../theme/theme'
 import type {
-  EstadoVisita,
   SeveridadAlerta,
   TipoAlerta,
   UsuarioSeguimiento,
   VisitaSeguimiento,
 } from '../../types/seguimiento.types'
-
-const ETIQUETA_ESTADO: Record<EstadoVisita, string> = {
-  pendiente_revisar: 'Pendiente de revisar',
-  en_revision: 'En revisión',
-  revisada: 'Revisada',
-}
 
 const COLOR_SEVERIDAD: Record<SeveridadAlerta, string> = {
   baja: '#22c55e',

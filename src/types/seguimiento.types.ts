@@ -7,8 +7,6 @@ export type EstadoVisita = 'pendiente_revisar' | 'en_revision' | 'revisada'
 
 export type SeveridadAlerta = 'baja' | 'media' | 'alta'
 
-export type AccionHistorial = 'creada' | 'en_revision' | 'editada' | 'revisada'
-
 export interface UsuarioSeguimiento {
   id: string
   nombre: string
@@ -41,15 +39,6 @@ export interface FotoVisita {
   puntoReferenciaId: string | null
   storagePath: string
   orden: number
-}
-
-export interface HistorialRevision {
-  id: string
-  visitaId: string
-  accion: AccionHistorial
-  usuarioId: string
-  comentario: string | null
-  fecha: string
 }
 
 export interface VisitaSeguimiento {

@@ -14,10 +14,7 @@ import CameraAltIcon from '@mui/icons-material/CameraAlt'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import { Link } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
-import {
-  editarVisitaSolicitada,
-  listarMisVisitasSolicitada,
-} from '../../features/seguimiento/seguimientoSlice'
+import { editarVisita, listarMisVisitas } from '../../features/seguimiento/seguimientoSlice'
 import { useUsuarioActual } from '../../features/auth/useUsuarioActual'
 import { useDatosFiltro } from '../../features/seguimiento/useDatosFiltro'
 import { FiltrosVisitasBar } from '../../components/seguimiento/FiltrosVisitasBar'
@@ -28,14 +25,8 @@ import {
 import { filtrarVisitas } from '../../utils/seguimiento/filtrar-visitas.util'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { FILTROS_VACIOS } from '../../types/filtros.types'
-import { COLOR_ESTADO } from '../../theme/theme'
-import type { EstadoVisita, VisitaSeguimiento } from '../../types/seguimiento.types'
-
-const ETIQUETA_ESTADO: Record<EstadoVisita, string> = {
-  pendiente_revisar: 'Pendiente de revisar',
-  en_revision: 'En revisión',
-  revisada: 'Revisada',
-}
+import { COLOR_ESTADO, ETIQUETA_ESTADO } from '../../theme/theme'
+import type { VisitaSeguimiento } from '../../types/seguimiento.types'
 
 export function MisVisitas() {
   const dispatch = useAppDispatch()
@@ -48,12 +39,12 @@ export function MisVisitas() {
 
   function guardarEdicion(cambios: CambiosVisitaEditables) {
     if (!visitaSeleccionada || !usuario) return
-    dispatch(editarVisitaSolicitada({ id: visitaSeleccionada.id, usuarioId: usuario.id, cambios }))
+    dispatch(editarVisita({ id: visitaSeleccionada.id, usuarioId: usuario.id, cambios }))
     setVisitaSeleccionada(null)
   }
 
   useEffect(() => {
-    if (usuario) dispatch(listarMisVisitasSolicitada({ autorId: usuario.id }))
+    if (usuario) dispatch(listarMisVisitas(usuario.id))
   }, [dispatch, usuario])
 
   const visitasFiltradas = useMemo(
@@ -62,7 +53,7 @@ export function MisVisitas() {
   )
 
   return (
-    <Box sx={{ maxWidth: 900 }}>
+    <Box sx={{ width: '100%', maxWidth: 1200 }}>
       <PageHeader
         titulo="Mis visitas"
         subtitulo="Obras que visitaste y el estado de revisión de cada registro"

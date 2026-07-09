@@ -22,10 +22,10 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { useUsuarioActual } from '../../features/auth/useUsuarioActual'
 import {
-  editarVisitaSolicitada,
-  listarPendientesSolicitada,
-  marcarEnRevisionSolicitada,
-  marcarRevisadaSolicitada,
+  editarVisita,
+  listarPendientes,
+  marcarEnRevision,
+  marcarRevisada as marcarRevisadaAccion,
 } from '../../features/seguimiento/seguimientoSlice'
 import { useDatosFiltro } from '../../features/seguimiento/useDatosFiltro'
 import { FiltrosVisitasBar } from '../../components/seguimiento/FiltrosVisitasBar'
@@ -36,14 +36,8 @@ import {
 import { PageHeader } from '../../components/layout/PageHeader'
 import { filtrarVisitas } from '../../utils/seguimiento/filtrar-visitas.util'
 import { FILTROS_VACIOS } from '../../types/filtros.types'
-import { COLOR_ESTADO } from '../../theme/theme'
-import type { EstadoVisita, VisitaSeguimiento } from '../../types/seguimiento.types'
-
-const ETIQUETA_ESTADO: Record<EstadoVisita, string> = {
-  pendiente_revisar: 'Pendiente de revisar',
-  en_revision: 'En revisión',
-  revisada: 'Revisada',
-}
+import { COLOR_ESTADO, ETIQUETA_ESTADO } from '../../theme/theme'
+import type { VisitaSeguimiento } from '../../types/seguimiento.types'
 
 export function RevisarVisitas() {
   const theme = useTheme()
@@ -57,7 +51,7 @@ export function RevisarVisitas() {
   const [visitaSeleccionada, setVisitaSeleccionada] = useState<VisitaSeguimiento | null>(null)
 
   useEffect(() => {
-    if (usuario) dispatch(listarPendientesSolicitada({ usuarioId: usuario.id }))
+    if (usuario) dispatch(listarPendientes(usuario.id))
   }, [dispatch, usuario])
 
   const pendientesFiltradas = useMemo(
@@ -74,20 +68,20 @@ export function RevisarVisitas() {
     // El ingeniero abre la visita para revisarla — pasa a en_revision si
     // todavía estaba pendiente_revisar (sección 4 del brief).
     if (usuario && visita.estado === 'pendiente_revisar') {
-      dispatch(marcarEnRevisionSolicitada({ id: visita.id, usuarioId: usuario.id }))
+      dispatch(marcarEnRevision({ id: visita.id, usuarioId: usuario.id }))
     }
     setVisitaSeleccionada(visita)
   }
 
   function guardarEdicion(cambios: CambiosVisitaEditables) {
     if (!visitaSeleccionada || !usuario) return
-    dispatch(editarVisitaSolicitada({ id: visitaSeleccionada.id, usuarioId: usuario.id, cambios }))
+    dispatch(editarVisita({ id: visitaSeleccionada.id, usuarioId: usuario.id, cambios }))
     setVisitaSeleccionada(null)
   }
 
   function marcarRevisada(visita: VisitaSeguimiento) {
     if (!usuario) return
-    dispatch(marcarRevisadaSolicitada({ id: visita.id, revisadoPor: usuario.id }))
+    dispatch(marcarRevisadaAccion({ id: visita.id, revisadoPor: usuario.id }))
   }
 
   const nombreObra = (obraId: number) => obraPorId.get(obraId)?.nombre ?? `Obra ${obraId}`
@@ -95,7 +89,7 @@ export function RevisarVisitas() {
   const puedeMarcarRevisada = (visita: VisitaSeguimiento) => visita.estado !== 'revisada'
 
   return (
-    <Box sx={{ maxWidth: 1080 }}>
+    <Box sx={{ width: '100%', maxWidth: 1400 }}>
       <PageHeader
         titulo="Revisar visitas"
         subtitulo={
@@ -257,7 +251,7 @@ export function RevisarVisitas() {
 
       {visitaSeleccionada && (
         <DetalleVisitaDialog
-          // Versión fresca del store: al abrir, la saga puede haberla pasado a en_revision
+          // Versión fresca del store: al abrir, abrirDetalle() puede haberla pasado a en_revision
           visita={pendientes.find((v) => v.id === visitaSeleccionada.id) ?? visitaSeleccionada}
           usuario={usuario}
           nombreObra={nombreObra(visitaSeleccionada.obraId)}

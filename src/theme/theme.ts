@@ -1,4 +1,5 @@
 import { createTheme } from '@mui/material/styles'
+import type { EstadoVisita } from '../types/seguimiento.types'
 
 // Paleta aproximada del Visor real (sección 8 del brief) — ajustar cuando
 // se tenga acceso a theme.ts del repo real.
@@ -10,6 +11,12 @@ export const COLOR_ESTADO = {
   pendiente_revisar: '#f9a825', // ámbar
   en_revision: '#1565c0', // azul
 } as const
+
+export const ETIQUETA_ESTADO: Record<EstadoVisita, string> = {
+  pendiente_revisar: 'Pendiente de revisar',
+  en_revision: 'En revisión',
+  revisada: 'Revisada',
+}
 
 export const theme = createTheme({
   palette: {
