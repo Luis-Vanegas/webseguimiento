@@ -8,10 +8,21 @@ import type {
   VisitaSeguimiento,
 } from '../../types/seguimiento.types'
 
-export async function listarTiposAlerta(): Promise<TipoAlerta[]> {
-  const { data, error } = await supabase.from('tipos_alerta').select('id, nombre').order('nombre')
-  if (error) throw error
-  return (data ?? []).map((row) => ({ id: row.id, nombre: row.nombre }))
+// Catálogo fijo: no cambia durante la sesión, y hasta 3 pantallas distintas
+// lo piden por separado (mismo motivo de caché que obtenerObras() en
+// obrasVisorApi.ts).
+let tiposAlertaCache: Promise<TipoAlerta[]> | null = null
+
+export function listarTiposAlerta(): Promise<TipoAlerta[]> {
+  tiposAlertaCache ??= (async () => {
+    const { data, error } = await supabase.from('tipos_alerta').select('id, nombre').order('nombre')
+    if (error) {
+      tiposAlertaCache = null
+      throw error
+    }
+    return (data ?? []).map((row) => ({ id: row.id, nombre: row.nombre }))
+  })()
+  return tiposAlertaCache
 }
 
 // Última fecha de visita por obra, para poder marcar "obra desatendida"
@@ -144,13 +155,21 @@ export async function listarPendientes(usuarioActualId: string): Promise<VisitaS
   return (data ?? []).map(mapVisitaRow)
 }
 
-export async function listarUsuarios(): Promise<UsuarioSeguimiento[]> {
-  const { data, error } = await supabase
-    .from('usuarios_seguimiento')
-    .select('id, nombre, rol, activo')
+let usuariosCache: Promise<UsuarioSeguimiento[]> | null = null
 
-  if (error) throw error
-  return data ?? []
+export function listarUsuarios(): Promise<UsuarioSeguimiento[]> {
+  usuariosCache ??= (async () => {
+    const { data, error } = await supabase
+      .from('usuarios_seguimiento')
+      .select('id, nombre, rol, activo')
+
+    if (error) {
+      usuariosCache = null
+      throw error
+    }
+    return data ?? []
+  })()
+  return usuariosCache
 }
 
 export async function listarVisitasDeObra(obraId: number): Promise<VisitaSeguimiento[]> {

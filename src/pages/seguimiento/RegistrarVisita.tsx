@@ -14,6 +14,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
+import type { SxProps, Theme } from '@mui/material/styles'
 import DeleteIcon from '@mui/icons-material/Delete'
 import AddIcon from '@mui/icons-material/Add'
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
@@ -22,13 +23,12 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { useUsuarioActual } from '../../features/auth/useUsuarioActual'
 import { crearVisita, listarVisitasDeObra } from '../../features/seguimiento/seguimientoSlice'
-import * as seguimientoApi from '../../features/seguimiento/seguimientoApi'
 import { useDatosFiltro } from '../../features/seguimiento/useDatosFiltro'
 import { compararVisitas } from '../../utils/seguimiento/visita-comparator.util'
 import { convertirBlobHeicAJpeg, esArchivoHeic } from '../../utils/seguimiento/heic.util'
 import { CambioVisitaItem } from '../../components/seguimiento/CambioVisitaItem'
 import { Seccion } from '../../components/layout/Seccion'
-import type { TipoAlerta, VisitaSeguimiento } from '../../types/seguimiento.types'
+import type { VisitaSeguimiento } from '../../types/seguimiento.types'
 
 // El detalle es obligatorio solo para alertas de tipo "Otra" (regla de
 // negocio del schema, ver comentario en supabase/schema.sql). El esquema
@@ -78,13 +78,23 @@ async function convertirSiEsHeic(archivo: File): Promise<File> {
 
 // Secciones de un mismo Paper, con título uniforme — reutilizado tres veces
 // en este formulario para no repetir el mismo bloque de estilos.
-function DatoObra({ etiqueta, valor }: { etiqueta: string; valor: string | null }) {
+function DatoObra({
+  etiqueta,
+  valor,
+  sx,
+}: {
+  etiqueta: string
+  valor: string | null
+  sx?: SxProps<Theme>
+}) {
   return (
-    <Box>
+    <Box sx={sx}>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
         {etiqueta}
       </Typography>
-      <Typography variant="body2">{valor ?? '—'}</Typography>
+      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+        {valor ?? '—'}
+      </Typography>
     </Box>
   )
 }
@@ -95,10 +105,9 @@ export function RegistrarVisita() {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const { usuario } = useUsuarioActual()
-  const { obraPorId } = useDatosFiltro()
+  const { obraPorId, tiposAlerta } = useDatosFiltro()
   const obra = obraPorId.get(obraIdNum)
   const { visitasObraActual } = useAppSelector((state) => state.seguimiento)
-  const [tiposAlerta, setTiposAlerta] = useState<TipoAlerta[]>([])
   const [fotos, setFotos] = useState<File[]>([])
   const [convirtiendoFotos, setConvirtiendoFotos] = useState(false)
   const [enviando, setEnviando] = useState(false)
@@ -149,7 +158,6 @@ export function RegistrarVisita() {
 
   useEffect(() => {
     if (obraIdNum) dispatch(listarVisitasDeObra(obraIdNum))
-    seguimientoApi.listarTiposAlerta().then(setTiposAlerta)
   }, [dispatch, obraIdNum])
 
   const visitaAnterior = useMemo(
@@ -235,6 +243,10 @@ export function RegistrarVisita() {
             Datos oficiales de la obra
           </Typography>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1 }}>
+            <DatoObra
+              etiqueta="Estado"
+              valor={obra.estado ? obra.estado.charAt(0).toUpperCase() + obra.estado.slice(1) : null}
+            />
             <DatoObra etiqueta="Dependencia" valor={obra.dependencia} />
             <DatoObra etiqueta="Comuna / corregimiento" valor={obra.comuna} />
             <DatoObra etiqueta="Barrio" valor={obra.barrio} />
@@ -244,6 +256,8 @@ export function RegistrarVisita() {
               valor={obra.presupuestoOficial.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
             />
             <DatoObra etiqueta="Avance oficial" valor={`${obra.porcentajeAvanceOficial}%`} />
+            <DatoObra etiqueta="Fecha real de entrega" valor={obra.fechaRealEntrega} />
+            <DatoObra etiqueta="Descripción" valor={obra.descripcion} sx={{ gridColumn: '1 / -1' }} />
           </Box>
         </Paper>
       )}

@@ -15,4 +15,7 @@ export interface ObraVisor {
   porcentajeAvanceOficial: number
   proyectoEstrategico: string | null // aproximado con tipo_intervencion, no existe campo exacto en la API real
   entregada: boolean
+  estado: string | null
+  descripcion: string | null
+  fechaRealEntrega: string | null
 }

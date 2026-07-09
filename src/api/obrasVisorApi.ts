@@ -47,5 +47,8 @@ function mapObraRow(row: any): ObraVisor {
     porcentajeAvanceOficial: numeroOrNull(row['AVANCE GENERAL MANUAL'] ?? row['PORCENTAJE Planeación (MGA)']) ?? 0,
     proyectoEstrategico: row['PROYECTO ESTRATÉGICO'] ?? null,
     entregada: row['¿OBRA ENTREGADA?'] === 'Sí' || row['¿OBRA ENTREGADA?'] === true,
+    estado: row['ESTADO DE LA OBRA'] ?? null,
+    descripcion: row['DESCRIPCIÓN'] ?? null,
+    fechaRealEntrega: row['FECHA REAL DE ENTREGA'] ?? null,
   }
 }
