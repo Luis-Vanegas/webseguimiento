@@ -326,7 +326,7 @@ export function MapaSeguimiento() {
                 closeOnClick={false}
                 style={{ padding: 0 }}
               >
-                <Box sx={{ p: 1.5, minWidth: 200 }}>
+                <Box sx={{ p: 1.5, minWidth: 220, maxWidth: 280 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, lineHeight: 1.3, mb: 0.5 }}>
                     {obraSeleccionada.nombre}
                   </Typography>
@@ -345,10 +345,45 @@ export function MapaSeguimiento() {
                     </Typography>
                   </Box>
                   {obraSeleccionada.dependencia && (
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                       {obraSeleccionada.dependencia}
                     </Typography>
                   )}
+                  {obraSeleccionada.fechaEstimadaEntrega && (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                      Entrega estimada: {obraSeleccionada.fechaEstimadaEntrega}
+                    </Typography>
+                  )}
+
+                  {obraSeleccionada.etapas.some((e) => !e.noAplica) && (
+                    <Box
+                      sx={{
+                        mt: 1,
+                        pt: 1,
+                        borderTop: '1px solid',
+                        borderColor: 'divider',
+                        maxHeight: 150,
+                        overflowY: 'auto',
+                      }}
+                    >
+                      {obraSeleccionada.etapas
+                        .filter((etapa) => !etapa.noAplica)
+                        .map((etapa) => (
+                          <Box
+                            key={etapa.nombre}
+                            sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, py: 0.2 }}
+                          >
+                            <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
+                              {etapa.nombre}
+                            </Typography>
+                            <Typography variant="caption" sx={{ fontWeight: 600, flexShrink: 0 }}>
+                              {etapa.porcentaje}%
+                            </Typography>
+                          </Box>
+                        ))}
+                    </Box>
+                  )}
+
                   <Box sx={{ display: 'flex', gap: 0.5, mt: 1 }}>
                     <Button
                       size="small"

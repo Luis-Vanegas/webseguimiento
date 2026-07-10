@@ -18,4 +18,15 @@ export interface ObraVisor {
   estado: string | null
   descripcion: string | null
   fechaRealEntrega: string | null
+  fechaEstimadaEntrega: string | null
+  etapas: EtapaObra[]
+}
+
+// Una de las 11 fases del ciclo de vida de la obra (Planeación, Diseños,
+// Ejecución obra, etc. — ver ETAPAS_OBRA en obrasVisorApi.ts). `noAplica`
+// sale tal cual de la API: la obra puede saltarse una fase entera.
+export interface EtapaObra {
+  nombre: string
+  porcentaje: number
+  noAplica: boolean
 }

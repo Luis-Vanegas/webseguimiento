@@ -1,5 +1,21 @@
 import { supabase } from '../lib/supabaseClient'
-import type { ObraVisor } from '../types/obra.types'
+import type { EtapaObra, ObraVisor } from '../types/obra.types'
+
+// Las 11 fases del ciclo de vida de la obra, tal como las nombra la API
+// (columnas "PORCENTAJE <fase>" / "NO APLICA <fase>").
+const ETAPAS_OBRA = [
+  'Planeación (MGA)',
+  'Estudios preliminares',
+  'Viabilización (DAP)',
+  'Licencias (Curaduría)',
+  'Gestión predial',
+  'Contratación',
+  'Inicio',
+  'Diseños',
+  'Ejecución obra',
+  'Dotación y puesta en operación',
+  'Liquidación',
+] as const
 
 // Lectura de obras oficiales del Visor Estratégico. NUNCA se llama a la API
 // real directo desde el frontend: la API key va por header HTTP y con Vite
@@ -33,6 +49,14 @@ function numeroOrNull(valor: unknown): number | null {
   return Number.isFinite(n) ? n : null
 }
 
+function mapEtapas(row: any): EtapaObra[] {
+  return ETAPAS_OBRA.map((nombre) => ({
+    nombre,
+    porcentaje: numeroOrNull(row[`PORCENTAJE ${nombre}`]) ?? 0,
+    noAplica: row[`NO APLICA ${nombre}`] === true,
+  }))
+}
+
 function mapObraRow(row: any): ObraVisor {
   return {
     obraId: row.id,
@@ -50,5 +74,7 @@ function mapObraRow(row: any): ObraVisor {
     estado: row['ESTADO DE LA OBRA'] ?? null,
     descripcion: row['DESCRIPCIÓN'] ?? null,
     fechaRealEntrega: row['FECHA REAL DE ENTREGA'] ?? null,
+    fechaEstimadaEntrega: row['FECHA ESTIMADA DE ENTREGA'] ?? null,
+    etapas: mapEtapas(row),
   }
 }
