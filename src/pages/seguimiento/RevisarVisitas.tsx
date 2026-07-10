@@ -5,6 +5,7 @@ import {
   Card,
   Chip,
   CircularProgress,
+  Divider,
   Paper,
   Stack,
   Table,
@@ -17,7 +18,10 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material'
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday'
+import PersonIcon from '@mui/icons-material/Person'
 import RateReviewIcon from '@mui/icons-material/RateReview'
+import TrendingUpIcon from '@mui/icons-material/TrendingUp'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { useUsuarioActual } from '../../features/auth/useUsuarioActual'
@@ -118,7 +122,7 @@ export function RevisarVisitas() {
             const alertas = visita.alertas?.length ?? 0
             return (
               <Card key={visita.id} variant="outlined" sx={{ borderRadius: 2.5, p: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, mb: 0.5 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
                   <Typography sx={{ fontWeight: 600, fontSize: 14, lineHeight: 1.3 }}>
                     {nombreObra(visita.obraId)}
                   </Typography>
@@ -133,16 +137,28 @@ export function RevisarVisitas() {
                     }}
                   />
                 </Box>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                  {nombreAutor(visita.autorId)}
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                  <PersonIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
+                  <Typography variant="caption" color="text.secondary">
+                    {nombreAutor(visita.autorId)}
+                  </Typography>
+                </Box>
+
+                <Divider sx={{ my: 1 }} />
+
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', mb: 1.5 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    {visita.fechaVisita}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Avance: <b>{visita.porcentajeAvanceCampo}%</b>
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
+                    <CalendarTodayIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
+                    <Typography variant="body2" color="text.secondary">
+                      {visita.fechaVisita}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
+                    <TrendingUpIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
+                    <Typography variant="body2" color="text.secondary">
+                      Avance: <b>{visita.porcentajeAvanceCampo}%</b>
+                    </Typography>
+                  </Box>
                   {alertas > 0 && (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
                       <WarningAmberIcon sx={{ fontSize: 15, color: '#f9a825' }} />

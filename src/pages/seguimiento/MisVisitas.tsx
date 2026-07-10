@@ -6,11 +6,14 @@ import {
   CardActionArea,
   Chip,
   CircularProgress,
+  Divider,
   Stack,
   Typography,
 } from '@mui/material'
 import AddLocationAltIcon from '@mui/icons-material/AddLocationAlt'
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday'
 import CameraAltIcon from '@mui/icons-material/CameraAlt'
+import TrendingUpIcon from '@mui/icons-material/TrendingUp'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import { Link } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
@@ -89,7 +92,7 @@ export function MisVisitas() {
           return (
             <Card key={visita.id} variant="outlined" sx={{ borderRadius: 2.5 }}>
               <CardActionArea onClick={() => setVisitaSeleccionada(visita)} sx={{ p: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, mb: 0.5 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
                   <Typography sx={{ fontWeight: 600, fontSize: 15, lineHeight: 1.3 }}>
                     {obraPorId.get(visita.obraId)?.nombre ?? `Obra ${visita.obraId}`}
                   </Typography>
@@ -104,13 +107,22 @@ export function MisVisitas() {
                     }}
                   />
                 </Box>
+
+                <Divider sx={{ my: 1 }} />
+
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                  <Typography variant="body2" color="text.secondary">
-                    {visita.fechaVisita}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Avance observado: <b>{visita.porcentajeAvanceCampo}%</b>
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <CalendarTodayIcon sx={{ fontSize: 15, color: 'text.disabled' }} />
+                    <Typography variant="body2" color="text.secondary">
+                      {visita.fechaVisita}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <TrendingUpIcon sx={{ fontSize: 15, color: 'text.disabled' }} />
+                    <Typography variant="body2" color="text.secondary">
+                      Avance observado: <b>{visita.porcentajeAvanceCampo}%</b>
+                    </Typography>
+                  </Box>
                   {alertas > 0 && (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       <WarningAmberIcon sx={{ fontSize: 16, color: '#f9a825' }} />
