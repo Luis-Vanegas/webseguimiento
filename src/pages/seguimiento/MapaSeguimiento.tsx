@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import MapGL, { Marker, NavigationControl, Popup } from 'react-map-gl'
+import MapGL, { Layer, Marker, NavigationControl, Popup, Source } from 'react-map-gl'
 import maplibregl from 'maplibre-gl'
 import {
   Box,
@@ -24,7 +24,9 @@ import type { ObraVisor } from '../../types/obra.types'
 ;(maplibregl as any).supported = () => true
 
 const DIAS_DESATENDIDA = 30
+const DIAS_PROXIMA_ENTREGA = 15
 const COLOR_COMUNA = '#f97316'
+const COLOR_PROXIMA_ENTREGA = '#a855f7'
 
 const ESTILOS_MAPA = {
   calles: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
@@ -44,31 +46,47 @@ function estaDesatendida(ultimaVisita: string | undefined): boolean {
   return dias > DIAS_DESATENDIDA
 }
 
+// "Próxima a entregar": fecha estimada dentro de los próximos 15 días.
+// No incluye obras vencidas (fecha estimada ya pasada) — con el mapeo de
+// `entregada` corregido, esas ya deberían venir marcadas como entregadas.
+function estaProximaAEntregar(obra: ObraVisor): boolean {
+  if (obra.entregada || !obra.fechaEstimadaEntrega) return false
+  const dias = (new Date(obra.fechaEstimadaEntrega).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+  return dias >= 0 && dias <= DIAS_PROXIMA_ENTREGA
+}
+
 const LEYENDA: { color: string; label: string; border?: boolean }[] = [
-  { color: COLOR_COMUNA, label: 'Cantidad de obras por comuna' },
-  { color: '#3b82f6', label: 'Obra seleccionada — entregada' },
-  { color: '#22c55e', label: 'Obra seleccionada — avance ≥ 70%' },
-  { color: '#eab308', label: 'Obra seleccionada — avance 35–70%' },
-  { color: '#ef4444', label: 'Obra seleccionada — avance < 35%' },
+  { color: '#3b82f6', label: 'Entregada' },
+  { color: '#22c55e', label: 'Avance ≥ 70%' },
+  { color: '#eab308', label: 'Avance 35–70%' },
+  { color: '#ef4444', label: 'Avance < 35%' },
   { color: '#fff', label: 'Desatendida (>30 días)', border: true },
+  { color: COLOR_PROXIMA_ENTREGA, label: `Próxima a entregar (≤${DIAS_PROXIMA_ENTREGA} días)` },
 ]
 
-// Centro geográfico de cada comuna: promedio de las coordenadas de sus obras
-// (no hay polígonos de comuna disponibles, solo el nombre en el dato oficial
-// "COMUNA O CORREGIMIENTO"). Suficiente para ubicar el círculo de conteo.
-function agruparPorComuna(obras: ObraVisor[]) {
-  const grupos = new Map<string, ObraVisor[]>()
-  for (const obra of obras) {
-    const clave = obra.comuna ?? 'Sin comuna registrada'
-    if (!grupos.has(clave)) grupos.set(clave, [])
-    grupos.get(clave)!.push(obra)
+// FeatureCollection de puntos: uno por obra, con su color de estado ya
+// resuelto como propiedad — así el layer de MapLibre solo necesita
+// 'circle-color': ['get', 'color'], sin duplicar la lógica de infoObra().
+function obrasAGeoJSON(obras: ObraVisor[]) {
+  return {
+    type: 'FeatureCollection' as const,
+    features: obras.map((obra) => ({
+      type: 'Feature' as const,
+      geometry: { type: 'Point' as const, coordinates: [obra.longitud, obra.latitud] },
+      properties: { obraId: obra.obraId, color: infoObra(obra).color },
+    })),
   }
-  return [...grupos.entries()].map(([comuna, obrasComuna]) => ({
-    comuna,
-    obras: obrasComuna,
-    latitud: obrasComuna.reduce((s, o) => s + (o.latitud ?? 0), 0) / obrasComuna.length,
-    longitud: obrasComuna.reduce((s, o) => s + (o.longitud ?? 0), 0) / obrasComuna.length,
-  }))
+}
+
+function calcularBounds(obras: ObraVisor[]): [[number, number], [number, number]] | null {
+  const conCoordenadas = obras.filter((o) => o.latitud !== null && o.longitud !== null)
+  if (conCoordenadas.length === 0) return null
+  const lons = conCoordenadas.map((o) => o.longitud!)
+  const lats = conCoordenadas.map((o) => o.latitud!)
+  return [
+    [Math.min(...lons), Math.min(...lats)],
+    [Math.max(...lons), Math.max(...lats)],
+  ]
 }
 
 export function MapaSeguimiento() {
@@ -76,12 +94,13 @@ export function MapaSeguimiento() {
   const mapRef = useRef<any>(null)
   const [obras, setObras] = useState<ObraVisor[]>([])
   const [ultimaVisitaPorObra, setUltimaVisitaPorObra] = useState<Map<number, string>>(new Map())
+  const [comunasGeoJSON, setComunasGeoJSON] = useState<any>(null)
   const [fechaFiltro, setFechaFiltro] = useState('')
+  const [comunaFiltro, setComunaFiltro] = useState<string | null>(null)
   const [obraSeleccionada, setObraSeleccionada] = useState<ObraVisor | null>(null)
   const [estiloMapa, setEstiloMapa] = useState<'calles' | 'satelite'>('calles')
   const [viewport, setViewport] = useState({ longitude: -75.58, latitude: 6.24, zoom: 10 })
   const [busqueda, setBusqueda] = useState('')
-  const [comunaActiva, setComunaActiva] = useState<string | null>(null)
 
   useEffect(() => {
     obrasVisorApi
@@ -92,15 +111,38 @@ export function MapaSeguimiento() {
       .obtenerUltimaVisitaPorObra()
       .then(setUltimaVisitaPorObra)
       .catch(() => {})
+    fetch('/comunas.geojson')
+      .then((r) => r.json())
+      .then(setComunasGeoJSON)
+      .catch(() => {})
   }, [])
 
-  const obrasFiltradas = useMemo(() => {
-    const conCoordenadas = obras.filter((o) => o.latitud !== null && o.longitud !== null)
-    if (!fechaFiltro) return conCoordenadas
-    return conCoordenadas.filter((o) => ultimaVisitaPorObra.get(o.obraId) === fechaFiltro)
-  }, [obras, fechaFiltro, ultimaVisitaPorObra])
+  const nombresComunas = useMemo(
+    () =>
+      (comunasGeoJSON?.features ?? [])
+        .map((f: any) => f.properties.nombre as string)
+        .sort(),
+    [comunasGeoJSON],
+  )
 
-  const comunas = useMemo(() => agruparPorComuna(obrasFiltradas), [obrasFiltradas])
+  const obrasFiltradas = useMemo(() => {
+    let resultado = obras.filter((o) => o.latitud !== null && o.longitud !== null)
+    if (fechaFiltro) resultado = resultado.filter((o) => ultimaVisitaPorObra.get(o.obraId) === fechaFiltro)
+    if (comunaFiltro) resultado = resultado.filter((o) => o.comuna === comunaFiltro)
+    return resultado
+  }, [obras, fechaFiltro, comunaFiltro, ultimaVisitaPorObra])
+
+  const cantidadComunas = useMemo(
+    () => new Set(obrasFiltradas.map((o) => o.comuna)).size,
+    [obrasFiltradas],
+  )
+
+  const obrasProximasAEntregar = useMemo(
+    () => obrasFiltradas.filter(estaProximaAEntregar),
+    [obrasFiltradas],
+  )
+
+  const obrasGeoJSON = useMemo(() => obrasAGeoJSON(obrasFiltradas), [obrasFiltradas])
 
   const resultadosBusqueda = useMemo(() => {
     const texto = busqueda.trim().toLowerCase()
@@ -108,16 +150,19 @@ export function MapaSeguimiento() {
     return obrasFiltradas.filter((o) => o.nombre.toLowerCase().includes(texto)).slice(0, 30)
   }, [busqueda, obrasFiltradas])
 
-  const obrasComunaActiva = useMemo(
-    () => comunas.find((c) => c.comuna === comunaActiva)?.obras ?? [],
-    [comunas, comunaActiva],
-  )
-
   function seleccionarObra(obra: ObraVisor) {
     if (obra.latitud === null || obra.longitud === null) return
     setObraSeleccionada(obra)
     setViewport((v) => ({ ...v, longitude: obra.longitud!, latitude: obra.latitud!, zoom: Math.max(v.zoom, 14) }))
   }
+
+  // Al elegir una comuna en el filtro, encuadrar el mapa en sus obras.
+  useEffect(() => {
+    if (!comunaFiltro) return
+    const bounds = calcularBounds(obrasFiltradas)
+    if (bounds) mapRef.current?.fitBounds(bounds, { padding: 60, maxZoom: 15, duration: 800 })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [comunaFiltro])
 
   return (
     <Box sx={{ height: 'calc(100vh - 48px)', display: 'flex', flexDirection: 'column' }}>
@@ -150,9 +195,17 @@ export function MapaSeguimiento() {
             fontFamily: 'inherit',
           }}
         />
-        {fechaFiltro && (
-          <Button size="small" variant="outlined" onClick={() => setFechaFiltro('')}>
-            Limpiar filtro
+
+        {(fechaFiltro || comunaFiltro) && (
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => {
+              setFechaFiltro('')
+              setComunaFiltro(null)
+            }}
+          >
+            Limpiar filtros
           </Button>
         )}
 
@@ -187,16 +240,13 @@ export function MapaSeguimiento() {
             maxHeight: { xs: 260, md: 'none' },
           }}
         >
-          <Box sx={{ p: 1.5 }}>
+          <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
             <TextField
               size="small"
               fullWidth
               placeholder="Buscar obra por nombre…"
               value={busqueda}
-              onChange={(e) => {
-                setBusqueda(e.target.value)
-                setComunaActiva(null)
-              }}
+              onChange={(e) => setBusqueda(e.target.value)}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -212,6 +262,26 @@ export function MapaSeguimiento() {
                 ),
               }}
             />
+
+            <select
+              value={comunaFiltro ?? ''}
+              onChange={(e) => setComunaFiltro(e.target.value || null)}
+              style={{
+                padding: '6.5px 8px',
+                borderRadius: 4,
+                border: '1px solid #c4c4c4',
+                fontSize: 14,
+                fontFamily: 'inherit',
+                width: '100%',
+              }}
+            >
+              <option value="">Todas las comunas</option>
+              {nombresComunas.map((nombre) => (
+                <option key={nombre} value={nombre}>
+                  {nombre}
+                </option>
+              ))}
+            </select>
           </Box>
 
           <Box sx={{ overflowY: 'auto', flex: 1 }}>
@@ -230,18 +300,18 @@ export function MapaSeguimiento() {
               </List>
             )}
 
-            {!busqueda && comunaActiva && (
+            {!busqueda && comunaFiltro && (
               <>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1 }}>
                   <Typography variant="subtitle2">
-                    {comunaActiva} · {obrasComunaActiva.length} obras
+                    {comunaFiltro} · {obrasFiltradas.length} obras
                   </Typography>
-                  <IconButton size="small" onClick={() => setComunaActiva(null)}>
+                  <IconButton size="small" onClick={() => setComunaFiltro(null)}>
                     <CloseIcon fontSize="small" />
                   </IconButton>
                 </Box>
                 <List dense disablePadding>
-                  {obrasComunaActiva.map((obra) => (
+                  {obrasFiltradas.map((obra) => (
                     <ListItemButton key={obra.obraId} onClick={() => seleccionarObra(obra)}>
                       <ListItemText primary={obra.nombre} secondary={infoObra(obra).etiqueta} />
                     </ListItemButton>
@@ -250,9 +320,9 @@ export function MapaSeguimiento() {
               </>
             )}
 
-            {!busqueda && !comunaActiva && (
+            {!busqueda && !comunaFiltro && (
               <Typography variant="body2" color="text.secondary" sx={{ px: 2, py: 2 }}>
-                Buscá una obra por nombre o hacé clic en el número de una comuna en el mapa.
+                Buscá una obra por nombre o elegí una comuna para ver sus obras.
               </Typography>
             )}
           </Box>
@@ -265,41 +335,75 @@ export function MapaSeguimiento() {
             mapLib={maplibregl}
             mapStyle={ESTILOS_MAPA[estiloMapa]}
             style={{ width: '100%', height: '100%' }}
+            interactiveLayerIds={['obras-puntos']}
             onMove={(evt) => setViewport(evt.viewState)}
+            onClick={(evt: any) => {
+              const feature = evt.features?.[0]
+              if (!feature) return
+              const obra = obrasFiltradas.find((o) => o.obraId === feature.properties.obraId)
+              if (obra) seleccionarObra(obra)
+            }}
             onError={(e: any) => {
               if (e?.error?.message?.includes('supported')) return
             }}
           >
             <NavigationControl position="top-right" />
 
-            {comunas.map((grupo) => (
-              <Marker key={grupo.comuna} longitude={grupo.longitud} latitude={grupo.latitud}>
+            {comunasGeoJSON && (
+              <Source id="comunas" type="geojson" data={comunasGeoJSON}>
+                <Layer
+                  id="comunas-contorno"
+                  source="comunas"
+                  type="line"
+                  paint={{ 'line-color': COLOR_COMUNA, 'line-width': 1.5, 'line-opacity': 0.7 }}
+                />
+                {comunaFiltro && (
+                  <Layer
+                    id="comunas-resaltado"
+                    source="comunas"
+                    type="fill"
+                    filter={['==', ['get', 'nombre'], comunaFiltro]}
+                    paint={{ 'fill-color': COLOR_COMUNA, 'fill-opacity': 0.15 }}
+                  />
+                )}
+              </Source>
+            )}
+
+            {obrasProximasAEntregar.map((obra) => (
+              <Marker
+                key={`proxima-${obra.obraId}`}
+                longitude={obra.longitud!}
+                latitude={obra.latitud!}
+                onClick={() => seleccionarObra(obra)}
+              >
                 <div
-                  onClick={() => {
-                    setComunaActiva(grupo.comuna)
-                    setBusqueda('')
-                  }}
-                  title={grupo.comuna}
+                  title={`${obra.nombre} — próxima a entregar`}
                   style={{
-                    width: 38,
-                    height: 38,
+                    width: 14,
+                    height: 14,
                     borderRadius: '50%',
-                    background: COLOR_COMUNA,
-                    color: '#fff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 12,
-                    fontWeight: 700,
+                    background: COLOR_PROXIMA_ENTREGA,
+                    border: '2px solid #fff',
+                    boxShadow: `0 0 0 3px ${COLOR_PROXIMA_ENTREGA}59`,
                     cursor: 'pointer',
-                    boxShadow: comunaActiva === grupo.comuna ? '0 0 0 3px rgba(37,99,235,0.6)' : '0 2px 8px rgba(0,0,0,0.3)',
-                    border: '2px solid rgba(255,255,255,0.8)',
                   }}
-                >
-                  {grupo.obras.length}
-                </div>
+                />
               </Marker>
             ))}
+
+            <Source id="obras" type="geojson" data={obrasGeoJSON}>
+              <Layer
+                id="obras-puntos"
+                source="obras"
+                type="circle"
+                paint={{
+                  'circle-radius': 5,
+                  'circle-color': ['get', 'color'],
+                  'circle-stroke-width': 1,
+                  'circle-stroke-color': '#fff',
+                }}
+              />
+            </Source>
 
             {obraSeleccionada && obraSeleccionada.latitud !== null && obraSeleccionada.longitud !== null && (
               <Marker longitude={obraSeleccionada.longitud} latitude={obraSeleccionada.latitud}>
@@ -421,7 +525,8 @@ export function MapaSeguimiento() {
             }}
           >
             <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
-              {obrasFiltradas.length} obras · {comunas.length} comunas
+              {obrasFiltradas.length} obras · {cantidadComunas} comunas
+              {obrasProximasAEntregar.length > 0 && ` · ${obrasProximasAEntregar.length} por entregar`}
             </Typography>
             {LEYENDA.map((item) => (
               <Box key={item.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.15 }}>
