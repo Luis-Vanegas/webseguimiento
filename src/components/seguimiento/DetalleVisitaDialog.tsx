@@ -26,6 +26,7 @@ export interface CambiosVisitaEditables {
   porcentajeAvanceCampo: number
   observaciones: string
   fechaProximaVisita: string | null
+  fechaVisita: string
 }
 
 interface DetalleVisitaDialogProps {
@@ -51,6 +52,7 @@ export function DetalleVisitaDialog({
   const [avance, setAvance] = useState(visita.porcentajeAvanceCampo)
   const [observaciones, setObservaciones] = useState(visita.observaciones)
   const [proximaVisita, setProximaVisita] = useState(visita.fechaProximaVisita ?? '')
+  const [fechaVisita, setFechaVisita] = useState(visita.fechaVisita)
 
   const nombreTipoAlerta = (id: string) =>
     tiposAlerta.find((t) => t.id === id)?.nombre ?? 'Alerta'
@@ -60,6 +62,7 @@ export function DetalleVisitaDialog({
       porcentajeAvanceCampo: avance,
       observaciones,
       fechaProximaVisita: proximaVisita || null,
+      fechaVisita,
     })
   }
 
@@ -77,7 +80,7 @@ export function DetalleVisitaDialog({
               </Typography>
             )}
             <Typography variant="body2" color="text.secondary">
-              Visita del {visita.fechaVisita}
+              Visita del {fechaVisita}
             </Typography>
           </Box>
           <Chip
@@ -100,6 +103,14 @@ export function DetalleVisitaDialog({
             {editando ? (
               <>
                 <TextField
+                  label="Fecha de la visita"
+                  type="date"
+                  value={fechaVisita}
+                  onChange={(e) => setFechaVisita(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ flex: '1 1 140px' }}
+                />
+                <TextField
                   label="% avance observado"
                   type="number"
                   value={avance}
@@ -117,6 +128,7 @@ export function DetalleVisitaDialog({
               </>
             ) : (
               <>
+                <Dato etiqueta="Fecha de la visita" valor={visita.fechaVisita} />
                 <Dato etiqueta="Avance observado" valor={`${visita.porcentajeAvanceCampo}%`} />
                 <Dato etiqueta="Próxima visita" valor={visita.fechaProximaVisita ?? '—'} />
               </>

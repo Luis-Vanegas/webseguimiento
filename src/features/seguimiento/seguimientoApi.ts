@@ -190,6 +190,7 @@ export interface EditarVisitaInput {
     porcentajeAvanceCampo: number
     observaciones: string
     fechaProximaVisita: string | null
+    fechaVisita: string
   }>
   comentario?: string
 }
@@ -201,6 +202,7 @@ export async function editarVisita(input: EditarVisitaInput): Promise<VisitaSegu
       porcentaje_avance_campo: input.cambios.porcentajeAvanceCampo,
       observaciones: input.cambios.observaciones,
       fecha_proxima_visita: input.cambios.fechaProximaVisita,
+      fecha_visita: input.cambios.fechaVisita,
     })
     .eq('id', input.id)
     .select()
