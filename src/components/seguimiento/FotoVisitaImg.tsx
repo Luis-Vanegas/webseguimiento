@@ -31,10 +31,11 @@ async function resolverUrl(storagePath: string): Promise<string> {
   return URL.createObjectURL(blobJpeg)
 }
 
-export function FotoVisitaImg({ storagePath }: { storagePath: string }) {
+// Extraído para que CarruselFotos.tsx pueda resolver la URL de una foto
+// arbitraria (no solo la del thumbnail) compartiendo el mismo urlCache.
+export function useFotoUrl(storagePath: string) {
   const [url, setUrl] = useState<string | null>(null)
   const [error, setError] = useState(false)
-  const [expandida, setExpandida] = useState(false)
 
   useEffect(() => {
     let activo = true
@@ -56,6 +57,20 @@ export function FotoVisitaImg({ storagePath }: { storagePath: string }) {
       activo = false
     }
   }, [storagePath])
+
+  return { url, error }
+}
+
+interface FotoVisitaImgProps {
+  storagePath: string
+  // Si se pasa, se llama al hacer click en vez de abrir el dialog de zoom
+  // interno — así CarruselFotos puede controlar la navegación entre fotos.
+  onAbrir?: () => void
+}
+
+export function FotoVisitaImg({ storagePath, onAbrir }: FotoVisitaImgProps) {
+  const { url, error } = useFotoUrl(storagePath)
+  const [expandida, setExpandida] = useState(false)
 
   if (error) {
     return (
@@ -85,16 +100,18 @@ export function FotoVisitaImg({ storagePath }: { storagePath: string }) {
         src={url}
         alt=""
         style={{ ...BASE_STYLE, objectFit: 'cover', cursor: 'zoom-in' }}
-        onClick={() => setExpandida(true)}
+        onClick={() => (onAbrir ? onAbrir() : setExpandida(true))}
       />
-      <Dialog open={expandida} onClose={() => setExpandida(false)} maxWidth="lg">
-        <img
-          src={url}
-          alt=""
-          style={{ display: 'block', maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain' }}
-          onClick={() => setExpandida(false)}
-        />
-      </Dialog>
+      {!onAbrir && (
+        <Dialog open={expandida} onClose={() => setExpandida(false)} maxWidth="lg">
+          <img
+            src={url}
+            alt=""
+            style={{ display: 'block', maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain' }}
+            onClick={() => setExpandida(false)}
+          />
+        </Dialog>
+      )}
     </>
   )
 }

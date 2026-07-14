@@ -19,14 +19,13 @@ import { useNavigate } from 'react-router-dom'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import * as obrasVisorApi from '../../api/obrasVisorApi'
 import * as seguimientoApi from '../../features/seguimiento/seguimientoApi'
+import { COLOR_PROXIMA_ENTREGA } from '../../theme/theme'
+import { DIAS_PROXIMA_ENTREGA, estaDesatendida, estaProximaAEntregar } from '../../utils/seguimiento/fechas.util'
 import type { ObraVisor } from '../../types/obra.types'
 
 ;(maplibregl as any).supported = () => true
 
-const DIAS_DESATENDIDA = 30
-const DIAS_PROXIMA_ENTREGA = 15
 const COLOR_COMUNA = '#f97316'
-const COLOR_PROXIMA_ENTREGA = '#a855f7'
 
 const ESTILOS_MAPA = {
   calles: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
@@ -40,21 +39,6 @@ function infoObra(obra: ObraVisor) {
   return { color: '#ef4444', etiqueta: `Avance ${obra.porcentajeAvanceOficial}%` }
 }
 
-function estaDesatendida(ultimaVisita: string | undefined): boolean {
-  if (!ultimaVisita) return true
-  const dias = (Date.now() - new Date(ultimaVisita).getTime()) / (1000 * 60 * 60 * 24)
-  return dias > DIAS_DESATENDIDA
-}
-
-// "Próxima a entregar": fecha estimada dentro de los próximos 15 días.
-// No incluye obras vencidas (fecha estimada ya pasada) — con el mapeo de
-// `entregada` corregido, esas ya deberían venir marcadas como entregadas.
-function estaProximaAEntregar(obra: ObraVisor): boolean {
-  if (obra.entregada || !obra.fechaEstimadaEntrega) return false
-  const dias = (new Date(obra.fechaEstimadaEntrega).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-  return dias >= 0 && dias <= DIAS_PROXIMA_ENTREGA
-}
-
 const LEYENDA: { color: string; label: string; border?: boolean }[] = [
   { color: '#3b82f6', label: 'Entregada' },
   { color: '#22c55e', label: 'Avance ≥ 70%' },
@@ -64,16 +48,20 @@ const LEYENDA: { color: string; label: string; border?: boolean }[] = [
   { color: COLOR_PROXIMA_ENTREGA, label: `Próxima a entregar (≤${DIAS_PROXIMA_ENTREGA} días)` },
 ]
 
-// FeatureCollection de puntos: uno por obra, con su color de estado ya
-// resuelto como propiedad — así el layer de MapLibre solo necesita
-// 'circle-color': ['get', 'color'], sin duplicar la lógica de infoObra().
-function obrasAGeoJSON(obras: ObraVisor[]) {
+// FeatureCollection de puntos: uno por obra, con su color de estado y si
+// está desatendida ya resueltos como propiedades — así el layer de
+// MapLibre solo necesita 'get', sin duplicar la lógica en el paint.
+function obrasAGeoJSON(obras: ObraVisor[], ultimaVisitaPorObra: Map<number, string>) {
   return {
     type: 'FeatureCollection' as const,
     features: obras.map((obra) => ({
       type: 'Feature' as const,
       geometry: { type: 'Point' as const, coordinates: [obra.longitud, obra.latitud] },
-      properties: { obraId: obra.obraId, color: infoObra(obra).color },
+      properties: {
+        obraId: obra.obraId,
+        color: infoObra(obra).color,
+        desatendida: estaDesatendida(ultimaVisitaPorObra.get(obra.obraId)),
+      },
     })),
   }
 }
@@ -142,7 +130,10 @@ export function MapaSeguimiento() {
     [obrasFiltradas],
   )
 
-  const obrasGeoJSON = useMemo(() => obrasAGeoJSON(obrasFiltradas), [obrasFiltradas])
+  const obrasGeoJSON = useMemo(
+    () => obrasAGeoJSON(obrasFiltradas, ultimaVisitaPorObra),
+    [obrasFiltradas, ultimaVisitaPorObra],
+  )
 
   const resultadosBusqueda = useMemo(() => {
     const texto = busqueda.trim().toLowerCase()
@@ -399,8 +390,8 @@ export function MapaSeguimiento() {
                 paint={{
                   'circle-radius': 5,
                   'circle-color': ['get', 'color'],
-                  'circle-stroke-width': 1,
-                  'circle-stroke-color': '#fff',
+                  'circle-stroke-width': ['case', ['get', 'desatendida'], 2, 1],
+                  'circle-stroke-color': ['case', ['get', 'desatendida'], '#ef4444', '#fff'],
                 }}
               />
             </Source>
@@ -451,6 +442,11 @@ export function MapaSeguimiento() {
                   {obraSeleccionada.dependencia && (
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                       {obraSeleccionada.dependencia}
+                    </Typography>
+                  )}
+                  {obraSeleccionada.direccion && (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                      {obraSeleccionada.direccion}
                     </Typography>
                   )}
                   {obraSeleccionada.fechaEstimadaEntrega && (

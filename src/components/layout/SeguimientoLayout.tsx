@@ -21,6 +21,7 @@ import MenuIcon from '@mui/icons-material/Menu'
 import AssignmentIcon from '@mui/icons-material/Assignment'
 import RateReviewIcon from '@mui/icons-material/RateReview'
 import MapIcon from '@mui/icons-material/Map'
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
 import LogoutIcon from '@mui/icons-material/Logout'
 import EngineeringIcon from '@mui/icons-material/Engineering'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
@@ -34,6 +35,7 @@ const ITEMS = [
   { to: '/seguimiento/mis-visitas', label: 'Mis visitas', icon: <AssignmentIcon /> },
   { to: '/seguimiento/revisar', label: 'Revisar visitas', icon: <RateReviewIcon /> },
   { to: '/seguimiento/mapa', label: 'Mapa de obras', icon: <MapIcon /> },
+  { to: '/seguimiento/calendario', label: 'Calendario', icon: <CalendarMonthIcon /> },
 ]
 
 export function SeguimientoLayout() {
