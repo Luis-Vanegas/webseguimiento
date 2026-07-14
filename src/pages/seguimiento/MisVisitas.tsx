@@ -13,6 +13,7 @@ import {
 import AddLocationAltIcon from '@mui/icons-material/AddLocationAlt'
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday'
 import CameraAltIcon from '@mui/icons-material/CameraAlt'
+import LocationOnIcon from '@mui/icons-material/LocationOn'
 import TrendingUpIcon from '@mui/icons-material/TrendingUp'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import { Link } from 'react-router-dom'
@@ -21,14 +22,16 @@ import { editarVisita, listarMisVisitas } from '../../features/seguimiento/segui
 import { useUsuarioActual } from '../../features/auth/useUsuarioActual'
 import { useDatosFiltro } from '../../features/seguimiento/useDatosFiltro'
 import { FiltrosVisitasBar } from '../../components/seguimiento/FiltrosVisitasBar'
+import { ProximasVisitas } from '../../components/seguimiento/ProximasVisitas'
 import {
   DetalleVisitaDialog,
   type CambiosVisitaEditables,
 } from '../../components/seguimiento/DetalleVisitaDialog'
 import { filtrarVisitas } from '../../utils/seguimiento/filtrar-visitas.util'
+import { severidadMaxima } from '../../utils/seguimiento/alertas.util'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { FILTROS_VACIOS } from '../../types/filtros.types'
-import { COLOR_ESTADO, ETIQUETA_ESTADO } from '../../theme/theme'
+import { COLOR_ESTADO, COLOR_SEVERIDAD, ETIQUETA_ESTADO } from '../../theme/theme'
 import type { VisitaSeguimiento } from '../../types/seguimiento.types'
 
 export function MisVisitas() {
@@ -72,6 +75,8 @@ export function MisVisitas() {
         }
       />
 
+      <ProximasVisitas visitas={misVisitas} obraPorId={obraPorId} onSeleccionar={setVisitaSeleccionada} />
+
       <FiltrosVisitasBar
         filtros={filtros}
         onChange={setFiltros}
@@ -87,31 +92,57 @@ export function MisVisitas() {
 
       <Stack spacing={1.5}>
         {visitasFiltradas.map((visita) => {
+          const obra = obraPorId.get(visita.obraId)
           const alertas = visita.alertas?.length ?? 0
           const fotos = visita.fotos?.length ?? 0
+          const severidad = severidadMaxima(visita.alertas)
+          const ubicacion = obra?.comuna ?? obra?.direccion
           return (
-            <Card key={visita.id} variant="outlined" sx={{ borderRadius: 2.5 }}>
+            <Card
+              key={visita.id}
+              variant="outlined"
+              sx={{
+                borderRadius: 2.5,
+                borderLeft: '4px solid',
+                borderLeftColor: COLOR_ESTADO[visita.estado],
+              }}
+            >
               <CardActionArea onClick={() => setVisitaSeleccionada(visita)} sx={{ p: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
-                  <Typography sx={{ fontWeight: 600, fontSize: 15, lineHeight: 1.3 }}>
-                    {obraPorId.get(visita.obraId)?.nombre ?? `Obra ${visita.obraId}`}
-                  </Typography>
-                  <Chip
-                    size="small"
-                    label={ETIQUETA_ESTADO[visita.estado]}
-                    sx={{
-                      backgroundColor: COLOR_ESTADO[visita.estado],
-                      color: '#fff',
-                      fontWeight: 600,
-                      flexShrink: 0,
-                    }}
-                  />
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1 }}>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography sx={{ fontWeight: 600, fontSize: 15, lineHeight: 1.3 }}>
+                      {obra?.nombre ?? `Obra ${visita.obraId}`}
+                    </Typography>
+                    {ubicacion && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, mt: 0.25 }}>
+                        <LocationOnIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
+                        <Typography variant="caption" color="text.secondary">
+                          {ubicacion}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                  <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0 }}>
+                    {severidad && (
+                      <Chip
+                        size="small"
+                        icon={<WarningAmberIcon sx={{ fontSize: 14, color: '#fff !important' }} />}
+                        label={alertas}
+                        sx={{ backgroundColor: COLOR_SEVERIDAD[severidad], color: '#fff', fontWeight: 700 }}
+                      />
+                    )}
+                    <Chip
+                      size="small"
+                      label={ETIQUETA_ESTADO[visita.estado]}
+                      sx={{ backgroundColor: COLOR_ESTADO[visita.estado], color: '#fff', fontWeight: 600 }}
+                    />
+                  </Stack>
                 </Box>
 
                 <Divider sx={{ my: 1 }} />
 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 130 }}>
                     <CalendarTodayIcon sx={{ fontSize: 15, color: 'text.disabled' }} />
                     <Typography variant="body2" color="text.secondary">
                       {visita.fechaVisita}
@@ -120,26 +151,19 @@ export function MisVisitas() {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     <TrendingUpIcon sx={{ fontSize: 15, color: 'text.disabled' }} />
                     <Typography variant="body2" color="text.secondary">
-                      Avance observado: <b>{visita.porcentajeAvanceCampo}%</b>
+                      Avance: <b>{visita.porcentajeAvanceCampo}%</b>
                     </Typography>
                   </Box>
-                  {alertas > 0 && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <WarningAmberIcon sx={{ fontSize: 16, color: '#f9a825' }} />
-                      <Typography variant="body2" color="text.secondary">
-                        {alertas} {alertas === 1 ? 'alerta' : 'alertas'}
-                      </Typography>
-                    </Box>
-                  )}
-                  {fotos > 0 && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <CameraAltIcon sx={{ fontSize: 16, color: 'text.disabled' }} />
-                      <Typography variant="body2" color="text.secondary">
-                        {fotos}
-                      </Typography>
-                    </Box>
-                  )}
                 </Box>
+
+                {fotos > 0 && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1 }}>
+                    <CameraAltIcon sx={{ fontSize: 15, color: 'text.disabled' }} />
+                    <Typography variant="caption" color="text.secondary">
+                      {fotos} foto{fotos === 1 ? '' : 's'}
+                    </Typography>
+                  </Box>
+                )}
               </CardActionArea>
             </Card>
           )
@@ -150,10 +174,10 @@ export function MisVisitas() {
         <DetalleVisitaDialog
           // Versión fresca del store, por si una edición la actualizó
           visita={misVisitas.find((v) => v.id === visitaSeleccionada.id) ?? visitaSeleccionada}
-          usuario={usuario}
           nombreObra={
             obraPorId.get(visitaSeleccionada.obraId)?.nombre ?? `Obra ${visitaSeleccionada.obraId}`
           }
+          direccionObra={obraPorId.get(visitaSeleccionada.obraId)?.direccion}
           tiposAlerta={tiposAlerta}
           onCerrar={() => setVisitaSeleccionada(null)}
           onGuardar={guardarEdicion}

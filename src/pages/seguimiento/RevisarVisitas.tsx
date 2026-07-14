@@ -19,6 +19,7 @@ import {
   useTheme,
 } from '@mui/material'
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday'
+import LocationOnIcon from '@mui/icons-material/LocationOn'
 import PersonIcon from '@mui/icons-material/Person'
 import RateReviewIcon from '@mui/icons-material/RateReview'
 import TrendingUpIcon from '@mui/icons-material/TrendingUp'
@@ -39,8 +40,9 @@ import {
 } from '../../components/seguimiento/DetalleVisitaDialog'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { filtrarVisitas } from '../../utils/seguimiento/filtrar-visitas.util'
+import { severidadMaxima } from '../../utils/seguimiento/alertas.util'
 import { FILTROS_VACIOS } from '../../types/filtros.types'
-import { COLOR_ESTADO, ETIQUETA_ESTADO } from '../../theme/theme'
+import { COLOR_ESTADO, COLOR_SEVERIDAD, ETIQUETA_ESTADO } from '../../theme/theme'
 import type { VisitaSeguimiento } from '../../types/seguimiento.types'
 
 export function RevisarVisitas() {
@@ -89,6 +91,10 @@ export function RevisarVisitas() {
   }
 
   const nombreObra = (obraId: number) => obraPorId.get(obraId)?.nombre ?? `Obra ${obraId}`
+  const ubicacionObra = (obraId: number) => {
+    const obra = obraPorId.get(obraId)
+    return obra?.comuna ?? obra?.direccion ?? null
+  }
   const nombreAutor = (autorId: string) => nombrePorAutor.get(autorId) ?? 'Autor desconocido'
   const puedeMarcarRevisada = (visita: VisitaSeguimiento) => visita.estado !== 'revisada'
 
@@ -120,24 +126,50 @@ export function RevisarVisitas() {
         <Stack spacing={1.5}>
           {pendientesFiltradas.map((visita) => {
             const alertas = visita.alertas?.length ?? 0
+            const severidad = severidadMaxima(visita.alertas)
+            const ubicacion = ubicacionObra(visita.obraId)
             return (
-              <Card key={visita.id} variant="outlined" sx={{ borderRadius: 2.5, p: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
-                  <Typography sx={{ fontWeight: 600, fontSize: 14, lineHeight: 1.3 }}>
-                    {nombreObra(visita.obraId)}
-                  </Typography>
-                  <Chip
-                    size="small"
-                    label={ETIQUETA_ESTADO[visita.estado]}
-                    sx={{
-                      backgroundColor: COLOR_ESTADO[visita.estado],
-                      color: '#fff',
-                      fontWeight: 600,
-                      flexShrink: 0,
-                    }}
-                  />
+              <Card
+                key={visita.id}
+                variant="outlined"
+                sx={{
+                  borderRadius: 2.5,
+                  p: 2,
+                  borderLeft: '4px solid',
+                  borderLeftColor: COLOR_ESTADO[visita.estado],
+                }}
+              >
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1 }}>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography sx={{ fontWeight: 600, fontSize: 14, lineHeight: 1.3 }}>
+                      {nombreObra(visita.obraId)}
+                    </Typography>
+                    {ubicacion && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, mt: 0.25 }}>
+                        <LocationOnIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
+                        <Typography variant="caption" color="text.secondary">
+                          {ubicacion}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                  <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0 }}>
+                    {severidad && (
+                      <Chip
+                        size="small"
+                        icon={<WarningAmberIcon sx={{ fontSize: 14, color: '#fff !important' }} />}
+                        label={alertas}
+                        sx={{ backgroundColor: COLOR_SEVERIDAD[severidad], color: '#fff', fontWeight: 700 }}
+                      />
+                    )}
+                    <Chip
+                      size="small"
+                      label={ETIQUETA_ESTADO[visita.estado]}
+                      sx={{ backgroundColor: COLOR_ESTADO[visita.estado], color: '#fff', fontWeight: 600 }}
+                    />
+                  </Stack>
                 </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.75 }}>
                   <PersonIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
                   <Typography variant="caption" color="text.secondary">
                     {nombreAutor(visita.autorId)}
@@ -146,8 +178,8 @@ export function RevisarVisitas() {
 
                 <Divider sx={{ my: 1 }} />
 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', mb: 1.5 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap', mb: 1.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, minWidth: 110 }}>
                     <CalendarTodayIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
                     <Typography variant="body2" color="text.secondary">
                       {visita.fechaVisita}
@@ -159,21 +191,23 @@ export function RevisarVisitas() {
                       Avance: <b>{visita.porcentajeAvanceCampo}%</b>
                     </Typography>
                   </Box>
-                  {alertas > 0 && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
-                      <WarningAmberIcon sx={{ fontSize: 15, color: '#f9a825' }} />
-                      <Typography variant="body2" color="text.secondary">
-                        {alertas}
-                      </Typography>
-                    </Box>
-                  )}
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button size="small" variant="outlined" onClick={() => abrirDetalle(visita)} sx={{ flex: 1 }}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => abrirDetalle(visita)}
+                    sx={{ flex: 1, minHeight: 44 }}
+                  >
                     {puedeMarcarRevisada(visita) ? 'Ver / editar' : 'Ver'}
                   </Button>
                   {puedeMarcarRevisada(visita) && (
-                    <Button size="small" variant="contained" onClick={() => marcarRevisada(visita)} sx={{ flex: 1 }}>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      onClick={() => marcarRevisada(visita)}
+                      sx={{ flex: 1, minHeight: 44 }}
+                    >
                       Revisada
                     </Button>
                   )}
@@ -269,8 +303,8 @@ export function RevisarVisitas() {
         <DetalleVisitaDialog
           // Versión fresca del store: al abrir, abrirDetalle() puede haberla pasado a en_revision
           visita={pendientes.find((v) => v.id === visitaSeleccionada.id) ?? visitaSeleccionada}
-          usuario={usuario}
           nombreObra={nombreObra(visitaSeleccionada.obraId)}
+          direccionObra={obraPorId.get(visitaSeleccionada.obraId)?.direccion}
           tiposAlerta={tiposAlerta}
           onCerrar={() => setVisitaSeleccionada(null)}
           onGuardar={guardarEdicion}

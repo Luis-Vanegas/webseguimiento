@@ -10,26 +10,17 @@ import {
   DialogTitle,
   TextField,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import HistoryIcon from '@mui/icons-material/History'
 import AddLocationAltIcon from '@mui/icons-material/AddLocationAlt'
 import { useNavigate } from 'react-router-dom'
-import { FotoVisitaImg } from './FotoVisitaImg'
+import { CarruselFotos } from './CarruselFotos'
 import { Seccion } from '../layout/Seccion'
-import { COLOR_ESTADO, ETIQUETA_ESTADO } from '../../theme/theme'
-import type {
-  SeveridadAlerta,
-  TipoAlerta,
-  UsuarioSeguimiento,
-  VisitaSeguimiento,
-} from '../../types/seguimiento.types'
-
-const COLOR_SEVERIDAD: Record<SeveridadAlerta, string> = {
-  baja: '#22c55e',
-  media: '#f9a825',
-  alta: '#ef4444',
-}
+import { COLOR_ESTADO, COLOR_SEVERIDAD, ETIQUETA_ESTADO } from '../../theme/theme'
+import type { TipoAlerta, VisitaSeguimiento } from '../../types/seguimiento.types'
 
 export interface CambiosVisitaEditables {
   porcentajeAvanceCampo: number
@@ -37,28 +28,10 @@ export interface CambiosVisitaEditables {
   fechaProximaVisita: string | null
 }
 
-// Reglas de edición (espejo de las policies RLS del schema): el visitador
-// solo edita su propia visita mientras siga pendiente_revisar; el ingeniero
-// edita cualquiera que no esté revisada; revisada es de solo lectura para
-// todos, EXCEPTO para el propio ingeniero autor — su visita nace revisada
-// de una (ver estadoInicial() en seguimientoApi.ts) y sin esta excepción no
-// tendría forma de completar información que le faltó cargar.
-function puedeEditarVisita(
-  visita: VisitaSeguimiento,
-  usuario: UsuarioSeguimiento | null,
-): boolean {
-  if (!usuario) return false
-  if (visita.estado === 'revisada') {
-    return usuario.rol === 'ingeniero' && visita.autorId === usuario.id
-  }
-  if (usuario.rol === 'ingeniero') return true
-  return visita.autorId === usuario.id && visita.estado === 'pendiente_revisar'
-}
-
 interface DetalleVisitaDialogProps {
   visita: VisitaSeguimiento
-  usuario: UsuarioSeguimiento | null
   nombreObra: string
+  direccionObra?: string | null
   tiposAlerta: TipoAlerta[]
   onCerrar: () => void
   onGuardar: (cambios: CambiosVisitaEditables) => void
@@ -66,14 +39,14 @@ interface DetalleVisitaDialogProps {
 
 export function DetalleVisitaDialog({
   visita,
-  usuario,
   nombreObra,
+  direccionObra,
   tiposAlerta,
   onCerrar,
   onGuardar,
 }: DetalleVisitaDialogProps) {
   const navigate = useNavigate()
-  const editable = puedeEditarVisita(visita, usuario)
+  const esMovil = useMediaQuery(useTheme().breakpoints.down('sm'))
   const [editando, setEditando] = useState(false)
   const [avance, setAvance] = useState(visita.porcentajeAvanceCampo)
   const [observaciones, setObservaciones] = useState(visita.observaciones)
@@ -91,13 +64,18 @@ export function DetalleVisitaDialog({
   }
 
   return (
-    <Dialog open onClose={onCerrar} fullWidth maxWidth="md">
+    <Dialog open onClose={onCerrar} fullWidth maxWidth="md" fullScreen={esMovil}>
       <DialogTitle sx={{ pb: 1 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1 }}>
           <Box>
             <Typography variant="h6" sx={{ lineHeight: 1.3 }}>
               {nombreObra}
             </Typography>
+            {direccionObra && (
+              <Typography variant="body2" color="text.secondary">
+                {direccionObra}
+              </Typography>
+            )}
             <Typography variant="body2" color="text.secondary">
               Visita del {visita.fechaVisita}
             </Typography>
@@ -113,9 +91,7 @@ export function DetalleVisitaDialog({
       <DialogContent sx={{ bgcolor: '#f7f9fc' }}>
         {visita.estado === 'revisada' && (
           <Alert severity="success" sx={{ mb: 2.5 }}>
-            {editable
-              ? 'Visita revisada: como autor, todavía podés completarla o corregirla.'
-              : 'Visita revisada: es de solo lectura. Una corrección posterior se registra como visita nueva.'}
+            Visita revisada: todavía se puede editar o corregir.
           </Alert>
         )}
 
@@ -192,11 +168,7 @@ export function DetalleVisitaDialog({
 
         {(visita.fotos?.length ?? 0) > 0 && (
           <Seccion titulo={`Fotos (${visita.fotos!.length})`}>
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              {visita.fotos!.map((foto) => (
-                <FotoVisitaImg key={foto.id} storagePath={foto.storagePath} />
-              ))}
-            </Box>
+            <CarruselFotos fotos={visita.fotos!} />
           </Seccion>
         )}
 
@@ -220,7 +192,7 @@ export function DetalleVisitaDialog({
 
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onCerrar}>Cerrar</Button>
-        {editable && !editando && (
+        {!editando && (
           <Button variant="outlined" onClick={() => setEditando(true)}>
             Editar
           </Button>

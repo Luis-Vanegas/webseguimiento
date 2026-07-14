@@ -121,28 +121,14 @@ create policy "lectura_autenticados" on historial_revision for select to authent
 create policy "crear_propia_visita" on visitas_seguimiento for insert to authenticated
   with check (autor_id = auth.uid());
 
--- Edición de visitas: el visitador edita solo la suya mientras siga
--- pendiente_revisar; el ingeniero edita cualquiera en
--- pendiente_revisar/en_revision; revisada es de solo lectura para todos
--- (no existe policy de update que la habilite sobre una fila ya revisada).
---
--- USING decide qué filas se pueden tocar (evaluado sobre el estado ANTES
--- del update). WITH CHECK decide qué resultado final es válido (evaluado
--- sobre la fila DESPUÉS). Si se omite WITH CHECK, Postgres reutiliza el
--- mismo USING como check final — eso bloqueaba la transición a 'revisada'
--- porque el USING exige que el estado siga en pendiente_revisar/en_revision.
--- Separados: el ingeniero puede llevar cualquier visita tocable hacia
--- cualquier estado (incluida 'revisada'); el visitador solo puede dejarla
--- igual (pendiente_revisar), nunca marcarla revisada ni pasarla a en_revision.
+-- Edición de visitas: sin restricción — cualquier autenticado puede editar
+-- cualquier visita, en cualquier estado. Decisión del usuario (2026-07-14):
+-- se priorizó la flexibilidad operativa sobre el control de auditoría por
+-- estado/autor/rol que tenía el diseño original (ver historial de git para
+-- la regla anterior, más granular, si hace falta volver atrás).
 create policy "editar_segun_estado_y_rol" on visitas_seguimiento for update to authenticated
-  using (
-    (autor_id = auth.uid() and estado = 'pendiente_revisar' and rol_actual() = 'visitador')
-    or (rol_actual() = 'ingeniero' and estado in ('pendiente_revisar', 'en_revision'))
-  )
-  with check (
-    (autor_id = auth.uid() and estado = 'pendiente_revisar' and rol_actual() = 'visitador')
-    or (rol_actual() = 'ingeniero')
-  );
+  using (true)
+  with check (true);
 
 -- Alertas y fotos se escriben junto con la visita propia, o por el ingeniero en revisión.
 create policy "escribir_de_visita_propia" on alertas_visita for insert to authenticated
@@ -186,11 +172,9 @@ create policy "subir_fotos_autenticados" on storage.objects for insert to authen
 --
 -- alter table visitas_seguimiento drop column presupuesto_observado_campo;
 
--- Migración 2: permitir que el AUTOR de una visita la siga editando aunque
--- ya esté en estado 'revisada' (hoy revisada es de solo lectura para
--- siempre). Caso real: un ingeniero registra su propia visita (nace
--- 'revisada' de una, ver estadoInicial() en seguimientoApi.ts) y le faltó
--- cargar información — sin esto no tiene forma de completarla.
+-- Migración 2 (SUPERADA por la Migración 3 — no correr): permitía que el
+-- AUTOR de una visita la siguiera editando aunque ya estuviera 'revisada'.
+-- Quedó obsoleta porque la Migración 3 es más permisiva y la contiene.
 --
 -- drop policy "editar_segun_estado_y_rol" on visitas_seguimiento;
 -- create policy "editar_segun_estado_y_rol" on visitas_seguimiento for update to authenticated
@@ -203,3 +187,16 @@ create policy "subir_fotos_autenticados" on storage.objects for insert to authen
 --     (autor_id = auth.uid() and estado = 'pendiente_revisar' and rol_actual() = 'visitador')
 --     or (rol_actual() = 'ingeniero')
 --   );
+
+-- Migración 3 — CORRER ESTA en el SQL Editor de Supabase (proyecto real):
+-- elimina toda restricción de edición sobre visitas_seguimiento. Cualquier
+-- autenticado puede editar cualquier visita, en cualquier estado, sin
+-- importar quién la creó. Decisión del usuario 2026-07-14: sin esto, el
+-- frontend ya deja el botón "Editar" habilitado siempre — sin correr esta
+-- migración, esos intentos de guardar van a fallar con 403 porque la
+-- policy vieja en la base real sigue siendo la restrictiva.
+--
+-- drop policy "editar_segun_estado_y_rol" on visitas_seguimiento;
+-- create policy "editar_segun_estado_y_rol" on visitas_seguimiento for update to authenticated
+--   using (true)
+--   with check (true);
