@@ -22,7 +22,7 @@ function App() {
         <BrowserRouter>
           <ErrorBoundary>
             <Routes>
-              <Route path="/" element={<Navigate to="/seguimiento/mis-visitas" replace />} />
+              <Route path="/" element={<Navigate to="/seguimiento/calendario" replace />} />
               <Route path="/seguimiento/login" element={<LoginSeguimiento />} />
               <Route element={<RutaProtegida />}>
                 <Route path="/seguimiento" element={<SeguimientoLayout />}>

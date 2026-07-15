@@ -13,7 +13,7 @@ export interface ObraVisor {
   longitud: number | null
   presupuestoOficial: number
   porcentajeAvanceOficial: number
-  proyectoEstrategico: string | null // aproximado con tipo_intervencion, no existe campo exacto en la API real
+  proyectoEstrategico: string | null
   entregada: boolean
   estado: string | null
   descripcion: string | null

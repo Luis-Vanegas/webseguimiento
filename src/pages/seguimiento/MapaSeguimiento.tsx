@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import MapGL, { Layer, Marker, NavigationControl, Popup, Source } from 'react-map-gl'
+import MapGL, { GeolocateControl, Layer, Marker, NavigationControl, Popup, Source } from 'react-map-gl'
 import maplibregl from 'maplibre-gl'
 import {
   Box,
@@ -83,8 +83,10 @@ export function MapaSeguimiento() {
   const [obras, setObras] = useState<ObraVisor[]>([])
   const [ultimaVisitaPorObra, setUltimaVisitaPorObra] = useState<Map<number, string>>(new Map())
   const [comunasGeoJSON, setComunasGeoJSON] = useState<any>(null)
-  const [fechaFiltro, setFechaFiltro] = useState('')
+  const [fechaDesde, setFechaDesde] = useState('')
+  const [fechaHasta, setFechaHasta] = useState('')
   const [comunaFiltro, setComunaFiltro] = useState<string | null>(null)
+  const [proyectoFiltro, setProyectoFiltro] = useState<string | null>(null)
   const [obraSeleccionada, setObraSeleccionada] = useState<ObraVisor | null>(null)
   const [estiloMapa, setEstiloMapa] = useState<'calles' | 'satelite'>('calles')
   const [viewport, setViewport] = useState({ longitude: -75.58, latitude: 6.24, zoom: 10 })
@@ -113,12 +115,26 @@ export function MapaSeguimiento() {
     [comunasGeoJSON],
   )
 
+  const nombresProyectos = useMemo(
+    () => [...new Set(obras.map((o) => o.proyectoEstrategico).filter((p): p is string => !!p))].sort(),
+    [obras],
+  )
+
   const obrasFiltradas = useMemo(() => {
     let resultado = obras.filter((o) => o.latitud !== null && o.longitud !== null)
-    if (fechaFiltro) resultado = resultado.filter((o) => ultimaVisitaPorObra.get(o.obraId) === fechaFiltro)
+    if (fechaDesde || fechaHasta) {
+      resultado = resultado.filter((o) => {
+        const ultima = ultimaVisitaPorObra.get(o.obraId)
+        if (!ultima) return false
+        if (fechaDesde && ultima < fechaDesde) return false
+        if (fechaHasta && ultima > fechaHasta) return false
+        return true
+      })
+    }
     if (comunaFiltro) resultado = resultado.filter((o) => o.comuna === comunaFiltro)
+    if (proyectoFiltro) resultado = resultado.filter((o) => o.proyectoEstrategico === proyectoFiltro)
     return resultado
-  }, [obras, fechaFiltro, comunaFiltro, ultimaVisitaPorObra])
+  }, [obras, fechaDesde, fechaHasta, comunaFiltro, proyectoFiltro, ultimaVisitaPorObra])
 
   const cantidadComunas = useMemo(
     () => new Set(obrasFiltradas.map((o) => o.comuna)).size,
@@ -147,13 +163,13 @@ export function MapaSeguimiento() {
     setViewport((v) => ({ ...v, longitude: obra.longitud!, latitude: obra.latitud!, zoom: Math.max(v.zoom, 14) }))
   }
 
-  // Al elegir una comuna en el filtro, encuadrar el mapa en sus obras.
+  // Al elegir una comuna o proyecto en el filtro, encuadrar el mapa en sus obras.
   useEffect(() => {
-    if (!comunaFiltro) return
+    if (!comunaFiltro && !proyectoFiltro) return
     const bounds = calcularBounds(obrasFiltradas)
     if (bounds) mapRef.current?.fitBounds(bounds, { padding: 60, maxZoom: 15, duration: 800 })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [comunaFiltro])
+  }, [comunaFiltro, proyectoFiltro])
 
   return (
     <Box sx={{ height: 'calc(100vh - 48px)', display: 'flex', flexDirection: 'column' }}>
@@ -177,20 +193,31 @@ export function MapaSeguimiento() {
         <TextField
           size="small"
           type="date"
-          label="Última visita de la obra"
-          value={fechaFiltro}
-          onChange={(e) => setFechaFiltro(e.target.value)}
+          label="Última visita desde"
+          value={fechaDesde}
+          onChange={(e) => setFechaDesde(e.target.value)}
           InputLabelProps={{ shrink: true }}
-          sx={{ minWidth: 180 }}
+          sx={{ minWidth: 170 }}
+        />
+        <TextField
+          size="small"
+          type="date"
+          label="Última visita hasta"
+          value={fechaHasta}
+          onChange={(e) => setFechaHasta(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          sx={{ minWidth: 170 }}
         />
 
-        {(fechaFiltro || comunaFiltro) && (
+        {(fechaDesde || fechaHasta || comunaFiltro || proyectoFiltro) && (
           <Button
             size="small"
             variant="outlined"
             onClick={() => {
-              setFechaFiltro('')
+              setFechaDesde('')
+              setFechaHasta('')
               setComunaFiltro(null)
+              setProyectoFiltro(null)
             }}
           >
             Limpiar filtros
@@ -270,6 +297,26 @@ export function MapaSeguimiento() {
                 </option>
               ))}
             </select>
+
+            <select
+              value={proyectoFiltro ?? ''}
+              onChange={(e) => setProyectoFiltro(e.target.value || null)}
+              style={{
+                padding: '6.5px 8px',
+                borderRadius: 4,
+                border: '1px solid #c4c4c4',
+                fontSize: 14,
+                fontFamily: 'inherit',
+                width: '100%',
+              }}
+            >
+              <option value="">Todos los proyectos</option>
+              {nombresProyectos.map((nombre) => (
+                <option key={nombre} value={nombre}>
+                  {nombre}
+                </option>
+              ))}
+            </select>
           </Box>
 
           <Box sx={{ overflowY: 'auto', flex: 1 }}>
@@ -288,13 +335,19 @@ export function MapaSeguimiento() {
               </List>
             )}
 
-            {!busqueda && comunaFiltro && (
+            {!busqueda && (comunaFiltro || proyectoFiltro) && (
               <>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1 }}>
                   <Typography variant="subtitle2">
-                    {comunaFiltro} · {obrasFiltradas.length} obras
+                    {[comunaFiltro, proyectoFiltro].filter(Boolean).join(' · ')} · {obrasFiltradas.length} obras
                   </Typography>
-                  <IconButton size="small" onClick={() => setComunaFiltro(null)}>
+                  <IconButton
+                    size="small"
+                    onClick={() => {
+                      setComunaFiltro(null)
+                      setProyectoFiltro(null)
+                    }}
+                  >
                     <CloseIcon fontSize="small" />
                   </IconButton>
                 </Box>
@@ -308,9 +361,9 @@ export function MapaSeguimiento() {
               </>
             )}
 
-            {!busqueda && !comunaFiltro && (
+            {!busqueda && !comunaFiltro && !proyectoFiltro && (
               <Typography variant="body2" color="text.secondary" sx={{ px: 2, py: 2 }}>
-                Buscá una obra por nombre o elegí una comuna para ver sus obras.
+                Buscá una obra por nombre, o elegí una comuna o proyecto para ver sus obras.
               </Typography>
             )}
           </Box>
@@ -336,6 +389,7 @@ export function MapaSeguimiento() {
             }}
           >
             <NavigationControl position="top-right" />
+            <GeolocateControl position="top-right" trackUserLocation showUserHeading />
 
             {comunasGeoJSON && (
               <Source id="comunas" type="geojson" data={comunasGeoJSON}>

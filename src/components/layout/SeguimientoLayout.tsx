@@ -32,10 +32,10 @@ import { COLOR_ACENTO, COLOR_SIDEBAR } from '../../theme/theme'
 const DRAWER_WIDTH = 240
 
 const ITEMS = [
+  { to: '/seguimiento/calendario', label: 'Calendario', icon: <CalendarMonthIcon /> },
   { to: '/seguimiento/mis-visitas', label: 'Mis visitas', icon: <AssignmentIcon /> },
   { to: '/seguimiento/revisar', label: 'Revisar visitas', icon: <RateReviewIcon /> },
   { to: '/seguimiento/mapa', label: 'Mapa de obras', icon: <MapIcon /> },
-  { to: '/seguimiento/calendario', label: 'Calendario', icon: <CalendarMonthIcon /> },
 ]
 
 export function SeguimientoLayout() {

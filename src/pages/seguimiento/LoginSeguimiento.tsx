@@ -14,7 +14,7 @@ export function LoginSeguimiento() {
   const [enviando, setEnviando] = useState(false)
 
   if (!cargando && usuario) {
-    return <Navigate to="/seguimiento/mis-visitas" replace />
+    return <Navigate to="/seguimiento/calendario" replace />
   }
 
   async function manejarEnvio(evento: React.FormEvent) {
