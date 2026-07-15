@@ -174,17 +174,14 @@ export function MapaSeguimiento() {
           Mapa de obras
         </Typography>
 
-        <input
+        <TextField
+          size="small"
           type="date"
+          label="Última visita de la obra"
           value={fechaFiltro}
           onChange={(e) => setFechaFiltro(e.target.value)}
-          style={{
-            padding: '4px 8px',
-            borderRadius: 6,
-            border: '1px solid #d1d5db',
-            fontSize: 13,
-            fontFamily: 'inherit',
-          }}
+          InputLabelProps={{ shrink: true }}
+          sx={{ minWidth: 180 }}
         />
 
         {(fechaFiltro || comunaFiltro) && (

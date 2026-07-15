@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Box, Button, Chip, IconButton, Paper, Typography } from '@mui/material'
+import { Box, Button, Chip, Dialog, DialogContent, DialogTitle, IconButton, Typography } from '@mui/material'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import TodayIcon from '@mui/icons-material/Today'
@@ -59,7 +59,7 @@ export function Calendario() {
     const hoy = new Date()
     return new Date(hoy.getFullYear(), hoy.getMonth(), 1)
   })
-  const [diaSeleccionado, setDiaSeleccionado] = useState(() => claveDeDate(new Date()))
+  const [diaAbierto, setDiaAbierto] = useState<string | null>(null)
   const [visitaSeleccionada, setVisitaSeleccionada] = useState<VisitaSeguimiento | null>(null)
 
   useEffect(() => {
@@ -89,8 +89,8 @@ export function Calendario() {
   )
 
   const celdas = useMemo(() => celdasDelMes(mesActual), [mesActual])
-  const entregasDelDia = entregasPorDia.get(diaSeleccionado) ?? []
-  const visitasDelDia = visitasPorDia.get(diaSeleccionado) ?? []
+  const entregasDelDia = diaAbierto ? entregasPorDia.get(diaAbierto) ?? [] : []
+  const visitasDelDia = diaAbierto ? visitasPorDia.get(diaAbierto) ?? [] : []
 
   return (
     <Box sx={{ width: '100%', maxWidth: 1000 }}>
@@ -118,7 +118,6 @@ export function Calendario() {
           onClick={() => {
             const hoy = new Date()
             setMesActual(new Date(hoy.getFullYear(), hoy.getMonth(), 1))
-            setDiaSeleccionado(claveDeDate(hoy))
           }}
         >
           Hoy
@@ -138,19 +137,19 @@ export function Calendario() {
           const esHoy = clave === claveDeDate(new Date())
           const entregas = entregasPorDia.get(clave) ?? []
           const visitasDia = visitasPorDia.get(clave) ?? []
-          const seleccionado = clave === diaSeleccionado
+          const abierto = clave === diaAbierto
 
           return (
             <Box
               key={clave}
-              onClick={() => setDiaSeleccionado(clave)}
+              onClick={() => setDiaAbierto(clave)}
               sx={{
                 minHeight: 64,
                 p: 0.75,
                 borderRadius: 1.5,
                 border: '1px solid',
-                borderColor: seleccionado ? 'primary.main' : 'divider',
-                bgcolor: seleccionado ? 'rgba(41,182,232,0.1)' : enMes ? 'background.paper' : '#f4f6fa',
+                borderColor: abierto ? 'primary.main' : 'divider',
+                bgcolor: abierto ? 'rgba(41,182,232,0.1)' : enMes ? 'background.paper' : '#f4f6fa',
                 opacity: enMes ? 1 : 0.5,
                 cursor: 'pointer',
               }}
@@ -193,41 +192,44 @@ export function Calendario() {
         </Box>
       </Box>
 
-      <Paper variant="outlined" sx={{ p: 2, mt: 2, borderRadius: 2.5 }}>
-        <Typography variant="subtitle1" sx={{ mb: 1 }}>
-          {new Date(diaSeleccionado + 'T00:00:00').toLocaleDateString('es-CO', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-          })}
-        </Typography>
+      {diaAbierto && (
+        <Dialog open onClose={() => setDiaAbierto(null)} fullWidth maxWidth="xs">
+          <DialogTitle sx={{ textTransform: 'capitalize' }}>
+            {new Date(diaAbierto + 'T00:00:00').toLocaleDateString('es-CO', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+            })}
+          </DialogTitle>
+          <DialogContent>
+            {entregasDelDia.length === 0 && visitasDelDia.length === 0 && (
+              <Typography variant="body2" color="text.secondary">
+                Sin eventos este día.
+              </Typography>
+            )}
 
-        {entregasDelDia.length === 0 && visitasDelDia.length === 0 && (
-          <Typography variant="body2" color="text.secondary">
-            Sin eventos este día.
-          </Typography>
-        )}
+            {entregasDelDia.map((obra) => (
+              <Box key={obra.obraId} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.6 }}>
+                <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: COLOR_PROXIMA_ENTREGA, flexShrink: 0 }} />
+                <Typography variant="body2">{obra.nombre} — entrega estimada</Typography>
+              </Box>
+            ))}
 
-        {entregasDelDia.map((obra) => (
-          <Box key={obra.obraId} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.6 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: COLOR_PROXIMA_ENTREGA, flexShrink: 0 }} />
-            <Typography variant="body2">{obra.nombre} — entrega estimada</Typography>
-          </Box>
-        ))}
-
-        {visitasDelDia.map((visita) => (
-          <Box
-            key={visita.id}
-            onClick={() => setVisitaSeleccionada(visita)}
-            sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.6, cursor: 'pointer' }}
-          >
-            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: COLOR_ACENTO, flexShrink: 0 }} />
-            <Typography variant="body2">
-              {obraPorId.get(visita.obraId)?.nombre ?? `Obra ${visita.obraId}`} — visita registrada
-            </Typography>
-          </Box>
-        ))}
-      </Paper>
+            {visitasDelDia.map((visita) => (
+              <Box
+                key={visita.id}
+                onClick={() => setVisitaSeleccionada(visita)}
+                sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.6, cursor: 'pointer' }}
+              >
+                <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: COLOR_ACENTO, flexShrink: 0 }} />
+                <Typography variant="body2">
+                  {obraPorId.get(visita.obraId)?.nombre ?? `Obra ${visita.obraId}`} — visita registrada
+                </Typography>
+              </Box>
+            ))}
+          </DialogContent>
+        </Dialog>
+      )}
 
       {visitaSeleccionada && (
         <DetalleVisitaDialog
