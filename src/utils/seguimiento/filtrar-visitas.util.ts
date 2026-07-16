@@ -25,6 +25,9 @@ export function filtrarVisitas(
     if (filtros.avanceMin && visita.porcentajeAvanceCampo < Number(filtros.avanceMin)) return false
     if (filtros.avanceMax && visita.porcentajeAvanceCampo > Number(filtros.avanceMax)) return false
 
+    if (filtros.autorId && visita.autorId !== filtros.autorId) return false
+    if (filtros.estado && visita.estado !== filtros.estado) return false
+
     // filtros.hito: sin campo de origen todavía (ver comentario en filtros.types.ts) — no filtra.
 
     return true

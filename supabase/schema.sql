@@ -7,7 +7,7 @@
 create table usuarios_seguimiento (
   id uuid primary key references auth.users (id),
   nombre text not null,
-  rol text not null check (rol in ('ingeniero', 'visitador')),
+  rol text not null check (rol in ('ingeniero', 'visitador', 'visualizador')),
   activo boolean not null default true
 );
 comment on table usuarios_seguimiento is 'Temporal, reemplazar cuando exista backend definitivo.';
@@ -41,7 +41,11 @@ create table visitas_seguimiento (
   revisado_por uuid references usuarios_seguimiento (id),
   fecha_revision timestamptz,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  -- Marca independiente del flujo de revisión de ingeniería: gerencia (rol
+  -- 'visualizador') la usa para llevar registro de qué ya miró, sin tocar
+  -- 'estado' ni el historial de revisión.
+  visto_gerencia boolean not null default false
 );
 comment on table visitas_seguimiento is 'Temporal, reemplazar cuando exista backend definitivo.';
 
@@ -200,3 +204,15 @@ create policy "subir_fotos_autenticados" on storage.objects for insert to authen
 -- create policy "editar_segun_estado_y_rol" on visitas_seguimiento for update to authenticated
 --   using (true)
 --   with check (true);
+
+-- Migración 4 — CORRER ESTA en el SQL Editor de Supabase (proyecto real):
+-- agrega el rol 'visualizador' (módulo de gestión para gerencia, solo
+-- lectura) y la columna visto_gerencia. Sin esto, crear un usuario con
+-- rol='visualizador' falla contra el constraint viejo, y la pantalla de
+-- Gestión no puede guardar el toggle "Visto por gerencia".
+--
+-- alter table usuarios_seguimiento drop constraint usuarios_seguimiento_rol_check;
+-- alter table usuarios_seguimiento add constraint usuarios_seguimiento_rol_check
+--   check (rol in ('ingeniero', 'visitador', 'visualizador'));
+--
+-- alter table visitas_seguimiento add column visto_gerencia boolean not null default false;

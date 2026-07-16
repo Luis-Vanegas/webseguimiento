@@ -18,6 +18,7 @@ function visita(overrides: Partial<VisitaSeguimiento>): VisitaSeguimiento {
     fechaRevision: null,
     createdAt: '',
     updatedAt: '',
+    vistoGerencia: false,
     alertas: [],
     fotos: [],
     ...overrides,

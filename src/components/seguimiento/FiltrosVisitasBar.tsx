@@ -13,13 +13,20 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import FilterListIcon from '@mui/icons-material/FilterList'
 import { FILTROS_VACIOS, HITOS_SIMPLIFICADOS, type FiltrosVisitas } from '../../types/filtros.types'
-import type { TipoAlerta } from '../../types/seguimiento.types'
+import { ETIQUETA_ESTADO } from '../../theme/theme'
+import type { EstadoVisita, TipoAlerta, UsuarioSeguimiento } from '../../types/seguimiento.types'
+
+const ESTADOS: EstadoVisita[] = ['pendiente_revisar', 'en_revision', 'revisada']
 
 interface FiltrosVisitasBarProps {
   filtros: FiltrosVisitas
   onChange: (filtros: FiltrosVisitas) => void
   proyectosEstrategicos: string[]
   tiposAlerta: TipoAlerta[]
+  // Solo se pasa en pantallas que necesitan filtrar por autor (ej. Gestión de
+  // gerencia) — en el resto (MisVisitas, RevisarVisitas...) el autor ya está
+  // implícito en la lista que consultan, así que el select ni se muestra.
+  usuarios?: UsuarioSeguimiento[]
 }
 
 // Filtros compartidos entre MisVisitas, RevisarVisitas e HistorialObra
@@ -30,6 +37,7 @@ export function FiltrosVisitasBar({
   onChange,
   proyectosEstrategicos,
   tiposAlerta,
+  usuarios,
 }: FiltrosVisitasBarProps) {
   function set<K extends keyof FiltrosVisitas>(campo: K, valor: FiltrosVisitas[K]) {
     onChange({ ...filtros, [campo]: valor })
@@ -106,6 +114,36 @@ export function FiltrosVisitasBar({
               </MenuItem>
             ))}
           </TextField>
+          <TextField
+            label="Estado"
+            select
+            sx={{ flex: '1 1 150px' }}
+            value={filtros.estado}
+            onChange={(e) => set('estado', e.target.value)}
+          >
+            <MenuItem value="">Todos</MenuItem>
+            {ESTADOS.map((e) => (
+              <MenuItem key={e} value={e}>
+                {ETIQUETA_ESTADO[e]}
+              </MenuItem>
+            ))}
+          </TextField>
+          {usuarios && (
+            <TextField
+              label="Autor"
+              select
+              sx={{ flex: '1 1 180px' }}
+              value={filtros.autorId}
+              onChange={(e) => set('autorId', e.target.value)}
+            >
+              <MenuItem value="">Todos</MenuItem>
+              {usuarios.map((u) => (
+                <MenuItem key={u.id} value={u.id}>
+                  {u.nombre}
+                </MenuItem>
+              ))}
+            </TextField>
+          )}
           <TextField
             label="Hito"
             select

@@ -19,6 +19,7 @@ function visita(overrides: Partial<VisitaSeguimiento>): VisitaSeguimiento {
     fechaRevision: null,
     createdAt: '',
     updatedAt: '',
+    vistoGerencia: false,
     alertas: [],
     fotos: [],
     ...overrides,
@@ -67,6 +68,21 @@ test('filtra por tipo de alerta', () => {
   ]
   const resultado = filtrarVisitas(visitas, { ...FILTROS_VACIOS, tipoAlertaId: 'clima' }, new Map())
   assert.deepEqual(resultado.map((v) => v.id), ['1'])
+})
+
+test('filtra por autor', () => {
+  const visitas = [visita({ id: '1', autorId: 'u1' }), visita({ id: '2', autorId: 'u2' })]
+  const resultado = filtrarVisitas(visitas, { ...FILTROS_VACIOS, autorId: 'u2' }, new Map())
+  assert.deepEqual(resultado.map((v) => v.id), ['2'])
+})
+
+test('filtra por estado', () => {
+  const visitas = [
+    visita({ id: '1', estado: 'pendiente_revisar' }),
+    visita({ id: '2', estado: 'revisada' }),
+  ]
+  const resultado = filtrarVisitas(visitas, { ...FILTROS_VACIOS, estado: 'revisada' }, new Map())
+  assert.deepEqual(resultado.map((v) => v.id), ['2'])
 })
 
 test('filtra por rango de porcentaje de avance', () => {

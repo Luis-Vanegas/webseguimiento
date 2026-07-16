@@ -38,5 +38,6 @@ export function useDatosFiltro() {
     tiposAlerta,
     obraPorId,
     nombrePorAutor,
+    usuarios,
   }
 }

@@ -6,6 +6,8 @@ export interface FiltrosVisitas {
   hito: string
   avanceMin: string
   avanceMax: string
+  autorId: string
+  estado: string
 }
 
 export const FILTROS_VACIOS: FiltrosVisitas = {
@@ -16,6 +18,8 @@ export const FILTROS_VACIOS: FiltrosVisitas = {
   hito: '',
   avanceMin: '',
   avanceMax: '',
+  autorId: '',
+  estado: '',
 }
 
 // Catálogo simplificado/hardcodeado de hitos (supuesto 10.3 del brief): no

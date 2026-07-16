@@ -19,6 +19,7 @@ import {
 } from '@mui/material'
 import MenuIcon from '@mui/icons-material/Menu'
 import AssignmentIcon from '@mui/icons-material/Assignment'
+import AssessmentIcon from '@mui/icons-material/Assessment'
 import RateReviewIcon from '@mui/icons-material/RateReview'
 import MapIcon from '@mui/icons-material/Map'
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
@@ -28,14 +29,24 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { useUsuarioActual } from '../../features/auth/useUsuarioActual'
 import { COLOR_ACENTO, COLOR_SIDEBAR } from '../../theme/theme'
+import type { RolUsuario } from '../../types/seguimiento.types'
 
 const DRAWER_WIDTH = 240
 
-const ITEMS = [
+const ETIQUETA_ROL: Record<RolUsuario, string> = {
+  ingeniero: 'Ingeniero',
+  visitador: 'Visitador',
+  visualizador: 'Visualizador',
+}
+
+// roles omitido = visible para todos. "Mis visitas"/"Revisar" son flujos de
+// campo, no aplican a un visualizador; "Gestión" es al revés, solo para él.
+const ITEMS: { to: string; label: string; icon: JSX.Element; roles?: RolUsuario[] }[] = [
   { to: '/seguimiento/calendario', label: 'Calendario', icon: <CalendarMonthIcon /> },
-  { to: '/seguimiento/mis-visitas', label: 'Mis visitas', icon: <AssignmentIcon /> },
-  { to: '/seguimiento/revisar', label: 'Revisar visitas', icon: <RateReviewIcon /> },
+  { to: '/seguimiento/mis-visitas', label: 'Mis visitas', icon: <AssignmentIcon />, roles: ['ingeniero', 'visitador'] },
+  { to: '/seguimiento/revisar', label: 'Revisar visitas', icon: <RateReviewIcon />, roles: ['ingeniero', 'visitador'] },
   { to: '/seguimiento/mapa', label: 'Mapa de obras', icon: <MapIcon /> },
+  { to: '/seguimiento/gestion', label: 'Gestión', icon: <AssessmentIcon />, roles: ['visualizador'] },
 ]
 
 export function SeguimientoLayout() {
@@ -44,6 +55,7 @@ export function SeguimientoLayout() {
   const [abierto, setAbierto] = useState(false)
   const navigate = useNavigate()
   const { usuario } = useUsuarioActual()
+  const itemsVisibles = ITEMS.filter((item) => !item.roles || (usuario && item.roles.includes(usuario.rol)))
 
   async function cerrarSesion() {
     await supabase.auth.signOut()
@@ -66,7 +78,7 @@ export function SeguimientoLayout() {
       <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)' }} />
 
       <List sx={{ flex: 1, px: 1 }}>
-        {ITEMS.map((item) => (
+        {itemsVisibles.map((item) => (
           <ListItemButton
             key={item.to}
             component={NavLink}
@@ -104,7 +116,7 @@ export function SeguimientoLayout() {
             {usuario?.nombre ?? '—'}
           </Typography>
           <Chip
-            label={usuario?.rol === 'ingeniero' ? 'Ingeniero' : 'Visitador'}
+            label={usuario ? ETIQUETA_ROL[usuario.rol] : '—'}
             size="small"
             sx={{
               height: 18,

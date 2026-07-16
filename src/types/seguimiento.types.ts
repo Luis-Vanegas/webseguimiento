@@ -1,7 +1,7 @@
 // Tipos del dominio de seguimiento en campo (tablas temporales de Supabase,
 // ver supabase/schema.sql — reemplazar cuando exista backend definitivo).
 
-export type RolUsuario = 'ingeniero' | 'visitador'
+export type RolUsuario = 'ingeniero' | 'visitador' | 'visualizador'
 
 export type EstadoVisita = 'pendiente_revisar' | 'en_revision' | 'revisada'
 
@@ -55,6 +55,7 @@ export interface VisitaSeguimiento {
   fechaRevision: string | null
   createdAt: string
   updatedAt: string
+  vistoGerencia: boolean
   alertas?: AlertaVisita[]
   fotos?: FotoVisita[]
 }

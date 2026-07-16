@@ -7,6 +7,7 @@ export interface SeguimientoState {
   misVisitas: VisitaSeguimiento[]
   pendientes: VisitaSeguimiento[]
   visitasObraActual: VisitaSeguimiento[]
+  todasLasVisitas: VisitaSeguimiento[]
   cargando: boolean
   error: string | null
 }
@@ -15,6 +16,7 @@ const estadoInicial: SeguimientoState = {
   misVisitas: [],
   pendientes: [],
   visitasObraActual: [],
+  todasLasVisitas: [],
   cargando: false,
   error: null,
 }
@@ -60,6 +62,15 @@ export const marcarRevisada = createAsyncThunk(
   ({ id, revisadoPor }: { id: string; revisadoPor: string }) => api.marcarRevisada(id, revisadoPor),
 )
 
+export const listarTodasLasVisitas = createAsyncThunk('seguimiento/listarTodasLasVisitas', () =>
+  api.listarTodasLasVisitas(),
+)
+
+export const marcarVistoGerencia = createAsyncThunk(
+  'seguimiento/marcarVistoGerencia',
+  ({ id, visto }: { id: string; visto: boolean }) => api.marcarVistoGerencia(id, visto),
+)
+
 const thunksDeEstado = [
   crearVisita,
   listarMisVisitas,
@@ -68,10 +79,12 @@ const thunksDeEstado = [
   editarVisita,
   marcarEnRevision,
   marcarRevisada,
+  listarTodasLasVisitas,
+  marcarVistoGerencia,
 ]
 
 function reemplazarEnListas(state: SeguimientoState, visita: VisitaSeguimiento) {
-  for (const lista of ['misVisitas', 'pendientes', 'visitasObraActual'] as const) {
+  for (const lista of ['misVisitas', 'pendientes', 'visitasObraActual', 'todasLasVisitas'] as const) {
     const idx = state[lista].findIndex((v) => v.id === visita.id)
     if (idx !== -1) state[lista][idx] = visita
   }
@@ -102,6 +115,12 @@ const seguimientoSlice = createSlice({
         reemplazarEnListas(state, action.payload)
       })
       .addCase(marcarRevisada.fulfilled, (state, action) => {
+        reemplazarEnListas(state, action.payload)
+      })
+      .addCase(listarTodasLasVisitas.fulfilled, (state, action) => {
+        state.todasLasVisitas = action.payload
+      })
+      .addCase(marcarVistoGerencia.fulfilled, (state, action) => {
         reemplazarEnListas(state, action.payload)
       })
       .addMatcher(isAnyOf(...thunksDeEstado.map((t) => t.pending)), (state) => {

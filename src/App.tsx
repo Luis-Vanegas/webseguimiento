@@ -13,6 +13,7 @@ import { RevisarVisitas } from './pages/seguimiento/RevisarVisitas'
 import { HistorialObra } from './pages/seguimiento/HistorialObra'
 import { MapaSeguimiento } from './pages/seguimiento/MapaSeguimiento'
 import { Calendario } from './pages/seguimiento/Calendario'
+import { GestionVisitas } from './pages/seguimiento/GestionVisitas'
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
                   <Route path="historial/:obraId" element={<HistorialObra />} />
                   <Route path="mapa" element={<MapaSeguimiento />} />
                   <Route path="calendario" element={<Calendario />} />
+                  <Route path="gestion" element={<GestionVisitas />} />
                 </Route>
               </Route>
             </Routes>

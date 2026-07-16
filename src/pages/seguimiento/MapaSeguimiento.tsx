@@ -19,6 +19,7 @@ import { useNavigate } from 'react-router-dom'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import * as obrasVisorApi from '../../api/obrasVisorApi'
 import * as seguimientoApi from '../../features/seguimiento/seguimientoApi'
+import { useUsuarioActual } from '../../features/auth/useUsuarioActual'
 import { COLOR_PROXIMA_ENTREGA } from '../../theme/theme'
 import { DIAS_PROXIMA_ENTREGA, estaDesatendida, estaProximaAEntregar } from '../../utils/seguimiento/fechas.util'
 import type { ObraVisor } from '../../types/obra.types'
@@ -79,6 +80,7 @@ function calcularBounds(obras: ObraVisor[]): [[number, number], [number, number]
 
 export function MapaSeguimiento() {
   const navigate = useNavigate()
+  const { usuario } = useUsuarioActual()
   const mapRef = useRef<any>(null)
   const [obras, setObras] = useState<ObraVisor[]>([])
   const [ultimaVisitaPorObra, setUltimaVisitaPorObra] = useState<Map<number, string>>(new Map())
@@ -536,14 +538,16 @@ export function MapaSeguimiento() {
                   )}
 
                   <Box sx={{ display: 'flex', gap: 0.5, mt: 1 }}>
-                    <Button
-                      size="small"
-                      variant="contained"
-                      sx={{ fontSize: 11, py: 0.3 }}
-                      onClick={() => navigate(`/seguimiento/registrar/${obraSeleccionada.obraId}`)}
-                    >
-                      Visitar
-                    </Button>
+                    {usuario?.rol !== 'visualizador' && (
+                      <Button
+                        size="small"
+                        variant="contained"
+                        sx={{ fontSize: 11, py: 0.3 }}
+                        onClick={() => navigate(`/seguimiento/registrar/${obraSeleccionada.obraId}`)}
+                      >
+                        Visitar
+                      </Button>
+                    )}
                     <Button
                       size="small"
                       variant="outlined"

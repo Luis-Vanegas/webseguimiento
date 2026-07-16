@@ -183,6 +183,34 @@ export async function listarVisitasDeObra(obraId: number): Promise<VisitaSeguimi
   return (data ?? []).map(mapVisitaRow)
 }
 
+// Vista de gerencia: todas las visitas de todos los autores, sin filtrar por
+// estado ni autor (a diferencia de listarMisVisitas/listarPendientes). RLS ya
+// permite lectura total a cualquier autenticado (ver Decisión de RLS del schema).
+export async function listarTodasLasVisitas(): Promise<VisitaSeguimiento[]> {
+  const { data, error } = await supabase
+    .from('visitas_seguimiento')
+    .select('*, alertas_visita(*), fotos_visita(*)')
+    .order('fecha_visita', { ascending: false })
+
+  if (error) throw error
+  return (data ?? []).map(mapVisitaRow)
+}
+
+// Marca independiente de gerencia ("ya vi esta visita"), separada del flujo
+// pendiente_revisar → en_revision → revisada de ingeniería — no toca estado
+// ni genera entrada en historial_revision.
+export async function marcarVistoGerencia(id: string, visto: boolean): Promise<VisitaSeguimiento> {
+  const { data, error } = await supabase
+    .from('visitas_seguimiento')
+    .update({ visto_gerencia: visto })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) throw error
+  return mapVisitaRow(data)
+}
+
 export interface EditarVisitaInput {
   id: string
   usuarioId: string
@@ -316,6 +344,7 @@ function mapVisitaRow(row: any): VisitaSeguimiento {
     fechaRevision: row.fecha_revision,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    vistoGerencia: row.visto_gerencia ?? false,
     alertas: (row.alertas_visita ?? []).map((a: any) => ({
       id: a.id,
       visitaId: a.visita_id,

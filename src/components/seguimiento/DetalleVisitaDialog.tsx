@@ -8,6 +8,8 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControlLabel,
+  Switch,
   TextField,
   Typography,
   useMediaQuery,
@@ -33,18 +35,29 @@ interface DetalleVisitaDialogProps {
   visita: VisitaSeguimiento
   nombreObra: string
   direccionObra?: string | null
+  nombreAutor?: string
   tiposAlerta: TipoAlerta[]
   onCerrar: () => void
   onGuardar: (cambios: CambiosVisitaEditables) => void
+  // Vista de gerencia: oculta Editar/Guardar y "Nueva visita a esta obra" —
+  // solo mira y navega al historial.
+  soloLectura?: boolean
+  // Se pasan juntos: si no vienen, el toggle "Visto por gerencia" no se muestra.
+  vistoGerencia?: boolean
+  onCambiarVisto?: (visto: boolean) => void
 }
 
 export function DetalleVisitaDialog({
   visita,
   nombreObra,
   direccionObra,
+  nombreAutor,
   tiposAlerta,
   onCerrar,
   onGuardar,
+  soloLectura = false,
+  vistoGerencia,
+  onCambiarVisto,
 }: DetalleVisitaDialogProps) {
   const navigate = useNavigate()
   const esMovil = useMediaQuery(useTheme().breakpoints.down('sm'))
@@ -81,6 +94,7 @@ export function DetalleVisitaDialog({
             )}
             <Typography variant="body2" color="text.secondary">
               Visita del {fechaVisita}
+              {nombreAutor && ` · ${nombreAutor}`}
             </Typography>
           </Box>
           <Chip
@@ -92,7 +106,7 @@ export function DetalleVisitaDialog({
       </DialogTitle>
 
       <DialogContent sx={{ bgcolor: '#f7f9fc' }}>
-        {visita.estado === 'revisada' && (
+        {!soloLectura && visita.estado === 'revisada' && (
           <Alert severity="success" sx={{ mb: 2.5 }}>
             Visita revisada: todavía se puede editar o corregir.
           </Alert>
@@ -192,28 +206,47 @@ export function DetalleVisitaDialog({
           >
             Ver historial de la obra
           </Button>
-          <Button
-            size="small"
-            startIcon={<AddLocationAltIcon />}
-            onClick={() => navigate(`/seguimiento/registrar/${visita.obraId}`)}
-          >
-            Nueva visita a esta obra
-          </Button>
+          {!soloLectura && (
+            <Button
+              size="small"
+              startIcon={<AddLocationAltIcon />}
+              onClick={() => navigate(`/seguimiento/registrar/${visita.obraId}`)}
+            >
+              Nueva visita a esta obra
+            </Button>
+          )}
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onCerrar}>Cerrar</Button>
-        {!editando && (
-          <Button variant="outlined" onClick={() => setEditando(true)}>
-            Editar
-          </Button>
+      <DialogActions sx={{ px: 3, pb: 2, justifyContent: 'space-between' }}>
+        {vistoGerencia !== undefined && onCambiarVisto ? (
+          <FormControlLabel
+            control={
+              <Switch
+                size="small"
+                checked={vistoGerencia}
+                onChange={(e) => onCambiarVisto(e.target.checked)}
+              />
+            }
+            label="Visto por gerencia"
+            sx={{ ml: 0 }}
+          />
+        ) : (
+          <Box />
         )}
-        {editando && (
-          <Button variant="contained" onClick={guardar}>
-            Guardar cambios
-          </Button>
-        )}
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button onClick={onCerrar}>Cerrar</Button>
+          {!soloLectura && !editando && (
+            <Button variant="outlined" onClick={() => setEditando(true)}>
+              Editar
+            </Button>
+          )}
+          {!soloLectura && editando && (
+            <Button variant="contained" onClick={guardar}>
+              Guardar cambios
+            </Button>
+          )}
+        </Box>
       </DialogActions>
     </Dialog>
   )
