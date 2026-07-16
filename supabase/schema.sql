@@ -81,6 +81,33 @@ create table historial_revision (
 );
 comment on table historial_revision is 'Temporal, reemplazar cuando exista backend definitivo.';
 
+-- Recorrido caminado con el GPS del celular (independiente de una obra
+-- puntual — puede cruzar varias, o ninguna). El trazo se guarda como jsonb
+-- (array de {lat,lon,ts}): no hace falta PostGIS solo para dibujar una
+-- polilínea en el mapa con maplibre, que ya consume GeoJSON armado en el cliente.
+create table recorridos_seguimiento (
+  id uuid primary key default gen_random_uuid(),
+  autor_id uuid not null references usuarios_seguimiento (id),
+  titulo text not null,
+  observaciones text not null default '',
+  trazo jsonb not null,
+  distancia_metros numeric not null default 0,
+  fecha_inicio timestamptz not null,
+  fecha_fin timestamptz not null,
+  created_at timestamptz not null default now()
+);
+comment on table recorridos_seguimiento is 'Temporal, reemplazar cuando exista backend definitivo.';
+
+create index recorridos_seguimiento_autor_id_idx on recorridos_seguimiento (autor_id);
+
+create table fotos_recorrido (
+  id uuid primary key default gen_random_uuid(),
+  recorrido_id uuid not null references recorridos_seguimiento (id) on delete cascade,
+  storage_path text not null, -- mismo bucket "fotos-seguimiento", prefijo recorridos/<id>/...
+  orden integer not null default 0
+);
+comment on table fotos_recorrido is 'Temporal, reemplazar cuando exista backend definitivo.';
+
 -- Seed del catálogo fijo de tipos de alerta (sección 5 del brief).
 insert into tipos_alerta (nombre) values
   ('Cimentaciones'),
@@ -101,6 +128,8 @@ alter table visitas_seguimiento enable row level security;
 alter table alertas_visita enable row level security;
 alter table fotos_visita enable row level security;
 alter table historial_revision enable row level security;
+alter table recorridos_seguimiento enable row level security;
+alter table fotos_recorrido enable row level security;
 
 -- Rol del usuario autenticado actual, para no repetir el subquery en cada policy.
 create function rol_actual() returns text
@@ -120,6 +149,8 @@ create policy "lectura_autenticados" on visitas_seguimiento for select to authen
 create policy "lectura_autenticados" on alertas_visita for select to authenticated using (true);
 create policy "lectura_autenticados" on fotos_visita for select to authenticated using (true);
 create policy "lectura_autenticados" on historial_revision for select to authenticated using (true);
+create policy "lectura_autenticados" on recorridos_seguimiento for select to authenticated using (true);
+create policy "lectura_autenticados" on fotos_recorrido for select to authenticated using (true);
 
 -- Cada quien crea su propia visita (el estado inicial ya lo decide la app según autor_rol).
 create policy "crear_propia_visita" on visitas_seguimiento for insert to authenticated
@@ -149,6 +180,14 @@ create policy "escribir_de_visita_propia" on fotos_visita for insert to authenti
 -- Historial: lo inserta la app tras cada acción válida, siempre a nombre de quien la ejecuta.
 create policy "insertar_propio_usuario" on historial_revision for insert to authenticated
   with check (usuario_id = auth.uid());
+
+-- Cada quien crea sus propios recorridos y sus fotos.
+create policy "crear_propio_recorrido" on recorridos_seguimiento for insert to authenticated
+  with check (autor_id = auth.uid());
+create policy "escribir_fotos_de_recorrido_propio" on fotos_recorrido for insert to authenticated
+  with check (
+    exists (select 1 from recorridos_seguimiento r where r.id = recorrido_id and r.autor_id = auth.uid())
+  );
 
 -- rol_actual() es SECURITY DEFINER; solo authenticated puede invocarla por RPC.
 revoke execute on function rol_actual() from anon, public;
@@ -216,3 +255,41 @@ create policy "subir_fotos_autenticados" on storage.objects for insert to authen
 --   check (rol in ('ingeniero', 'visitador', 'visualizador'));
 --
 -- alter table visitas_seguimiento add column visto_gerencia boolean not null default false;
+
+-- Migración 5 — CORRER ESTA en el SQL Editor de Supabase (proyecto real):
+-- crea las tablas nuevas para grabar recorridos con GPS (botón "Grabar
+-- recorrido" en el mapa) y sus fotos. Sin esto, guardar un recorrido falla
+-- porque las tablas no existen en la base real todavía.
+--
+-- create table recorridos_seguimiento (
+--   id uuid primary key default gen_random_uuid(),
+--   autor_id uuid not null references usuarios_seguimiento (id),
+--   titulo text not null,
+--   observaciones text not null default '',
+--   trazo jsonb not null,
+--   distancia_metros numeric not null default 0,
+--   fecha_inicio timestamptz not null,
+--   fecha_fin timestamptz not null,
+--   created_at timestamptz not null default now()
+-- );
+-- create index recorridos_seguimiento_autor_id_idx on recorridos_seguimiento (autor_id);
+--
+-- create table fotos_recorrido (
+--   id uuid primary key default gen_random_uuid(),
+--   recorrido_id uuid not null references recorridos_seguimiento (id) on delete cascade,
+--   storage_path text not null,
+--   orden integer not null default 0
+-- );
+--
+-- alter table recorridos_seguimiento enable row level security;
+-- alter table fotos_recorrido enable row level security;
+--
+-- create policy "lectura_autenticados" on recorridos_seguimiento for select to authenticated using (true);
+-- create policy "lectura_autenticados" on fotos_recorrido for select to authenticated using (true);
+--
+-- create policy "crear_propio_recorrido" on recorridos_seguimiento for insert to authenticated
+--   with check (autor_id = auth.uid());
+-- create policy "escribir_fotos_de_recorrido_propio" on fotos_recorrido for insert to authenticated
+--   with check (
+--     exists (select 1 from recorridos_seguimiento r where r.id = recorrido_id and r.autor_id = auth.uid())
+--   );

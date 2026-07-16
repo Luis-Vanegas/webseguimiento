@@ -19,10 +19,15 @@ import { useNavigate } from 'react-router-dom'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import * as obrasVisorApi from '../../api/obrasVisorApi'
 import * as seguimientoApi from '../../features/seguimiento/seguimientoApi'
+import { listarRecorridos } from '../../features/seguimiento/recorridosApi'
+import { useGrabacionRecorrido } from '../../features/seguimiento/useGrabacionRecorrido'
 import { useUsuarioActual } from '../../features/auth/useUsuarioActual'
-import { COLOR_PROXIMA_ENTREGA } from '../../theme/theme'
+import { PanelRecorrido } from '../../components/seguimiento/PanelRecorrido'
+import { DetalleRecorridoDialog } from '../../components/seguimiento/DetalleRecorridoDialog'
+import { COLOR_ACENTO, COLOR_PROXIMA_ENTREGA } from '../../theme/theme'
 import { DIAS_PROXIMA_ENTREGA, estaDesatendida, estaProximaAEntregar } from '../../utils/seguimiento/fechas.util'
 import type { ObraVisor } from '../../types/obra.types'
+import type { PuntoTrazo, RecorridoSeguimiento } from '../../types/seguimiento.types'
 
 ;(maplibregl as any).supported = () => true
 
@@ -67,6 +72,40 @@ function obrasAGeoJSON(obras: ObraVisor[], ultimaVisitaPorObra: Map<number, stri
   }
 }
 
+// Un LineString por recorrido con trazo utilizable (>= 2 puntos), con su id
+// como propiedad — mismo criterio que obrasAGeoJSON: la lógica de selección
+// se resuelve en el click leyendo `get('recorridoId')`, sin duplicarla.
+function recorridosALineas(recorridos: RecorridoSeguimiento[]) {
+  return {
+    type: 'FeatureCollection' as const,
+    features: recorridos
+      .filter((r) => r.trazo.length >= 2)
+      .map((r) => ({
+        type: 'Feature' as const,
+        geometry: { type: 'LineString' as const, coordinates: r.trazo.map((p) => [p.lon, p.lat]) },
+        properties: { recorridoId: r.id },
+      })),
+  }
+}
+
+// Trazo en vivo mientras se graba: una sola línea a partir de los puntos que
+// va emitiendo el hook de grabación.
+function puntosALinea(puntos: PuntoTrazo[]) {
+  return {
+    type: 'FeatureCollection' as const,
+    features:
+      puntos.length >= 2
+        ? [
+            {
+              type: 'Feature' as const,
+              geometry: { type: 'LineString' as const, coordinates: puntos.map((p) => [p.lon, p.lat]) },
+              properties: {},
+            },
+          ]
+        : [],
+  }
+}
+
 function calcularBounds(obras: ObraVisor[]): [[number, number], [number, number]] | null {
   const conCoordenadas = obras.filter((o) => o.latitud !== null && o.longitud !== null)
   if (conCoordenadas.length === 0) return null
@@ -93,6 +132,14 @@ export function MapaSeguimiento() {
   const [estiloMapa, setEstiloMapa] = useState<'calles' | 'satelite'>('calles')
   const [viewport, setViewport] = useState({ longitude: -75.58, latitude: 6.24, zoom: 10 })
   const [busqueda, setBusqueda] = useState('')
+  const [recorridos, setRecorridos] = useState<RecorridoSeguimiento[]>([])
+  const [recorridoSeleccionado, setRecorridoSeleccionado] = useState<RecorridoSeguimiento | null>(null)
+
+  // El hook vive acá (no dentro de PanelRecorrido) para que el mapa pueda
+  // dibujar el trazo en vivo desde los mismos `puntos` mientras se graba.
+  const grabacion = useGrabacionRecorrido()
+
+  const puedeGrabar = usuario != null && usuario.rol !== 'visualizador'
 
   useEffect(() => {
     obrasVisorApi
@@ -106,6 +153,9 @@ export function MapaSeguimiento() {
     fetch('/comunas.geojson')
       .then((r) => r.json())
       .then(setComunasGeoJSON)
+      .catch(() => {})
+    listarRecorridos()
+      .then(setRecorridos)
       .catch(() => {})
   }, [])
 
@@ -152,6 +202,10 @@ export function MapaSeguimiento() {
     () => obrasAGeoJSON(obrasFiltradas, ultimaVisitaPorObra),
     [obrasFiltradas, ultimaVisitaPorObra],
   )
+
+  const recorridosGeoJSON = useMemo(() => recorridosALineas(recorridos), [recorridos])
+
+  const trazoEnVivoGeoJSON = useMemo(() => puntosALinea(grabacion.puntos), [grabacion.puntos])
 
   const resultadosBusqueda = useMemo(() => {
     const texto = busqueda.trim().toLowerCase()
@@ -378,11 +432,16 @@ export function MapaSeguimiento() {
             mapLib={maplibregl}
             mapStyle={ESTILOS_MAPA[estiloMapa]}
             style={{ width: '100%', height: '100%' }}
-            interactiveLayerIds={['obras-puntos']}
+            interactiveLayerIds={['obras-puntos', 'recorridos-lineas']}
             onMove={(evt) => setViewport(evt.viewState)}
             onClick={(evt: any) => {
               const feature = evt.features?.[0]
               if (!feature) return
+              if (feature.layer.id === 'recorridos-lineas') {
+                const recorrido = recorridos.find((r) => r.id === feature.properties.recorridoId)
+                if (recorrido) setRecorridoSeleccionado(recorrido)
+                return
+              }
               const obra = obrasFiltradas.find((o) => o.obraId === feature.properties.obraId)
               if (obra) seleccionarObra(obra)
             }}
@@ -411,6 +470,47 @@ export function MapaSeguimiento() {
                   />
                 )}
               </Source>
+            )}
+
+            <Source id="recorridos" type="geojson" data={recorridosGeoJSON}>
+              <Layer
+                id="recorridos-lineas"
+                source="recorridos"
+                type="line"
+                layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+                paint={{ 'line-color': COLOR_ACENTO, 'line-width': 4, 'line-opacity': 0.85 }}
+              />
+            </Source>
+
+            {grabacion.estado === 'grabando' && (
+              <>
+                <Source id="trazo-en-vivo" type="geojson" data={trazoEnVivoGeoJSON}>
+                  <Layer
+                    id="trazo-en-vivo-linea"
+                    source="trazo-en-vivo"
+                    type="line"
+                    layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+                    paint={{ 'line-color': '#ef4444', 'line-width': 5, 'line-opacity': 0.95 }}
+                  />
+                </Source>
+                {grabacion.puntos.length > 0 && (
+                  <Marker
+                    longitude={grabacion.puntos[grabacion.puntos.length - 1].lon}
+                    latitude={grabacion.puntos[grabacion.puntos.length - 1].lat}
+                  >
+                    <div
+                      style={{
+                        width: 16,
+                        height: 16,
+                        borderRadius: '50%',
+                        background: '#ef4444',
+                        border: '3px solid #fff',
+                        boxShadow: '0 0 0 4px rgba(239,68,68,0.35)',
+                      }}
+                    />
+                  </Marker>
+                )}
+              </>
             )}
 
             {obrasProximasAEntregar.map((obra) => (
@@ -562,6 +662,14 @@ export function MapaSeguimiento() {
             )}
           </MapGL>
 
+          {puedeGrabar && (
+            <PanelRecorrido
+              grabacion={grabacion}
+              autorId={usuario!.id}
+              onGuardado={(recorrido) => setRecorridos((prev) => [recorrido, ...prev])}
+            />
+          )}
+
           <Box
             sx={{
               position: 'absolute',
@@ -599,6 +707,13 @@ export function MapaSeguimiento() {
           </Box>
         </Box>
       </Box>
+
+      {recorridoSeleccionado && (
+        <DetalleRecorridoDialog
+          recorrido={recorridoSeleccionado}
+          onCerrar={() => setRecorridoSeleccionado(null)}
+        />
+      )}
     </Box>
   )
 }

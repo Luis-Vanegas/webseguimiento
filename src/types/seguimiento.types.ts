@@ -41,6 +41,32 @@ export interface FotoVisita {
   orden: number
 }
 
+export interface PuntoTrazo {
+  lat: number
+  lon: number
+  ts: number
+}
+
+export interface FotoRecorrido {
+  id: string
+  recorridoId: string
+  storagePath: string
+  orden: number
+}
+
+export interface RecorridoSeguimiento {
+  id: string
+  autorId: string
+  titulo: string
+  observaciones: string
+  trazo: PuntoTrazo[]
+  distanciaMetros: number
+  fechaInicio: string
+  fechaFin: string
+  createdAt: string
+  fotos?: FotoRecorrido[]
+}
+
 export interface VisitaSeguimiento {
   id: string
   obraId: number
