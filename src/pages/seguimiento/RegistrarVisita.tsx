@@ -185,6 +185,7 @@ export function RegistrarVisita() {
       fechaRevision: null,
       createdAt: '',
       updatedAt: '',
+      vistoGerencia: false,
       alertas: (alertasForm ?? []).map((a, i) => ({
         id: `borrador-${i}`,
         visitaId: 'borrador',
