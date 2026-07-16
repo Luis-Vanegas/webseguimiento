@@ -22,7 +22,6 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday'
 import LocationOnIcon from '@mui/icons-material/LocationOn'
 import PersonIcon from '@mui/icons-material/Person'
 import RateReviewIcon from '@mui/icons-material/RateReview'
-import TrendingUpIcon from '@mui/icons-material/TrendingUp'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { useUsuarioActual } from '../../features/auth/useUsuarioActual'
@@ -33,6 +32,7 @@ import {
   marcarRevisada as marcarRevisadaAccion,
 } from '../../features/seguimiento/seguimientoSlice'
 import { useDatosFiltro } from '../../features/seguimiento/useDatosFiltro'
+import { BarraAvance } from '../../components/seguimiento/BarraAvance'
 import { FiltrosVisitasBar } from '../../components/seguimiento/FiltrosVisitasBar'
 import {
   DetalleVisitaDialog,
@@ -185,11 +185,8 @@ export function RevisarVisitas() {
                       {visita.fechaVisita}
                     </Typography>
                   </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
-                    <TrendingUpIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
-                    <Typography variant="body2" color="text.secondary">
-                      Avance: <b>{visita.porcentajeAvanceCampo}%</b>
-                    </Typography>
+                  <Box sx={{ display: 'flex', flex: 1, minWidth: 140 }}>
+                    <BarraAvance valor={visita.porcentajeAvanceCampo} />
                   </Box>
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1 }}>
@@ -224,7 +221,7 @@ export function RevisarVisitas() {
                 <TableCell>Obra</TableCell>
                 <TableCell>Autor</TableCell>
                 <TableCell>Fecha</TableCell>
-                <TableCell>Avance campo</TableCell>
+                <TableCell sx={{ width: 180 }}>Avance campo</TableCell>
                 <TableCell align="center">Alertas</TableCell>
                 <TableCell>Estado</TableCell>
                 <TableCell align="right">Acciones</TableCell>
@@ -247,9 +244,7 @@ export function RevisarVisitas() {
                     </TableCell>
                     <TableCell>{visita.fechaVisita}</TableCell>
                     <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {visita.porcentajeAvanceCampo}%
-                      </Typography>
+                      <BarraAvance valor={visita.porcentajeAvanceCampo} />
                     </TableCell>
                     <TableCell align="center">
                       {alertas > 0 ? (

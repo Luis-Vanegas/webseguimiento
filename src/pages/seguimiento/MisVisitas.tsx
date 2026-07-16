@@ -14,13 +14,13 @@ import AddLocationAltIcon from '@mui/icons-material/AddLocationAlt'
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday'
 import CameraAltIcon from '@mui/icons-material/CameraAlt'
 import LocationOnIcon from '@mui/icons-material/LocationOn'
-import TrendingUpIcon from '@mui/icons-material/TrendingUp'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import { Link } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { editarVisita, listarMisVisitas } from '../../features/seguimiento/seguimientoSlice'
 import { useUsuarioActual } from '../../features/auth/useUsuarioActual'
 import { useDatosFiltro } from '../../features/seguimiento/useDatosFiltro'
+import { BarraAvance } from '../../components/seguimiento/BarraAvance'
 import { FiltrosVisitasBar } from '../../components/seguimiento/FiltrosVisitasBar'
 import { ProximasVisitas } from '../../components/seguimiento/ProximasVisitas'
 import {
@@ -148,11 +148,8 @@ export function MisVisitas() {
                       {visita.fechaVisita}
                     </Typography>
                   </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <TrendingUpIcon sx={{ fontSize: 15, color: 'text.disabled' }} />
-                    <Typography variant="body2" color="text.secondary">
-                      Avance: <b>{visita.porcentajeAvanceCampo}%</b>
-                    </Typography>
+                  <Box sx={{ display: 'flex', flex: 1, minWidth: 140, maxWidth: 260 }}>
+                    <BarraAvance valor={visita.porcentajeAvanceCampo} />
                   </Box>
                 </Box>
 

@@ -30,11 +30,12 @@ import { listarTodasLasVisitas, marcarVistoGerencia } from '../../features/segui
 import { useDatosFiltro } from '../../features/seguimiento/useDatosFiltro'
 import { FiltrosVisitasBar } from '../../components/seguimiento/FiltrosVisitasBar'
 import { DetalleVisitaDialog } from '../../components/seguimiento/DetalleVisitaDialog'
+import { BarraAvance } from '../../components/seguimiento/BarraAvance'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { filtrarVisitas } from '../../utils/seguimiento/filtrar-visitas.util'
 import { severidadMaxima } from '../../utils/seguimiento/alertas.util'
 import { FILTROS_VACIOS } from '../../types/filtros.types'
-import { COLOR_ACENTO, COLOR_ESTADO, COLOR_SEVERIDAD, COLOR_SIDEBAR, ETIQUETA_ESTADO } from '../../theme/theme'
+import { COLOR_ACENTO, COLOR_ESTADO, COLOR_SEVERIDAD, ETIQUETA_ESTADO } from '../../theme/theme'
 import type { SeveridadAlerta, VisitaSeguimiento } from '../../types/seguimiento.types'
 
 // Tinte muy sutil para las filas/tarjetas ya vistas por gerencia — a
@@ -369,29 +370,6 @@ function ToggleVisto({ visto, onChange }: { visto: boolean; onChange: (visto: bo
         sx={{ color: 'text.disabled', '&.Mui-checked': { color: COLOR_ESTADO.revisada } }}
       />
     </Tooltip>
-  )
-}
-
-// Avance como barra + %: lectura de un vistazo, en vez del número suelto que
-// usa la bandeja operativa. Navy (marca) para distinguirla de la cobertura.
-function BarraAvance({ valor }: { valor: number }) {
-  return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-      <LinearProgress
-        variant="determinate"
-        value={Math.min(Math.max(valor, 0), 100)}
-        sx={{
-          flex: 1,
-          height: 6,
-          borderRadius: 3,
-          bgcolor: 'rgba(10, 30, 61, 0.08)',
-          '& .MuiLinearProgress-bar': { bgcolor: COLOR_SIDEBAR, borderRadius: 3 },
-        }}
-      />
-      <Typography variant="caption" sx={{ fontWeight: 600, minWidth: 34, textAlign: 'right' }}>
-        {valor}%
-      </Typography>
-    </Box>
   )
 }
 
