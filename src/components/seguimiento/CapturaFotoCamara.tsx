@@ -14,6 +14,7 @@ import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
 import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary'
 import CloseIcon from '@mui/icons-material/Close'
 import { convertirBlobHeicAJpeg, esArchivoHeic } from '../../utils/seguimiento/heic.util'
+import { comprimirImagen } from '../../utils/seguimiento/comprimirImagen.util'
 import { COLOR_ACENTO } from '../../theme/theme'
 
 // Las fotos HEIC del iPhone (solo posibles al elegir de la galería; la captura
@@ -117,13 +118,15 @@ export function CapturaFotoCamara({ fotos, onAgregar, onQuitar, onProcesandoChan
     if (!ctx) return
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
     canvas.toBlob(
-      (blob) => {
+      async (blob) => {
         if (!blob) return
         const archivo = new File([blob], `foto-${Date.now()}.jpg`, { type: 'image/jpeg' })
-        onAgregar([archivo])
+        // La captura ya sale a resolución de la cámara (puede ser varios MB);
+        // se comprime con el mismo criterio que las de galería antes de encolarla.
+        onAgregar([await comprimirImagen(archivo)])
       },
       'image/jpeg',
-      0.85,
+      0.92,
     )
   }
 
@@ -133,8 +136,12 @@ export function CapturaFotoCamara({ fotos, onAgregar, onQuitar, onProcesandoChan
     setErrorProceso(null)
     try {
       // allSettled: si una foto falla al convertir (ej. un .heic corrupto),
-      // las demás del mismo lote no se pierden.
-      const resultados = await Promise.allSettled(Array.from(archivos).map(convertirSiEsHeic))
+      // las demás del mismo lote no se pierden. Las de galería suelen ser la
+      // foto original de la cámara del celular (varios MB) — se comprimen
+      // igual que las capturadas en página.
+      const resultados = await Promise.allSettled(
+        Array.from(archivos).map(async (a) => comprimirImagen(await convertirSiEsHeic(a))),
+      )
       const convertidas = resultados
         .filter((r): r is PromiseFulfilledResult<File> => r.status === 'fulfilled')
         .map((r) => r.value)
