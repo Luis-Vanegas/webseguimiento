@@ -81,7 +81,13 @@ function mapRecorridoRow(row: any): RecorridoSeguimiento {
     fechaInicio: row.fecha_inicio,
     fechaFin: row.fecha_fin,
     createdAt: row.created_at,
-    tipo: row.tipo,
+    // Defensivo: si la Migración 6 (columna tipo) todavía no corrió contra la
+    // base real, o la fila es de antes de esa migración, row.tipo llega
+    // undefined — todo recorrido anterior a esta feature era, de hecho,
+    // grabado con GPS, así que ese es el valor correcto para no dejarlo
+    // invisible en el mapa (ninguna de las dos capas filtradas por tipo lo
+    // dibujaría con un valor null/undefined).
+    tipo: row.tipo ?? 'grabado',
     fotos: (row.fotos_recorrido ?? []).map(mapFotoRecorridoRow),
   }
 }
