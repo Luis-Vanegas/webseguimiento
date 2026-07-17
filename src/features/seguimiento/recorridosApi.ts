@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabaseClient'
-import type { FotoRecorrido, PuntoTrazo, RecorridoSeguimiento } from '../../types/seguimiento.types'
+import type { FotoRecorrido, PuntoTrazo, RecorridoSeguimiento, TipoRecorrido } from '../../types/seguimiento.types'
 
 export interface NuevoRecorridoInput {
   autorId: string
@@ -9,6 +9,7 @@ export interface NuevoRecorridoInput {
   distanciaMetros: number
   fechaInicio: string
   fechaFin: string
+  tipo: TipoRecorrido
 }
 
 export async function crearRecorrido(input: NuevoRecorridoInput): Promise<RecorridoSeguimiento> {
@@ -22,6 +23,7 @@ export async function crearRecorrido(input: NuevoRecorridoInput): Promise<Recorr
       distancia_metros: input.distanciaMetros,
       fecha_inicio: input.fechaInicio,
       fecha_fin: input.fechaFin,
+      tipo: input.tipo,
     })
     .select()
     .single()
@@ -79,6 +81,7 @@ function mapRecorridoRow(row: any): RecorridoSeguimiento {
     fechaInicio: row.fecha_inicio,
     fechaFin: row.fecha_fin,
     createdAt: row.created_at,
+    tipo: row.tipo,
     fotos: (row.fotos_recorrido ?? []).map(mapFotoRecorridoRow),
   }
 }

@@ -94,7 +94,14 @@ create table recorridos_seguimiento (
   distancia_metros numeric not null default 0,
   fecha_inicio timestamptz not null,
   fecha_fin timestamptz not null,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  -- 'grabado': trazo real capturado con GPS mientras alguien camina.
+  -- 'planeado': ruta armada de antemano clickeando puntos en el mapa, sin
+  -- GPS. Misma tabla para ambos — comparten forma (trazo, distancia,
+  -- título/observaciones) y toda la maquinaria de mapa/detalle ya construida;
+  -- para 'planeado', fecha_inicio = fecha_fin = momento de creación (no hubo
+  -- caminata con duración real que registrar).
+  tipo text not null default 'grabado' check (tipo in ('grabado', 'planeado'))
 );
 comment on table recorridos_seguimiento is 'Temporal, reemplazar cuando exista backend definitivo.';
 
@@ -293,3 +300,12 @@ create policy "subir_fotos_autenticados" on storage.objects for insert to authen
 --   with check (
 --     exists (select 1 from recorridos_seguimiento r where r.id = recorrido_id and r.autor_id = auth.uid())
 --   );
+
+-- Migración 6 — CORRER ESTA en el SQL Editor de Supabase (proyecto real):
+-- agrega la columna "tipo" a recorridos_seguimiento, para distinguir un
+-- recorrido grabado con GPS de una ruta planeada de antemano (clickeando
+-- puntos en el mapa, sin caminar). Sin esto, guardar una ruta planeada falla
+-- porque la columna no existe en la base real todavía.
+--
+-- alter table recorridos_seguimiento add column tipo text not null default 'grabado'
+--   check (tipo in ('grabado', 'planeado'));

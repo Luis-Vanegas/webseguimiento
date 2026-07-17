@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import MapGL, { GeolocateControl, Layer, Marker, NavigationControl, Popup, Source } from 'react-map-gl'
 import maplibregl from 'maplibre-gl'
 import {
+  Alert,
   Box,
   Button,
   Chip,
@@ -9,6 +10,7 @@ import {
   List,
   ListItemButton,
   ListItemText,
+  Snackbar,
   TextField,
   Typography,
 } from '@mui/material'
@@ -23,6 +25,7 @@ import { listarRecorridos } from '../../features/seguimiento/recorridosApi'
 import { useGrabacionRecorrido } from '../../features/seguimiento/useGrabacionRecorrido'
 import { useUsuarioActual } from '../../features/auth/useUsuarioActual'
 import { PanelRecorrido } from '../../components/seguimiento/PanelRecorrido'
+import { PanelPlaneacionRuta } from '../../components/seguimiento/PanelPlaneacionRuta'
 import { DetalleRecorridoDialog } from '../../components/seguimiento/DetalleRecorridoDialog'
 import { COLOR_ACENTO, COLOR_PROXIMA_ENTREGA } from '../../theme/theme'
 import { DIAS_PROXIMA_ENTREGA, estaDesatendida, estaProximaAEntregar } from '../../utils/seguimiento/fechas.util'
@@ -32,6 +35,12 @@ import type { PuntoTrazo, RecorridoSeguimiento } from '../../types/seguimiento.t
 ;(maplibregl as any).supported = () => true
 
 const COLOR_COMUNA = '#f97316'
+
+// Identidad visual del recorrido 'planeado': índigo, distinto del cian de los
+// grabados y del rojo del trazo GPS en vivo. Misma línea, pero punteada. Se
+// repite como const local (mismo criterio que COLOR_COMUNA) en el panel de
+// planeación y en el detalle, para no acoplar theme.ts a esta feature.
+const COLOR_RUTA_PLANEADA = '#6366f1'
 
 const ESTILOS_MAPA = {
   calles: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
@@ -83,7 +92,7 @@ function recorridosALineas(recorridos: RecorridoSeguimiento[]) {
       .map((r) => ({
         type: 'Feature' as const,
         geometry: { type: 'LineString' as const, coordinates: r.trazo.map((p) => [p.lon, p.lat]) },
-        properties: { recorridoId: r.id },
+        properties: { recorridoId: r.id, tipo: r.tipo },
       })),
   }
 }
@@ -134,6 +143,12 @@ export function MapaSeguimiento() {
   const [busqueda, setBusqueda] = useState('')
   const [recorridos, setRecorridos] = useState<RecorridoSeguimiento[]>([])
   const [recorridoSeleccionado, setRecorridoSeleccionado] = useState<RecorridoSeguimiento | null>(null)
+
+  // Modo "planear ruta": el usuario arma un trazo clickeando el mapa (sin GPS).
+  // El estado vive acá para que el mapa dibuje la línea de preview y los
+  // marcadores numerados; el panel recibe todo por props.
+  const [modoPlaneacion, setModoPlaneacion] = useState(false)
+  const [puntosPlaneados, setPuntosPlaneados] = useState<PuntoTrazo[]>([])
 
   // El hook vive acá (no dentro de PanelRecorrido) para que el mapa pueda
   // dibujar el trazo en vivo desde los mismos `puntos` mientras se graba.
@@ -206,6 +221,8 @@ export function MapaSeguimiento() {
   const recorridosGeoJSON = useMemo(() => recorridosALineas(recorridos), [recorridos])
 
   const trazoEnVivoGeoJSON = useMemo(() => puntosALinea(grabacion.puntos), [grabacion.puntos])
+
+  const rutaPlaneadaGeoJSON = useMemo(() => puntosALinea(puntosPlaneados), [puntosPlaneados])
 
   const resultadosBusqueda = useMemo(() => {
     const texto = busqueda.trim().toLowerCase()
@@ -432,18 +449,26 @@ export function MapaSeguimiento() {
             mapLib={maplibregl}
             mapStyle={ESTILOS_MAPA[estiloMapa]}
             style={{ width: '100%', height: '100%' }}
-            interactiveLayerIds={['obras-puntos', 'recorridos-lineas']}
+            interactiveLayerIds={['obras-puntos', 'recorridos-lineas', 'recorridos-lineas-planeadas']}
             onMove={(evt) => setViewport(evt.viewState)}
             onClick={(evt: any) => {
               const feature = evt.features?.[0]
-              if (!feature) return
-              if (feature.layer.id === 'recorridos-lineas') {
-                const recorrido = recorridos.find((r) => r.id === feature.properties.recorridoId)
-                if (recorrido) setRecorridoSeleccionado(recorrido)
+              if (feature) {
+                if (feature.properties.recorridoId != null) {
+                  const recorrido = recorridos.find((r) => r.id === feature.properties.recorridoId)
+                  if (recorrido) setRecorridoSeleccionado(recorrido)
+                  return
+                }
+                const obra = obrasFiltradas.find((o) => o.obraId === feature.properties.obraId)
+                if (obra) seleccionarObra(obra)
                 return
               }
-              const obra = obrasFiltradas.find((o) => o.obraId === feature.properties.obraId)
-              if (obra) seleccionarObra(obra)
+              // Sin feature interactiva: en modo planeación, cada click en el
+              // mapa suma un punto al trazo (ts no es significativo para un
+              // punto clickeado, pero el tipo PuntoTrazo lo exige).
+              if (modoPlaneacion) {
+                setPuntosPlaneados((prev) => [...prev, { lat: evt.lngLat.lat, lon: evt.lngLat.lng, ts: Date.now() }])
+              }
             }}
             onError={(e: any) => {
               if (e?.error?.message?.includes('supported')) return
@@ -472,15 +497,76 @@ export function MapaSeguimiento() {
               </Source>
             )}
 
+            {/* Grabados y planeados salen del mismo array, pero se separan en
+                dos capas: 'line-dasharray' no admite expresiones data-driven
+                en MapLibre, así que un solo ['case'] no alcanza para puntear
+                solo los planeados. Dos capas filtradas por `tipo` lo resuelven. */}
             <Source id="recorridos" type="geojson" data={recorridosGeoJSON}>
               <Layer
                 id="recorridos-lineas"
                 source="recorridos"
                 type="line"
+                filter={['==', ['get', 'tipo'], 'grabado']}
                 layout={{ 'line-cap': 'round', 'line-join': 'round' }}
                 paint={{ 'line-color': COLOR_ACENTO, 'line-width': 4, 'line-opacity': 0.85 }}
               />
+              <Layer
+                id="recorridos-lineas-planeadas"
+                source="recorridos"
+                type="line"
+                filter={['==', ['get', 'tipo'], 'planeado']}
+                layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+                paint={{
+                  'line-color': COLOR_RUTA_PLANEADA,
+                  'line-width': 4,
+                  'line-opacity': 0.9,
+                  'line-dasharray': [2, 1.5],
+                }}
+              />
             </Source>
+
+            {/* Preview en vivo del modo planeación: línea punteada índigo +
+                marcadores numerados por cada punto clickeado. */}
+            {modoPlaneacion && (
+              <>
+                <Source id="ruta-planeada-preview" type="geojson" data={rutaPlaneadaGeoJSON}>
+                  <Layer
+                    id="ruta-planeada-preview-linea"
+                    source="ruta-planeada-preview"
+                    type="line"
+                    layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+                    paint={{
+                      'line-color': COLOR_RUTA_PLANEADA,
+                      'line-width': 4,
+                      'line-opacity': 0.95,
+                      'line-dasharray': [2, 1.5],
+                    }}
+                  />
+                </Source>
+                {puntosPlaneados.map((p, i) => (
+                  <Marker key={`plan-${i}`} longitude={p.lon} latitude={p.lat}>
+                    <div
+                      style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: '50%',
+                        background: COLOR_RUTA_PLANEADA,
+                        border: '2px solid #fff',
+                        boxShadow: `0 0 0 3px ${COLOR_RUTA_PLANEADA}59`,
+                        color: '#fff',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {i + 1}
+                    </div>
+                  </Marker>
+                ))}
+              </>
+            )}
 
             {grabacion.estado === 'grabando' && (
               <>
@@ -662,13 +748,66 @@ export function MapaSeguimiento() {
             )}
           </MapGL>
 
-          {puedeGrabar && (
+          {/* Mientras se planea una ruta, se oculta PanelRecorrido: la
+              planeación solo arranca desde 'inactivo', así que su HUD puede
+              reclamar el top:10/left:10 sin superponerse con "Grabar recorrido". */}
+          {puedeGrabar && !modoPlaneacion && (
             <PanelRecorrido
               grabacion={grabacion}
               autorId={usuario!.id}
               onGuardado={(recorrido) => setRecorridos((prev) => [recorrido, ...prev])}
             />
           )}
+
+          {/* La planeación solo se ofrece cuando no hay una grabación GPS en
+              curso ni un guardado abierto (estado 'inactivo'). */}
+          {puedeGrabar && (modoPlaneacion || grabacion.estado === 'inactivo') && (
+            <PanelPlaneacionRuta
+              activo={modoPlaneacion}
+              puntos={puntosPlaneados}
+              autorId={usuario!.id}
+              onIniciar={() => {
+                setPuntosPlaneados([])
+                setModoPlaneacion(true)
+              }}
+              onDeshacer={() => setPuntosPlaneados((prev) => prev.slice(0, -1))}
+              onCancelar={() => {
+                setModoPlaneacion(false)
+                setPuntosPlaneados([])
+              }}
+              onGuardado={(recorrido) => {
+                setRecorridos((prev) => [recorrido, ...prev])
+                setModoPlaneacion(false)
+                setPuntosPlaneados([])
+              }}
+            />
+          )}
+
+          {/* Red de seguridad: si una grabación anterior quedó a medias (recarga
+              o cierre de pestaña), se ofrece retomarla o descartarla. Solo con
+              el mapa "en reposo" (sin grabar, sin planear). */}
+          <Snackbar
+            open={grabacion.hayBorrador && grabacion.estado === 'inactivo' && !modoPlaneacion}
+            anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+          >
+            <Alert
+              severity="info"
+              variant="filled"
+              sx={{ alignItems: 'center' }}
+              action={
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button color="inherit" size="small" onClick={grabacion.recuperarBorrador}>
+                    Continuar
+                  </Button>
+                  <Button color="inherit" size="small" onClick={grabacion.descartarBorrador}>
+                    Descartar
+                  </Button>
+                </Box>
+              }
+            >
+              Se encontró un recorrido sin guardar.
+            </Alert>
+          </Snackbar>
 
           <Box
             sx={{

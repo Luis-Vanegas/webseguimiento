@@ -6,7 +6,6 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
   Divider,
   IconButton,
   MenuItem,
@@ -17,16 +16,14 @@ import {
 import type { SxProps, Theme } from '@mui/material/styles'
 import DeleteIcon from '@mui/icons-material/Delete'
 import AddIcon from '@mui/icons-material/Add'
-import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
-import CloseIcon from '@mui/icons-material/Close'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { useUsuarioActual } from '../../features/auth/useUsuarioActual'
 import { crearVisita, listarVisitasDeObra } from '../../features/seguimiento/seguimientoSlice'
 import { useDatosFiltro } from '../../features/seguimiento/useDatosFiltro'
 import { compararVisitas } from '../../utils/seguimiento/visita-comparator.util'
-import { convertirBlobHeicAJpeg, esArchivoHeic } from '../../utils/seguimiento/heic.util'
 import { CambioVisitaItem } from '../../components/seguimiento/CambioVisitaItem'
+import { CapturaFotoCamara } from '../../components/seguimiento/CapturaFotoCamara'
 import { Seccion } from '../../components/layout/Seccion'
 import type { VisitaSeguimiento } from '../../types/seguimiento.types'
 
@@ -70,12 +67,6 @@ function crearEsquemaVisita(idAlertaOtra: string | undefined) {
 
 type FormVisita = yup.InferType<ReturnType<typeof crearEsquemaVisita>>
 
-async function convertirSiEsHeic(archivo: File): Promise<File> {
-  if (!esArchivoHeic(archivo)) return archivo
-  const blob = await convertirBlobHeicAJpeg(archivo)
-  return new File([blob], archivo.name.replace(/\.hei[cf]$/i, '.jpg'), { type: 'image/jpeg' })
-}
-
 // Secciones de un mismo Paper, con título uniforme — reutilizado tres veces
 // en este formulario para no repetir el mismo bloque de estilos.
 function DatoObra({
@@ -112,27 +103,6 @@ export function RegistrarVisita() {
   const [convirtiendoFotos, setConvirtiendoFotos] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  async function agregarFotos(archivos: FileList | null) {
-    if (!archivos || archivos.length === 0) return
-    setConvirtiendoFotos(true)
-    try {
-      // allSettled: si una foto falla al convertir (ej. un .heic corrupto),
-      // las demás del mismo lote no se pierden.
-      const resultados = await Promise.allSettled(Array.from(archivos).map(convertirSiEsHeic))
-      const convertidas = resultados
-        .filter((r): r is PromiseFulfilledResult<File> => r.status === 'fulfilled')
-        .map((r) => r.value)
-      if (convertidas.length > 0) setFotos((prev) => [...prev, ...convertidas])
-
-      const fallidas = resultados.filter((r) => r.status === 'rejected').length
-      if (fallidas > 0) {
-        setError(`No se pudo procesar ${fallidas} foto${fallidas > 1 ? 's' : ''}. Probá con otro formato.`)
-      }
-    } finally {
-      setConvirtiendoFotos(false)
-    }
-  }
 
   const idAlertaOtra = useMemo(() => tiposAlerta.find((t) => t.nombre === 'Otra')?.id, [tiposAlerta])
   const esquemaVisita = useMemo(() => crearEsquemaVisita(idAlertaOtra), [idAlertaOtra])
@@ -383,38 +353,12 @@ export function RegistrarVisita() {
       </Seccion>
 
       <Seccion titulo="Fotos">
-        <Button
-          component="label"
-          variant="outlined"
-          fullWidth
-          startIcon={<PhotoCameraIcon />}
-          disabled={convirtiendoFotos}
-        >
-          {convirtiendoFotos ? 'Procesando fotos…' : 'Tomar o adjuntar fotos'}
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            multiple
-            hidden
-            onChange={(e) => {
-              agregarFotos(e.target.files)
-              e.target.value = ''
-            }}
-          />
-        </Button>
-        {fotos.length > 0 && (
-          <Box sx={{ mt: 1.5, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            {fotos.map((f, i) => (
-              <Chip
-                key={`${f.name}-${i}`}
-                label={f.name}
-                onDelete={() => setFotos((prev) => prev.filter((_, idx) => idx !== i))}
-                deleteIcon={<CloseIcon fontSize="small" />}
-              />
-            ))}
-          </Box>
-        )}
+        <CapturaFotoCamara
+          fotos={fotos}
+          onAgregar={(archivos) => setFotos((prev) => [...prev, ...archivos])}
+          onQuitar={(indice) => setFotos((prev) => prev.filter((_, idx) => idx !== indice))}
+          onProcesandoChange={setConvirtiendoFotos}
+        />
       </Seccion>
 
       {error && (

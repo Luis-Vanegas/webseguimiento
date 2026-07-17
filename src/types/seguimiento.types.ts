@@ -54,6 +54,8 @@ export interface FotoRecorrido {
   orden: number
 }
 
+export type TipoRecorrido = 'grabado' | 'planeado'
+
 export interface RecorridoSeguimiento {
   id: string
   autorId: string
@@ -64,6 +66,7 @@ export interface RecorridoSeguimiento {
   fechaInicio: string
   fechaFin: string
   createdAt: string
+  tipo: TipoRecorrido
   fotos?: FotoRecorrido[]
 }
 

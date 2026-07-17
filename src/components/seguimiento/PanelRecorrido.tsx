@@ -3,7 +3,6 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -15,23 +14,13 @@ import {
 } from '@mui/material'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import StopIcon from '@mui/icons-material/Stop'
-import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
-import CloseIcon from '@mui/icons-material/Close'
 import { crearRecorrido, subirFotoRecorrido } from '../../features/seguimiento/recorridosApi'
-import { convertirBlobHeicAJpeg, esArchivoHeic } from '../../utils/seguimiento/heic.util'
+import { CapturaFotoCamara } from './CapturaFotoCamara'
 import { COLOR_ACENTO } from '../../theme/theme'
 import type { useGrabacionRecorrido } from '../../features/seguimiento/useGrabacionRecorrido'
 import type { FotoRecorrido, RecorridoSeguimiento } from '../../types/seguimiento.types'
 
 const ROJO_GRABACION = '#ef4444'
-
-// Mismo helper que RegistrarVisita (allí es una función local no exportada):
-// las fotos HEIC del iPhone se convierten a JPEG antes de encolarlas.
-async function convertirSiEsHeic(archivo: File): Promise<File> {
-  if (!esArchivoHeic(archivo)) return archivo
-  const blob = await convertirBlobHeicAJpeg(archivo)
-  return new File([blob], archivo.name.replace(/\.hei[cf]$/i, '.jpg'), { type: 'image/jpeg' })
-}
 
 function formatearDistancia(metros: number): string {
   if (metros < 1000) return `${Math.round(metros)} m`
@@ -81,24 +70,6 @@ export function PanelRecorrido({ grabacion, autorId, onGuardado }: PanelRecorrid
   const [enviando, setEnviando] = useState(false)
   const [errorGuardar, setErrorGuardar] = useState<string | null>(null)
 
-  async function agregarFotos(archivos: FileList | null) {
-    if (!archivos || archivos.length === 0) return
-    setConvirtiendoFotos(true)
-    try {
-      const resultados = await Promise.allSettled(Array.from(archivos).map(convertirSiEsHeic))
-      const convertidas = resultados
-        .filter((r): r is PromiseFulfilledResult<File> => r.status === 'fulfilled')
-        .map((r) => r.value)
-      if (convertidas.length > 0) setFotos((prev) => [...prev, ...convertidas])
-      const fallidas = resultados.filter((r) => r.status === 'rejected').length
-      if (fallidas > 0) {
-        setErrorGuardar(`No se pudo procesar ${fallidas} foto${fallidas > 1 ? 's' : ''}. Probá con otro formato.`)
-      }
-    } finally {
-      setConvirtiendoFotos(false)
-    }
-  }
-
   function limpiarFormulario() {
     setTitulo('')
     setObservaciones('')
@@ -124,6 +95,7 @@ export function PanelRecorrido({ grabacion, autorId, onGuardado }: PanelRecorrid
         distanciaMetros,
         fechaInicio,
         fechaFin,
+        tipo: 'grabado',
       })
       // Mismo orden que crearVisita: crear el recorrido, luego subir las fotos
       // secuencialmente (necesitan el id ya creado).
@@ -292,38 +264,12 @@ export function PanelRecorrido({ grabacion, autorId, onGuardado }: PanelRecorrid
           sx={{ mb: 2, bgcolor: 'background.paper' }}
         />
 
-        <Button
-          component="label"
-          variant="outlined"
-          fullWidth
-          startIcon={<PhotoCameraIcon />}
-          disabled={convirtiendoFotos}
-        >
-          {convirtiendoFotos ? 'Procesando fotos…' : 'Tomar o adjuntar fotos'}
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            multiple
-            hidden
-            onChange={(e) => {
-              agregarFotos(e.target.files)
-              e.target.value = ''
-            }}
-          />
-        </Button>
-        {fotos.length > 0 && (
-          <Box sx={{ mt: 1.5, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            {fotos.map((f, i) => (
-              <Chip
-                key={`${f.name}-${i}`}
-                label={f.name}
-                onDelete={() => setFotos((prev) => prev.filter((_, idx) => idx !== i))}
-                deleteIcon={<CloseIcon fontSize="small" />}
-              />
-            ))}
-          </Box>
-        )}
+        <CapturaFotoCamara
+          fotos={fotos}
+          onAgregar={(archivos) => setFotos((prev) => [...prev, ...archivos])}
+          onQuitar={(indice) => setFotos((prev) => prev.filter((_, idx) => idx !== indice))}
+          onProcesandoChange={setConvirtiendoFotos}
+        />
 
         {errorGuardar && (
           <Alert severity="error" sx={{ mt: 2 }}>

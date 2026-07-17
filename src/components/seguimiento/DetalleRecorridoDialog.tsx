@@ -1,5 +1,6 @@
 import {
   Box,
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -14,6 +15,10 @@ import { CarruselFotos } from './CarruselFotos'
 import { Seccion } from '../layout/Seccion'
 import { COLOR_ACENTO } from '../../theme/theme'
 import type { FotoVisita, RecorridoSeguimiento } from '../../types/seguimiento.types'
+
+// Índigo del recorrido 'planeado' — misma const local que en el mapa y el
+// panel de planeación (evita acoplar theme.ts a esta feature).
+const COLOR_RUTA_PLANEADA = '#6366f1'
 
 function formatearDistancia(metros: number): string {
   if (metros < 1000) return `${Math.round(metros)} m`
@@ -50,18 +55,31 @@ interface DetalleRecorridoDialogProps {
 export function DetalleRecorridoDialog({ recorrido, nombreAutor, onCerrar }: DetalleRecorridoDialogProps) {
   const esMovil = useMediaQuery(useTheme().breakpoints.down('sm'))
   const fotos = recorrido.fotos ?? []
+  const esPlaneado = recorrido.tipo === 'planeado'
+  const colorTipo = esPlaneado ? COLOR_RUTA_PLANEADA : COLOR_ACENTO
 
   return (
     <Dialog open onClose={onCerrar} fullWidth maxWidth="md" fullScreen={esMovil}>
       <DialogTitle sx={{ pb: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-          <RouteIcon sx={{ color: COLOR_ACENTO, mt: 0.3 }} />
-          <Box>
-            <Typography variant="h6" sx={{ lineHeight: 1.3 }}>
-              {recorrido.titulo || 'Recorrido sin título'}
-            </Typography>
+          <RouteIcon sx={{ color: colorTipo, mt: 0.3 }} />
+          <Box sx={{ flex: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+              <Typography variant="h6" sx={{ lineHeight: 1.3 }}>
+                {recorrido.titulo || 'Recorrido sin título'}
+              </Typography>
+              <Chip
+                size="small"
+                label={esPlaneado ? 'Planeada' : 'Grabada'}
+                sx={{ bgcolor: `${colorTipo}1f`, color: colorTipo, fontWeight: 700 }}
+              />
+            </Box>
             <Typography variant="body2" color="text.secondary">
-              {formatearFechaHora(recorrido.fechaInicio)} — {formatearFechaHora(recorrido.fechaFin)}
+              {/* Para 'planeado' fechaInicio === fechaFin (no hay tiempo caminado
+                  real): se muestra una sola fecha en vez de un rango redundante. */}
+              {esPlaneado
+                ? formatearFechaHora(recorrido.fechaInicio)
+                : `${formatearFechaHora(recorrido.fechaInicio)} — ${formatearFechaHora(recorrido.fechaFin)}`}
               {nombreAutor && ` · ${nombreAutor}`}
             </Typography>
           </Box>
@@ -83,7 +101,13 @@ export function DetalleRecorridoDialog({ recorrido, nombreAutor, onCerrar }: Det
           }}
         >
           <Kpi etiqueta="Distancia" valor={formatearDistancia(recorrido.distanciaMetros)} />
-          <Kpi etiqueta="Duración" valor={formatearDuracion(recorrido.fechaInicio, recorrido.fechaFin)} />
+          {/* Duración solo aplica a 'grabado': en 'planeado' fechaInicio === */}
+          {/* fechaFin daría siempre 00:00, así que se omite ese KPI. */}
+          {esPlaneado ? (
+            <Kpi etiqueta="Tipo" valor="Ruta planeada" />
+          ) : (
+            <Kpi etiqueta="Duración" valor={formatearDuracion(recorrido.fechaInicio, recorrido.fechaFin)} />
+          )}
           <Kpi etiqueta="Puntos" valor={String(recorrido.trazo.length)} />
         </Box>
 
