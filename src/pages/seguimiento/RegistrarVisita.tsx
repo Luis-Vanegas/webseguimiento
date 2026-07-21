@@ -22,6 +22,7 @@ import { useUsuarioActual } from '../../features/auth/useUsuarioActual'
 import { crearVisita, listarVisitasDeObra } from '../../features/seguimiento/seguimientoSlice'
 import { useDatosFiltro } from '../../features/seguimiento/useDatosFiltro'
 import { compararVisitas } from '../../utils/seguimiento/visita-comparator.util'
+import { claveDeDate } from '../../utils/seguimiento/fechas.util'
 import { CambioVisitaItem } from '../../components/seguimiento/CambioVisitaItem'
 import { CapturaFotoCamara } from '../../components/seguimiento/CapturaFotoCamara'
 import { Seccion } from '../../components/layout/Seccion'
@@ -116,7 +117,7 @@ export function RegistrarVisita() {
   } = useForm<FormVisita>({
     resolver: yupResolver(esquemaVisita),
     defaultValues: {
-      fechaVisita: new Date().toISOString().slice(0, 10),
+      fechaVisita: claveDeDate(new Date()),
       fechaProximaVisita: null,
       porcentajeAvanceCampo: 0,
       observaciones: '',

@@ -12,7 +12,13 @@ export const DIAS_DESATENDIDA = 30
 export function claveDia(fechaTexto: string): string {
   const soloFecha = fechaTexto.match(/^\d{4}-\d{2}-\d{2}/)
   if (soloFecha) return soloFecha[0]
-  const d = new Date(fechaTexto)
+  return claveDeDate(new Date(fechaTexto))
+}
+
+// Fecha -> clave YYYY-MM-DD en huso horario LOCAL. `Date.toISOString()` no
+// sirve para esto: devuelve la fecha en UTC, que en Colombia (UTC-5) ya cae
+// en el día siguiente entre las 7pm y la medianoche local.
+export function claveDeDate(d: Date): string {
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const dia = String(d.getDate()).padStart(2, '0')

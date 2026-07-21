@@ -12,19 +12,12 @@ import {
   type CambiosVisitaEditables,
 } from '../../components/seguimiento/DetalleVisitaDialog'
 import { PageHeader } from '../../components/layout/PageHeader'
-import { claveDia } from '../../utils/seguimiento/fechas.util'
+import { claveDeDate, claveDia } from '../../utils/seguimiento/fechas.util'
 import { COLOR_ACENTO, COLOR_PROXIMA_ENTREGA } from '../../theme/theme'
 import type { ObraVisor } from '../../types/obra.types'
 import type { VisitaSeguimiento } from '../../types/seguimiento.types'
 
 const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
-
-function claveDeDate(d: Date): string {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const dia = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${dia}`
-}
 
 // 42 celdas (6 semanas) arrancando en el domingo anterior o igual al día 1
 // del mes, para que la grilla siempre calce en filas completas.
