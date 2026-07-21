@@ -47,18 +47,21 @@ const ESTILOS_MAPA = {
   satelite: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
 } as const
 
-function infoObra(obra: ObraVisor) {
+// El color del punto marca si ALGUIEN ya subió una visita para esa obra
+// (ultimaVisitaPorObra la trae del backend, así que "visitada" es "tiene
+// entrada en ese mapa"), no el % de avance oficial — eso sigue disponible
+// por etapa en el popup, pero dejó de pintar el mapa para bajar la cantidad
+// de colores simultáneos.
+function infoObra(obra: ObraVisor, ultimaVisitaPorObra: Map<number, string>) {
   if (obra.entregada) return { color: '#3b82f6', etiqueta: 'Entregada' }
-  if (obra.porcentajeAvanceOficial >= 70) return { color: '#22c55e', etiqueta: `Avance ${obra.porcentajeAvanceOficial}%` }
-  if (obra.porcentajeAvanceOficial >= 35) return { color: '#eab308', etiqueta: `Avance ${obra.porcentajeAvanceOficial}%` }
-  return { color: '#ef4444', etiqueta: `Avance ${obra.porcentajeAvanceOficial}%` }
+  if (ultimaVisitaPorObra.has(obra.obraId)) return { color: '#22c55e', etiqueta: 'Visitada' }
+  return { color: '#ef4444', etiqueta: 'Sin visitar' }
 }
 
 const LEYENDA: { color: string; label: string; border?: boolean }[] = [
   { color: '#3b82f6', label: 'Entregada' },
-  { color: '#22c55e', label: 'Avance ≥ 70%' },
-  { color: '#eab308', label: 'Avance 35–70%' },
-  { color: '#ef4444', label: 'Avance < 35%' },
+  { color: '#22c55e', label: 'Visitada' },
+  { color: '#ef4444', label: 'Sin visitar' },
   { color: '#fff', label: 'Desatendida (>30 días)', border: true },
   { color: COLOR_PROXIMA_ENTREGA, label: `Próxima a entregar (≤${DIAS_PROXIMA_ENTREGA} días)` },
 ]
@@ -74,7 +77,7 @@ function obrasAGeoJSON(obras: ObraVisor[], ultimaVisitaPorObra: Map<number, stri
       geometry: { type: 'Point' as const, coordinates: [obra.longitud, obra.latitud] },
       properties: {
         obraId: obra.obraId,
-        color: infoObra(obra).color,
+        color: infoObra(obra, ultimaVisitaPorObra).color,
         desatendida: estaDesatendida(ultimaVisitaPorObra.get(obra.obraId)),
       },
     })),
@@ -427,7 +430,7 @@ export function MapaSeguimiento() {
                 <List dense disablePadding>
                   {obrasFiltradas.map((obra) => (
                     <ListItemButton key={obra.obraId} onClick={() => seleccionarObra(obra)}>
-                      <ListItemText primary={obra.nombre} secondary={infoObra(obra).etiqueta} />
+                      <ListItemText primary={obra.nombre} secondary={infoObra(obra, ultimaVisitaPorObra).etiqueta} />
                     </ListItemButton>
                   ))}
                 </List>
@@ -642,7 +645,7 @@ export function MapaSeguimiento() {
                     width: 16,
                     height: 16,
                     borderRadius: '50%',
-                    background: infoObra(obraSeleccionada).color,
+                    background: infoObra(obraSeleccionada, ultimaVisitaPorObra).color,
                     border: estaDesatendida(ultimaVisitaPorObra.get(obraSeleccionada.obraId))
                       ? '3px solid #ef4444'
                       : '2px solid #fff',
@@ -670,12 +673,12 @@ export function MapaSeguimiento() {
                         width: 10,
                         height: 10,
                         borderRadius: '50%',
-                        background: infoObra(obraSeleccionada).color,
+                        background: infoObra(obraSeleccionada, ultimaVisitaPorObra).color,
                         flexShrink: 0,
                       }}
                     />
                     <Typography variant="caption" color="text.secondary">
-                      {infoObra(obraSeleccionada).etiqueta}
+                      {infoObra(obraSeleccionada, ultimaVisitaPorObra).etiqueta}
                     </Typography>
                   </Box>
                   {obraSeleccionada.dependencia && (
