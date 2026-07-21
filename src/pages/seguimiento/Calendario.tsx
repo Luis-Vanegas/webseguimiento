@@ -4,7 +4,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import TodayIcon from '@mui/icons-material/Today'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
-import { editarVisita, listarMisVisitas } from '../../features/seguimiento/seguimientoSlice'
+import { editarVisita, listarMisVisitas, listarTodasLasVisitas } from '../../features/seguimiento/seguimientoSlice'
 import { useUsuarioActual } from '../../features/auth/useUsuarioActual'
 import { useDatosFiltro } from '../../features/seguimiento/useDatosFiltro'
 import {
@@ -46,8 +46,11 @@ function agruparPorDia<T>(items: T[], fechaDe: (item: T) => string | null): Map<
 export function Calendario() {
   const dispatch = useAppDispatch()
   const { usuario } = useUsuarioActual()
-  const { misVisitas } = useAppSelector((state) => state.seguimiento)
+  const { misVisitas, todasLasVisitas } = useAppSelector((state) => state.seguimiento)
   const { obraPorId, tiposAlerta } = useDatosFiltro()
+  // El visualizador (gerencia) no registra visitas propias — "misVisitas"
+  // siempre le queda vacío. Para él, el calendario muestra todas las visitas.
+  const visitas = usuario?.rol === 'visualizador' ? todasLasVisitas : misVisitas
   const [mesActual, setMesActual] = useState(() => {
     const hoy = new Date()
     return new Date(hoy.getFullYear(), hoy.getMonth(), 1)
@@ -56,7 +59,9 @@ export function Calendario() {
   const [visitaSeleccionada, setVisitaSeleccionada] = useState<VisitaSeguimiento | null>(null)
 
   useEffect(() => {
-    if (usuario) dispatch(listarMisVisitas(usuario.id))
+    if (!usuario) return
+    if (usuario.rol === 'visualizador') dispatch(listarTodasLasVisitas())
+    else dispatch(listarMisVisitas(usuario.id))
   }, [dispatch, usuario])
 
   function guardarEdicion(cambios: CambiosVisitaEditables) {
@@ -77,8 +82,8 @@ export function Calendario() {
   )
 
   const visitasPorDia = useMemo(
-    () => agruparPorDia<VisitaSeguimiento>(misVisitas, (v) => v.fechaVisita),
-    [misVisitas],
+    () => agruparPorDia<VisitaSeguimiento>(visitas, (v) => v.fechaVisita),
+    [visitas],
   )
 
   const celdas = useMemo(() => celdasDelMes(mesActual), [mesActual])
@@ -226,7 +231,7 @@ export function Calendario() {
 
       {visitaSeleccionada && (
         <DetalleVisitaDialog
-          visita={misVisitas.find((v) => v.id === visitaSeleccionada.id) ?? visitaSeleccionada}
+          visita={visitas.find((v) => v.id === visitaSeleccionada.id) ?? visitaSeleccionada}
           nombreObra={obraPorId.get(visitaSeleccionada.obraId)?.nombre ?? `Obra ${visitaSeleccionada.obraId}`}
           direccionObra={obraPorId.get(visitaSeleccionada.obraId)?.direccion}
           tiposAlerta={tiposAlerta}
