@@ -35,6 +35,7 @@ import type { PuntoTrazo, RecorridoSeguimiento } from '../../types/seguimiento.t
 ;(maplibregl as any).supported = () => true
 
 const COLOR_COMUNA = '#f97316'
+const COLOR_DESATENDIDA = '#9ca3af'
 
 // Identidad visual del recorrido 'planeado': índigo, distinto del cian de los
 // grabados y del rojo del trazo GPS en vivo. Misma línea, pero punteada. Se
@@ -62,7 +63,7 @@ const LEYENDA: { color: string; label: string; border?: boolean }[] = [
   { color: '#3b82f6', label: 'Entregada' },
   { color: '#22c55e', label: 'Visitada' },
   { color: '#ef4444', label: 'Sin visitar' },
-  { color: '#fff', label: 'Desatendida (>30 días)', border: true },
+  { color: '#fff', label: 'Sin visitar hace más de 30 días', border: true },
   { color: COLOR_PROXIMA_ENTREGA, label: `Próxima a entregar (≤${DIAS_PROXIMA_ENTREGA} días)` },
 ]
 
@@ -138,6 +139,8 @@ export function MapaSeguimiento() {
   const [comunasGeoJSON, setComunasGeoJSON] = useState<any>(null)
   const [fechaDesde, setFechaDesde] = useState('')
   const [fechaHasta, setFechaHasta] = useState('')
+  const [entregaDesde, setEntregaDesde] = useState('')
+  const [entregaHasta, setEntregaHasta] = useState('')
   const [comunaFiltro, setComunaFiltro] = useState<string | null>(null)
   const [proyectoFiltro, setProyectoFiltro] = useState<string | null>(null)
   const [obraSeleccionada, setObraSeleccionada] = useState<ObraVisor | null>(null)
@@ -201,10 +204,18 @@ export function MapaSeguimiento() {
         return true
       })
     }
+    if (entregaDesde || entregaHasta) {
+      resultado = resultado.filter((o) => {
+        if (!o.fechaEstimadaEntrega) return false
+        if (entregaDesde && o.fechaEstimadaEntrega < entregaDesde) return false
+        if (entregaHasta && o.fechaEstimadaEntrega > entregaHasta) return false
+        return true
+      })
+    }
     if (comunaFiltro) resultado = resultado.filter((o) => o.comuna === comunaFiltro)
     if (proyectoFiltro) resultado = resultado.filter((o) => o.proyectoEstrategico === proyectoFiltro)
     return resultado
-  }, [obras, fechaDesde, fechaHasta, comunaFiltro, proyectoFiltro, ultimaVisitaPorObra])
+  }, [obras, fechaDesde, fechaHasta, entregaDesde, entregaHasta, comunaFiltro, proyectoFiltro, ultimaVisitaPorObra])
 
   const cantidadComunas = useMemo(
     () => new Set(obrasFiltradas.map((o) => o.comuna)).size,
@@ -284,14 +295,34 @@ export function MapaSeguimiento() {
           InputLabelProps={{ shrink: true }}
           sx={{ minWidth: 170 }}
         />
+        <TextField
+          size="small"
+          type="date"
+          label="Entrega desde"
+          value={entregaDesde}
+          onChange={(e) => setEntregaDesde(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          sx={{ minWidth: 170 }}
+        />
+        <TextField
+          size="small"
+          type="date"
+          label="Entrega hasta"
+          value={entregaHasta}
+          onChange={(e) => setEntregaHasta(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          sx={{ minWidth: 170 }}
+        />
 
-        {(fechaDesde || fechaHasta || comunaFiltro || proyectoFiltro) && (
+        {(fechaDesde || fechaHasta || entregaDesde || entregaHasta || comunaFiltro || proyectoFiltro) && (
           <Button
             size="small"
             variant="outlined"
             onClick={() => {
               setFechaDesde('')
               setFechaHasta('')
+              setEntregaDesde('')
+              setEntregaHasta('')
               setComunaFiltro(null)
               setProyectoFiltro(null)
             }}
@@ -633,7 +664,7 @@ export function MapaSeguimiento() {
                   'circle-radius': 5,
                   'circle-color': ['get', 'color'],
                   'circle-stroke-width': ['case', ['get', 'desatendida'], 2, 1],
-                  'circle-stroke-color': ['case', ['get', 'desatendida'], '#ef4444', '#fff'],
+                  'circle-stroke-color': ['case', ['get', 'desatendida'], COLOR_DESATENDIDA, '#fff'],
                 }}
               />
             </Source>
@@ -647,7 +678,7 @@ export function MapaSeguimiento() {
                     borderRadius: '50%',
                     background: infoObra(obraSeleccionada, ultimaVisitaPorObra).color,
                     border: estaDesatendida(ultimaVisitaPorObra.get(obraSeleccionada.obraId))
-                      ? '3px solid #ef4444'
+                      ? `3px solid ${COLOR_DESATENDIDA}`
                       : '2px solid #fff',
                     boxShadow: '0 0 0 3px rgba(37,99,235,0.5)',
                   }}
@@ -837,7 +868,7 @@ export function MapaSeguimiento() {
                     height: 10,
                     borderRadius: '50%',
                     bgcolor: item.color,
-                    border: item.border ? '2px solid #ef4444' : 'none',
+                    border: item.border ? `2px solid ${COLOR_DESATENDIDA}` : 'none',
                     flexShrink: 0,
                   }}
                 />
