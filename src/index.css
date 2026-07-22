@@ -5,3 +5,22 @@
 body {
   margin: 0;
 }
+
+/* Exportar a PDF = imprimir solo la ficha marcada con este id (ver
+   DetalleVisitaDialog.tsx), no el resto de la app. Truco estándar: ocultar
+   todo el body y volver a mostrar solo el contenedor de la ficha. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #ficha-visita-imprimible,
+  #ficha-visita-imprimible * {
+    visibility: visible;
+  }
+  #ficha-visita-imprimible {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+}

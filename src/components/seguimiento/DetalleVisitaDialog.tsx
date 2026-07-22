@@ -18,6 +18,7 @@ import {
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import HistoryIcon from '@mui/icons-material/History'
 import AddLocationAltIcon from '@mui/icons-material/AddLocationAlt'
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import { useNavigate } from 'react-router-dom'
 import { CarruselFotos } from './CarruselFotos'
 import { Seccion } from '../layout/Seccion'
@@ -105,12 +106,26 @@ export function DetalleVisitaDialog({
         </Box>
       </DialogTitle>
 
-      <DialogContent sx={{ bgcolor: '#f7f9fc' }}>
+      <DialogContent id="ficha-visita-imprimible" sx={{ bgcolor: '#f7f9fc' }}>
         {!soloLectura && visita.estado === 'revisada' && (
           <Alert severity="success" sx={{ mb: 2.5 }}>
             Visita revisada: todavía se puede editar o corregir.
           </Alert>
         )}
+
+        {/* La ficha impresa no incluye el DialogTitle (queda afuera del id
+            imprimible), así que este encabezado lo reemplaza — solo visible
+            al imprimir. */}
+        <Box sx={{ display: 'none', '@media print': { display: 'block', mb: 2 } }}>
+          <Typography variant="h6" sx={{ lineHeight: 1.3 }}>
+            {nombreObra}
+          </Typography>
+          {direccionObra && <Typography variant="body2">{direccionObra}</Typography>}
+          <Typography variant="body2">
+            Visita del {fechaVisita}
+            {nombreAutor && ` · ${nombreAutor}`} · {ETIQUETA_ESTADO[visita.estado]}
+          </Typography>
+        </Box>
 
         <Seccion titulo="Datos de la visita">
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
@@ -198,7 +213,7 @@ export function DetalleVisitaDialog({
           </Seccion>
         )}
 
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', '@media print': { display: 'none' } }}>
           <Button
             size="small"
             startIcon={<HistoryIcon />}
@@ -235,6 +250,9 @@ export function DetalleVisitaDialog({
           <Box />
         )}
         <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button startIcon={<PictureAsPdfIcon />} onClick={() => window.print()}>
+            Exportar PDF
+          </Button>
           <Button onClick={onCerrar}>Cerrar</Button>
           {!soloLectura && !editando && (
             <Button variant="outlined" onClick={() => setEditando(true)}>
