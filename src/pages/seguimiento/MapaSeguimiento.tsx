@@ -1,22 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import MapGL, { GeolocateControl, Layer, Marker, NavigationControl, Popup, Source } from 'react-map-gl'
 import maplibregl from 'maplibre-gl'
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  IconButton,
-  List,
-  ListItemButton,
-  ListItemText,
-  Snackbar,
-  TextField,
-  Typography,
-} from '@mui/material'
-import SearchIcon from '@mui/icons-material/Search'
-import CloseIcon from '@mui/icons-material/Close'
-import InputAdornment from '@mui/material/InputAdornment'
+import { Alert, Box, Button, Snackbar } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import * as obrasVisorApi from '../../api/obrasVisorApi'
@@ -27,39 +12,22 @@ import { useUsuarioActual } from '../../features/auth/useUsuarioActual'
 import { PanelRecorrido } from '../../components/seguimiento/PanelRecorrido'
 import { PanelPlaneacionRuta } from '../../components/seguimiento/PanelPlaneacionRuta'
 import { DetalleRecorridoDialog } from '../../components/seguimiento/DetalleRecorridoDialog'
+import { BarraFiltrosMapa } from '../../components/seguimiento/mapa/BarraFiltrosMapa'
+import { PanelLateralMapa } from '../../components/seguimiento/mapa/PanelLateralMapa'
+import { LeyendaMapa } from '../../components/seguimiento/mapa/LeyendaMapa'
+import { PopupObra } from '../../components/seguimiento/mapa/PopupObra'
+import { COLOR_COMUNA, COLOR_DESATENDIDA, infoObra } from '../../components/seguimiento/mapa/mapaEstado.util'
 import { COLOR_ACENTO, COLOR_PROXIMA_ENTREGA, COLOR_RUTA_PLANEADA } from '../../theme/theme'
-import { DIAS_PROXIMA_ENTREGA, estaDesatendida, estaProximaAEntregar } from '../../utils/seguimiento/fechas.util'
+import { estaDesatendida, estaProximaAEntregar } from '../../utils/seguimiento/fechas.util'
 import type { ObraVisor } from '../../types/obra.types'
 import type { PuntoTrazo, RecorridoSeguimiento } from '../../types/seguimiento.types'
 
 ;(maplibregl as any).supported = () => true
 
-const COLOR_COMUNA = '#f97316'
-const COLOR_DESATENDIDA = '#9ca3af'
-
 const ESTILOS_MAPA = {
   calles: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
   satelite: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
 } as const
-
-// El color del punto marca si ALGUIEN ya subió una visita para esa obra
-// (ultimaVisitaPorObra la trae del backend, así que "visitada" es "tiene
-// entrada en ese mapa"), no el % de avance oficial — eso sigue disponible
-// por etapa en el popup, pero dejó de pintar el mapa para bajar la cantidad
-// de colores simultáneos.
-function infoObra(obra: ObraVisor, ultimaVisitaPorObra: Map<number, string>) {
-  if (obra.entregada) return { color: '#3b82f6', etiqueta: 'Entregada' }
-  if (ultimaVisitaPorObra.has(obra.obraId)) return { color: '#22c55e', etiqueta: 'Visitada' }
-  return { color: '#ef4444', etiqueta: 'Sin visitar' }
-}
-
-const LEYENDA: { color: string; label: string; border?: boolean }[] = [
-  { color: '#3b82f6', label: 'Entregada' },
-  { color: '#22c55e', label: 'Visitada' },
-  { color: '#ef4444', label: 'Sin visitar' },
-  { color: '#fff', label: 'Sin visitar hace más de 30 días', border: true },
-  { color: COLOR_PROXIMA_ENTREGA, label: `Próxima a entregar (≤${DIAS_PROXIMA_ENTREGA} días)` },
-]
 
 // FeatureCollection de puntos: uno por obra, con su color de estado y si
 // está desatendida ya resueltos como propiedades — así el layer de
@@ -244,6 +212,15 @@ export function MapaSeguimiento() {
     setViewport((v) => ({ ...v, longitude: obra.longitud!, latitude: obra.latitud!, zoom: Math.max(v.zoom, 14) }))
   }
 
+  function limpiarFiltros() {
+    setFechaDesde('')
+    setFechaHasta('')
+    setEntregaDesde('')
+    setEntregaHasta('')
+    setComunaFiltro(null)
+    setProyectoFiltro(null)
+  }
+
   // Al elegir una comuna o proyecto en el filtro, encuadrar el mapa en sus obras.
   useEffect(() => {
     if (!comunaFiltro && !proyectoFiltro) return
@@ -254,221 +231,37 @@ export function MapaSeguimiento() {
 
   return (
     <Box sx={{ height: 'calc(100vh - 48px)', display: 'flex', flexDirection: 'column' }}>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1.5,
-          px: 2,
-          py: 1,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          bgcolor: 'background.paper',
-          flexWrap: 'wrap',
-        }}
-      >
-        <Typography variant="h6" sx={{ fontWeight: 600, mr: 1 }}>
-          Mapa de obras
-        </Typography>
-
-        <TextField
-          size="small"
-          type="date"
-          label="Última visita desde"
-          value={fechaDesde}
-          onChange={(e) => setFechaDesde(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          sx={{ minWidth: 170 }}
-        />
-        <TextField
-          size="small"
-          type="date"
-          label="Última visita hasta"
-          value={fechaHasta}
-          onChange={(e) => setFechaHasta(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          sx={{ minWidth: 170 }}
-        />
-        <TextField
-          size="small"
-          type="date"
-          label="Entrega desde"
-          value={entregaDesde}
-          onChange={(e) => setEntregaDesde(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          sx={{ minWidth: 170 }}
-        />
-        <TextField
-          size="small"
-          type="date"
-          label="Entrega hasta"
-          value={entregaHasta}
-          onChange={(e) => setEntregaHasta(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          sx={{ minWidth: 170 }}
-        />
-
-        {(fechaDesde || fechaHasta || entregaDesde || entregaHasta || comunaFiltro || proyectoFiltro) && (
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={() => {
-              setFechaDesde('')
-              setFechaHasta('')
-              setEntregaDesde('')
-              setEntregaHasta('')
-              setComunaFiltro(null)
-              setProyectoFiltro(null)
-            }}
-          >
-            Limpiar filtros
-          </Button>
-        )}
-
-        <Box sx={{ flex: 1 }} />
-
-        <Chip
-          label="Calles"
-          size="small"
-          variant={estiloMapa === 'calles' ? 'filled' : 'outlined'}
-          color={estiloMapa === 'calles' ? 'primary' : 'default'}
-          onClick={() => setEstiloMapa('calles')}
-        />
-        <Chip
-          label="Satélite"
-          size="small"
-          variant={estiloMapa === 'satelite' ? 'filled' : 'outlined'}
-          color={estiloMapa === 'satelite' ? 'primary' : 'default'}
-          onClick={() => setEstiloMapa('satelite')}
-        />
-      </Box>
+      <BarraFiltrosMapa
+        fechaDesde={fechaDesde}
+        fechaHasta={fechaHasta}
+        entregaDesde={entregaDesde}
+        entregaHasta={entregaHasta}
+        comunaFiltro={comunaFiltro}
+        proyectoFiltro={proyectoFiltro}
+        estiloMapa={estiloMapa}
+        onCambiarFechaDesde={setFechaDesde}
+        onCambiarFechaHasta={setFechaHasta}
+        onCambiarEntregaDesde={setEntregaDesde}
+        onCambiarEntregaHasta={setEntregaHasta}
+        onLimpiarFiltros={limpiarFiltros}
+        onCambiarEstiloMapa={setEstiloMapa}
+      />
 
       <Box sx={{ flex: 1, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: 0 }}>
-        <Box
-          sx={{
-            width: { xs: '100%', md: 320 },
-            flexShrink: 0,
-            borderRight: { md: '1px solid' },
-            borderBottom: { xs: '1px solid', md: 'none' },
-            borderColor: 'divider',
-            display: 'flex',
-            flexDirection: 'column',
-            maxHeight: { xs: 260, md: 'none' },
-          }}
-        >
-          <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <TextField
-              size="small"
-              fullWidth
-              placeholder="Buscar obra por nombre…"
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-                endAdornment: busqueda && (
-                  <InputAdornment position="end">
-                    <IconButton size="small" onClick={() => setBusqueda('')}>
-                      <CloseIcon fontSize="small" />
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
-
-            <select
-              value={comunaFiltro ?? ''}
-              onChange={(e) => setComunaFiltro(e.target.value || null)}
-              style={{
-                padding: '6.5px 8px',
-                borderRadius: 4,
-                border: '1px solid #c4c4c4',
-                fontSize: 14,
-                fontFamily: 'inherit',
-                width: '100%',
-              }}
-            >
-              <option value="">Todas las comunas</option>
-              {nombresComunas.map((nombre) => (
-                <option key={nombre} value={nombre}>
-                  {nombre}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={proyectoFiltro ?? ''}
-              onChange={(e) => setProyectoFiltro(e.target.value || null)}
-              style={{
-                padding: '6.5px 8px',
-                borderRadius: 4,
-                border: '1px solid #c4c4c4',
-                fontSize: 14,
-                fontFamily: 'inherit',
-                width: '100%',
-              }}
-            >
-              <option value="">Todos los proyectos</option>
-              {nombresProyectos.map((nombre) => (
-                <option key={nombre} value={nombre}>
-                  {nombre}
-                </option>
-              ))}
-            </select>
-          </Box>
-
-          <Box sx={{ overflowY: 'auto', flex: 1 }}>
-            {busqueda && (
-              <List dense disablePadding>
-                {resultadosBusqueda.length === 0 && (
-                  <Typography variant="body2" color="text.secondary" sx={{ px: 2, py: 1 }}>
-                    Sin resultados para "{busqueda}".
-                  </Typography>
-                )}
-                {resultadosBusqueda.map((obra) => (
-                  <ListItemButton key={obra.obraId} onClick={() => seleccionarObra(obra)}>
-                    <ListItemText primary={obra.nombre} secondary={obra.comuna ?? 'Sin comuna registrada'} />
-                  </ListItemButton>
-                ))}
-              </List>
-            )}
-
-            {!busqueda && (comunaFiltro || proyectoFiltro) && (
-              <>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1 }}>
-                  <Typography variant="subtitle2">
-                    {[comunaFiltro, proyectoFiltro].filter(Boolean).join(' · ')} · {obrasFiltradas.length} obras
-                  </Typography>
-                  <IconButton
-                    size="small"
-                    onClick={() => {
-                      setComunaFiltro(null)
-                      setProyectoFiltro(null)
-                    }}
-                  >
-                    <CloseIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-                <List dense disablePadding>
-                  {obrasFiltradas.map((obra) => (
-                    <ListItemButton key={obra.obraId} onClick={() => seleccionarObra(obra)}>
-                      <ListItemText primary={obra.nombre} secondary={infoObra(obra, ultimaVisitaPorObra).etiqueta} />
-                    </ListItemButton>
-                  ))}
-                </List>
-              </>
-            )}
-
-            {!busqueda && !comunaFiltro && !proyectoFiltro && (
-              <Typography variant="body2" color="text.secondary" sx={{ px: 2, py: 2 }}>
-                Buscá una obra por nombre, o elegí una comuna o proyecto para ver sus obras.
-              </Typography>
-            )}
-          </Box>
-        </Box>
+        <PanelLateralMapa
+          busqueda={busqueda}
+          onCambiarBusqueda={setBusqueda}
+          comunaFiltro={comunaFiltro}
+          onCambiarComunaFiltro={setComunaFiltro}
+          proyectoFiltro={proyectoFiltro}
+          onCambiarProyectoFiltro={setProyectoFiltro}
+          nombresComunas={nombresComunas}
+          nombresProyectos={nombresProyectos}
+          resultadosBusqueda={resultadosBusqueda}
+          obrasFiltradas={obrasFiltradas}
+          ultimaVisitaPorObra={ultimaVisitaPorObra}
+          onSeleccionarObra={seleccionarObra}
+        />
 
         <Box sx={{ flex: 1, position: 'relative', minHeight: 240 }}>
           <MapGL
@@ -688,90 +481,13 @@ export function MapaSeguimiento() {
                 closeOnClick={false}
                 style={{ padding: 0 }}
               >
-                <Box sx={{ p: 1.5, minWidth: 220, maxWidth: 280 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600, lineHeight: 1.3, mb: 0.5 }}>
-                    {obraSeleccionada.nombre}
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                    <Box
-                      sx={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: '50%',
-                        background: infoObra(obraSeleccionada, ultimaVisitaPorObra).color,
-                        flexShrink: 0,
-                      }}
-                    />
-                    <Typography variant="caption" color="text.secondary">
-                      {infoObra(obraSeleccionada, ultimaVisitaPorObra).etiqueta}
-                    </Typography>
-                  </Box>
-                  {obraSeleccionada.dependencia && (
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                      {obraSeleccionada.dependencia}
-                    </Typography>
-                  )}
-                  {obraSeleccionada.direccion && (
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                      {obraSeleccionada.direccion}
-                    </Typography>
-                  )}
-                  {obraSeleccionada.fechaEstimadaEntrega && (
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                      Entrega estimada: {obraSeleccionada.fechaEstimadaEntrega}
-                    </Typography>
-                  )}
-
-                  {obraSeleccionada.etapas.some((e) => !e.noAplica) && (
-                    <Box
-                      sx={{
-                        mt: 1,
-                        pt: 1,
-                        borderTop: '1px solid',
-                        borderColor: 'divider',
-                        maxHeight: 150,
-                        overflowY: 'auto',
-                      }}
-                    >
-                      {obraSeleccionada.etapas
-                        .filter((etapa) => !etapa.noAplica)
-                        .map((etapa) => (
-                          <Box
-                            key={etapa.nombre}
-                            sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, py: 0.2 }}
-                          >
-                            <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
-                              {etapa.nombre}
-                            </Typography>
-                            <Typography variant="caption" sx={{ fontWeight: 600, flexShrink: 0 }}>
-                              {etapa.porcentaje}%
-                            </Typography>
-                          </Box>
-                        ))}
-                    </Box>
-                  )}
-
-                  <Box sx={{ display: 'flex', gap: 0.5, mt: 1 }}>
-                    {usuario?.rol !== 'visualizador' && (
-                      <Button
-                        size="small"
-                        variant="contained"
-                        sx={{ fontSize: 11, py: 0.3 }}
-                        onClick={() => navigate(`/seguimiento/registrar/${obraSeleccionada.obraId}`)}
-                      >
-                        Visitar
-                      </Button>
-                    )}
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      sx={{ fontSize: 11, py: 0.3 }}
-                      onClick={() => navigate(`/seguimiento/historial/${obraSeleccionada.obraId}`)}
-                    >
-                      Historial
-                    </Button>
-                  </Box>
-                </Box>
+                <PopupObra
+                  obra={obraSeleccionada}
+                  ultimaVisitaPorObra={ultimaVisitaPorObra}
+                  puedeVisitar={usuario?.rol !== 'visualizador'}
+                  onVisitar={() => navigate(`/seguimiento/registrar/${obraSeleccionada.obraId}`)}
+                  onVerHistorial={() => navigate(`/seguimiento/historial/${obraSeleccionada.obraId}`)}
+                />
               </Popup>
             )}
           </MapGL>
@@ -837,41 +553,11 @@ export function MapaSeguimiento() {
             </Alert>
           </Snackbar>
 
-          <Box
-            sx={{
-              position: 'absolute',
-              bottom: 20,
-              left: 10,
-              bgcolor: 'rgba(255,255,255,0.95)',
-              borderRadius: 1.5,
-              px: 1.5,
-              py: 1,
-              boxShadow: '0 2px 12px rgba(0,0,0,0.12)',
-              zIndex: 1,
-            }}
-          >
-            <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
-              {obrasFiltradas.length} obras · {cantidadComunas} comunas
-              {obrasProximasAEntregar.length > 0 && ` · ${obrasProximasAEntregar.length} por entregar`}
-            </Typography>
-            {LEYENDA.map((item) => (
-              <Box key={item.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.15 }}>
-                <Box
-                  sx={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: '50%',
-                    bgcolor: item.color,
-                    border: item.border ? `2px solid ${COLOR_DESATENDIDA}` : 'none',
-                    flexShrink: 0,
-                  }}
-                />
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: 11 }}>
-                  {item.label}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
+          <LeyendaMapa
+            cantidadObras={obrasFiltradas.length}
+            cantidadComunas={cantidadComunas}
+            cantidadProximasAEntregar={obrasProximasAEntregar.length}
+          />
         </Box>
       </Box>
 
