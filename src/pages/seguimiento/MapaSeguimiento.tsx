@@ -19,6 +19,8 @@ import { PopupObra } from '../../components/seguimiento/mapa/PopupObra'
 import { COLOR_COMUNA, COLOR_DESATENDIDA, infoObra } from '../../components/seguimiento/mapa/mapaEstado.util'
 import { COLOR_ACENTO, COLOR_PROXIMA_ENTREGA, COLOR_RUTA_PLANEADA } from '../../theme/theme'
 import { estaDesatendida, estaProximaAEntregar } from '../../utils/seguimiento/fechas.util'
+import { FILTROS_MAPA_VACIOS, filtrarObras, opcionesDeDimension } from '../../utils/seguimiento/filtrar-obras.util'
+import type { FiltrosMapaObra } from '../../utils/seguimiento/filtrar-obras.util'
 import type { ObraVisor } from '../../types/obra.types'
 import type { PuntoTrazo, RecorridoSeguimiento } from '../../types/seguimiento.types'
 
@@ -99,12 +101,7 @@ export function MapaSeguimiento() {
   const [obras, setObras] = useState<ObraVisor[]>([])
   const [ultimaVisitaPorObra, setUltimaVisitaPorObra] = useState<Map<number, string>>(new Map())
   const [comunasGeoJSON, setComunasGeoJSON] = useState<any>(null)
-  const [fechaDesde, setFechaDesde] = useState('')
-  const [fechaHasta, setFechaHasta] = useState('')
-  const [entregaDesde, setEntregaDesde] = useState('')
-  const [entregaHasta, setEntregaHasta] = useState('')
-  const [comunaFiltro, setComunaFiltro] = useState<string | null>(null)
-  const [proyectoFiltro, setProyectoFiltro] = useState<string | null>(null)
+  const [filtros, setFiltros] = useState<FiltrosMapaObra>(FILTROS_MAPA_VACIOS)
   const [obraSeleccionada, setObraSeleccionada] = useState<ObraVisor | null>(null)
   const [estiloMapa, setEstiloMapa] = useState<'calles' | 'satelite'>('calles')
   const [viewport, setViewport] = useState({ longitude: -75.58, latitude: 6.24, zoom: 10 })
@@ -142,42 +139,28 @@ export function MapaSeguimiento() {
       .catch(() => {})
   }, [])
 
+  // Las opciones de cada select se acotan por las OTRAS dimensiones activas
+  // (ver filtrar-obras.util.ts) — elegir una comuna ya recalcula qué
+  // proyectos y dependencias existen ahí, y viceversa.
   const nombresComunas = useMemo(
-    () =>
-      (comunasGeoJSON?.features ?? [])
-        .map((f: any) => f.properties.nombre as string)
-        .sort(),
-    [comunasGeoJSON],
+    () => opcionesDeDimension(obras, ultimaVisitaPorObra, filtros, 'comuna'),
+    [obras, ultimaVisitaPorObra, filtros],
   )
 
   const nombresProyectos = useMemo(
-    () => [...new Set(obras.map((o) => o.proyectoEstrategico).filter((p): p is string => !!p))].sort(),
-    [obras],
+    () => opcionesDeDimension(obras, ultimaVisitaPorObra, filtros, 'proyecto'),
+    [obras, ultimaVisitaPorObra, filtros],
   )
 
-  const obrasFiltradas = useMemo(() => {
-    let resultado = obras.filter((o) => o.latitud !== null && o.longitud !== null)
-    if (fechaDesde || fechaHasta) {
-      resultado = resultado.filter((o) => {
-        const ultima = ultimaVisitaPorObra.get(o.obraId)
-        if (!ultima) return false
-        if (fechaDesde && ultima < fechaDesde) return false
-        if (fechaHasta && ultima > fechaHasta) return false
-        return true
-      })
-    }
-    if (entregaDesde || entregaHasta) {
-      resultado = resultado.filter((o) => {
-        if (!o.fechaEstimadaEntrega) return false
-        if (entregaDesde && o.fechaEstimadaEntrega < entregaDesde) return false
-        if (entregaHasta && o.fechaEstimadaEntrega > entregaHasta) return false
-        return true
-      })
-    }
-    if (comunaFiltro) resultado = resultado.filter((o) => o.comuna === comunaFiltro)
-    if (proyectoFiltro) resultado = resultado.filter((o) => o.proyectoEstrategico === proyectoFiltro)
-    return resultado
-  }, [obras, fechaDesde, fechaHasta, entregaDesde, entregaHasta, comunaFiltro, proyectoFiltro, ultimaVisitaPorObra])
+  const nombresDependencias = useMemo(
+    () => opcionesDeDimension(obras, ultimaVisitaPorObra, filtros, 'dependencia'),
+    [obras, ultimaVisitaPorObra, filtros],
+  )
+
+  const obrasFiltradas = useMemo(
+    () => filtrarObras(obras, ultimaVisitaPorObra, filtros),
+    [obras, ultimaVisitaPorObra, filtros],
+  )
 
   const cantidadComunas = useMemo(
     () => new Set(obrasFiltradas.map((o) => o.comuna)).size,
@@ -212,37 +195,38 @@ export function MapaSeguimiento() {
     setViewport((v) => ({ ...v, longitude: obra.longitud!, latitude: obra.latitud!, zoom: Math.max(v.zoom, 14) }))
   }
 
-  function limpiarFiltros() {
-    setFechaDesde('')
-    setFechaHasta('')
-    setEntregaDesde('')
-    setEntregaHasta('')
-    setComunaFiltro(null)
-    setProyectoFiltro(null)
+  function actualizarFiltro<K extends keyof FiltrosMapaObra>(campo: K, valor: FiltrosMapaObra[K]) {
+    setFiltros((f) => ({ ...f, [campo]: valor }))
   }
 
-  // Al elegir una comuna o proyecto en el filtro, encuadrar el mapa en sus obras.
+  function limpiarFiltros() {
+    setFiltros(FILTROS_MAPA_VACIOS)
+  }
+
+  // Al elegir una comuna, proyecto o dependencia en el filtro, encuadrar el
+  // mapa en sus obras.
   useEffect(() => {
-    if (!comunaFiltro && !proyectoFiltro) return
+    if (!filtros.comunaFiltro && !filtros.proyectoFiltro && !filtros.dependenciaFiltro) return
     const bounds = calcularBounds(obrasFiltradas)
     if (bounds) mapRef.current?.fitBounds(bounds, { padding: 60, maxZoom: 15, duration: 800 })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [comunaFiltro, proyectoFiltro])
+  }, [filtros.comunaFiltro, filtros.proyectoFiltro, filtros.dependenciaFiltro])
 
   return (
     <Box sx={{ height: 'calc(100vh - 48px)', display: 'flex', flexDirection: 'column' }}>
       <BarraFiltrosMapa
-        fechaDesde={fechaDesde}
-        fechaHasta={fechaHasta}
-        entregaDesde={entregaDesde}
-        entregaHasta={entregaHasta}
-        comunaFiltro={comunaFiltro}
-        proyectoFiltro={proyectoFiltro}
+        fechaDesde={filtros.fechaDesde}
+        fechaHasta={filtros.fechaHasta}
+        entregaDesde={filtros.entregaDesde}
+        entregaHasta={filtros.entregaHasta}
+        comunaFiltro={filtros.comunaFiltro}
+        proyectoFiltro={filtros.proyectoFiltro}
+        dependenciaFiltro={filtros.dependenciaFiltro}
         estiloMapa={estiloMapa}
-        onCambiarFechaDesde={setFechaDesde}
-        onCambiarFechaHasta={setFechaHasta}
-        onCambiarEntregaDesde={setEntregaDesde}
-        onCambiarEntregaHasta={setEntregaHasta}
+        onCambiarFechaDesde={(v) => actualizarFiltro('fechaDesde', v)}
+        onCambiarFechaHasta={(v) => actualizarFiltro('fechaHasta', v)}
+        onCambiarEntregaDesde={(v) => actualizarFiltro('entregaDesde', v)}
+        onCambiarEntregaHasta={(v) => actualizarFiltro('entregaHasta', v)}
         onLimpiarFiltros={limpiarFiltros}
         onCambiarEstiloMapa={setEstiloMapa}
       />
@@ -251,12 +235,15 @@ export function MapaSeguimiento() {
         <PanelLateralMapa
           busqueda={busqueda}
           onCambiarBusqueda={setBusqueda}
-          comunaFiltro={comunaFiltro}
-          onCambiarComunaFiltro={setComunaFiltro}
-          proyectoFiltro={proyectoFiltro}
-          onCambiarProyectoFiltro={setProyectoFiltro}
+          comunaFiltro={filtros.comunaFiltro}
+          onCambiarComunaFiltro={(v) => actualizarFiltro('comunaFiltro', v)}
+          proyectoFiltro={filtros.proyectoFiltro}
+          onCambiarProyectoFiltro={(v) => actualizarFiltro('proyectoFiltro', v)}
+          dependenciaFiltro={filtros.dependenciaFiltro}
+          onCambiarDependenciaFiltro={(v) => actualizarFiltro('dependenciaFiltro', v)}
           nombresComunas={nombresComunas}
           nombresProyectos={nombresProyectos}
+          nombresDependencias={nombresDependencias}
           resultadosBusqueda={resultadosBusqueda}
           obrasFiltradas={obrasFiltradas}
           ultimaVisitaPorObra={ultimaVisitaPorObra}
@@ -306,12 +293,12 @@ export function MapaSeguimiento() {
                   type="line"
                   paint={{ 'line-color': COLOR_COMUNA, 'line-width': 1.5, 'line-opacity': 0.7 }}
                 />
-                {comunaFiltro && (
+                {filtros.comunaFiltro && (
                   <Layer
                     id="comunas-resaltado"
                     source="comunas"
                     type="fill"
-                    filter={['==', ['get', 'nombre'], comunaFiltro]}
+                    filter={['==', ['get', 'nombre'], filtros.comunaFiltro]}
                     paint={{ 'fill-color': COLOR_COMUNA, 'fill-opacity': 0.15 }}
                   />
                 )}

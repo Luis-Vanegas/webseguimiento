@@ -1,5 +1,6 @@
 import { Box, Button, Typography } from '@mui/material'
 import { infoObra } from './mapaEstado.util'
+import { etiquetaEtapa } from '../../../utils/seguimiento/etapas.util'
 import type { ObraVisor } from '../../../types/obra.types'
 
 interface PopupObraProps {
@@ -64,7 +65,7 @@ export function PopupObra({ obra, ultimaVisitaPorObra, puedeVisitar, onVisitar, 
             .map((etapa) => (
               <Box key={etapa.nombre} sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, py: 0.2 }}>
                 <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
-                  {etapa.nombre}
+                  {etiquetaEtapa(etapa.nombre)}
                 </Typography>
                 <Typography variant="caption" sx={{ fontWeight: 600, flexShrink: 0 }}>
                   {etapa.porcentaje}%

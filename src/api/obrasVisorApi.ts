@@ -1,21 +1,6 @@
 import { supabase } from '../lib/supabaseClient'
+import { ETAPAS_OBRA } from '../utils/seguimiento/etapas.util'
 import type { EtapaObra, ObraVisor } from '../types/obra.types'
-
-// Las 11 fases del ciclo de vida de la obra, tal como las nombra la API
-// (columnas "PORCENTAJE <fase>" / "NO APLICA <fase>").
-const ETAPAS_OBRA = [
-  'Planeación (MGA)',
-  'Estudios preliminares',
-  'Viabilización (DAP)',
-  'Licencias (Curaduría)',
-  'Gestión predial',
-  'Contratación',
-  'Inicio',
-  'Diseños',
-  'Ejecución obra',
-  'Dotación y puesta en operación',
-  'Liquidación',
-] as const
 
 // Lectura de obras oficiales del Visor Estratégico. NUNCA se llama a la API
 // real directo desde el frontend: la API key va por header HTTP y con Vite

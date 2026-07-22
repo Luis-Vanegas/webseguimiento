@@ -8,6 +8,7 @@ interface BarraFiltrosMapaProps {
   entregaHasta: string
   comunaFiltro: string | null
   proyectoFiltro: string | null
+  dependenciaFiltro: string | null
   estiloMapa: 'calles' | 'satelite'
   onCambiarFechaDesde: (valor: string) => void
   onCambiarFechaHasta: (valor: string) => void
@@ -24,6 +25,7 @@ export function BarraFiltrosMapa({
   entregaHasta,
   comunaFiltro,
   proyectoFiltro,
+  dependenciaFiltro,
   estiloMapa,
   onCambiarFechaDesde,
   onCambiarFechaHasta,
@@ -92,7 +94,7 @@ export function BarraFiltrosMapa({
         sx={anchoCampoFecha}
       />
 
-      {(fechaDesde || fechaHasta || entregaDesde || entregaHasta || comunaFiltro || proyectoFiltro) && (
+      {(fechaDesde || fechaHasta || entregaDesde || entregaHasta || comunaFiltro || proyectoFiltro || dependenciaFiltro) && (
         <Button size="small" variant="outlined" onClick={onLimpiarFiltros}>
           Limpiar filtros
         </Button>
