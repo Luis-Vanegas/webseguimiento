@@ -48,3 +48,16 @@ export function estaDesatendida(ultimaVisita: string | undefined): boolean {
   if (!ultimaVisita) return true
   return diasHasta(ultimaVisita) < -DIAS_DESATENDIDA
 }
+
+const MESES = [
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+]
+
+// "2026-07-17" -> "17 de julio" — para vistas tipo línea de tiempo, donde
+// la fecha ISO cruda es más difícil de leer de un vistazo que el mes en
+// palabras.
+export function formatearFechaCorta(fechaTexto: string): string {
+  const [, mes, dia] = claveDia(fechaTexto).split('-')
+  return `${Number(dia)} de ${MESES[Number(mes) - 1]}`
+}

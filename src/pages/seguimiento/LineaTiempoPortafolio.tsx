@@ -13,6 +13,7 @@ import { BarraAvance } from '../../components/seguimiento/BarraAvance'
 import { ContadorAnimado } from '../../components/seguimiento/ContadorAnimado'
 import { agruparPortafolio } from '../../utils/seguimiento/portafolio.util'
 import { severidadMaxima } from '../../utils/seguimiento/alertas.util'
+import { formatearFechaCorta } from '../../utils/seguimiento/fechas.util'
 import { COLOR_ESTADO, COLOR_SEVERIDAD, COLOR_SIDEBAR } from '../../theme/theme'
 import type { ObraVisor } from '../../types/obra.types'
 import type { VisitaSeguimiento } from '../../types/seguimiento.types'
@@ -50,10 +51,10 @@ export function LineaTiempoPortafolio() {
 
   const etapas = useMemo(
     () => [
-      { etiqueta: 'En planeación', cantidad: grupos.planeacion.length, color: COLOR_ETAPA_PLANEACION },
-      { etiqueta: 'En ejecución', cantidad: grupos.ejecucion.length, color: COLOR_ETAPA_EJECUCION },
-      { etiqueta: 'Por entregar pronto', cantidad: grupos.porEntregar.length, color: COLOR_ETAPA_POR_ENTREGAR },
-      { etiqueta: 'Entregadas', cantidad: grupos.entregadas.length, color: COLOR_ETAPA_ENTREGADA },
+      { etiqueta: 'En planeación', obras: grupos.planeacion, color: COLOR_ETAPA_PLANEACION },
+      { etiqueta: 'En ejecución', obras: grupos.ejecucion, color: COLOR_ETAPA_EJECUCION },
+      { etiqueta: 'Por entregar pronto', obras: grupos.porEntregar, color: COLOR_ETAPA_POR_ENTREGAR },
+      { etiqueta: 'Entregadas', obras: grupos.entregadas, color: COLOR_ETAPA_ENTREGADA },
     ],
     [grupos],
   )
@@ -72,32 +73,33 @@ export function LineaTiempoPortafolio() {
         subtitulo="Actividad reciente del equipo y estado del portafolio de obras"
       />
 
-      {/* Pipeline del portafolio: una sola línea de tiempo horizontal,
-          de la planeación a la entrega — no tarjetas sueltas. */}
+      {/* Pipeline del portafolio: una sola línea de tiempo horizontal, de
+          la planeación a la entrega. Cada parada trae 2 obras de ejemplo
+          para que el ancho de la tarjeta se use de verdad, no quede vacío. */}
       <Box sx={{ overflowX: 'auto', mb: 5, pb: 1 }}>
-        <Box sx={{ display: 'flex', minWidth: 640 }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
           {etapas.map((etapa, indice) => (
-            <Box
-              key={etapa.etiqueta}
-              sx={{ display: 'flex', alignItems: 'center', flex: indice === etapas.length - 1 ? '0 0 auto' : 1 }}
-            >
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 130, px: 1 }}>
+            <Box key={etapa.etiqueta} sx={{ display: 'flex', alignItems: 'flex-start' }}>
+              <Box sx={{ width: 232, flexShrink: 0, px: 1.5 }}>
                 <Typography variant="h4" sx={{ fontWeight: 700, color: etapa.color, lineHeight: 1.1 }}>
-                  <ContadorAnimado valor={etapa.cantidad} />
+                  <ContadorAnimado valor={etapa.obras.length} />
                 </Typography>
-                <Box
-                  sx={{
-                    width: 14,
-                    height: 14,
-                    borderRadius: '50%',
-                    bgcolor: etapa.color,
-                    my: 1,
-                    boxShadow: '0 0 0 3px #fff',
-                  }}
-                />
-                <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
-                  {etapa.etiqueta}
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, my: 0.75 }}>
+                  <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: etapa.color, flexShrink: 0 }} />
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {etapa.etiqueta}
+                  </Typography>
+                </Box>
+                {etapa.obras.length > 0 && (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
+                    {etapa.obras.slice(0, 2).map((obra) => (
+                      <Chip key={obra.obraId} size="small" label={obra.nombre} sx={{ maxWidth: '100%' }} />
+                    ))}
+                    {etapa.obras.length > 2 && (
+                      <Chip size="small" variant="outlined" label={`+${etapa.obras.length - 2} más`} />
+                    )}
+                  </Box>
+                )}
               </Box>
               {indice < etapas.length - 1 && (
                 <motion.div
@@ -107,11 +109,11 @@ export function LineaTiempoPortafolio() {
                   transition={{ delay: indice * 0.1, duration: 0.4, ease: 'easeOut' }}
                   style={{
                     height: 2,
-                    flex: 1,
-                    minWidth: 32,
+                    width: 28,
+                    marginTop: 26,
+                    flexShrink: 0,
                     background: 'rgba(10, 30, 61, 0.14)',
                     transformOrigin: 'left',
-                    marginBottom: 28,
                   }}
                 />
               )}
@@ -140,11 +142,14 @@ export function LineaTiempoPortafolio() {
           const nombreAutor = nombrePorAutor.get(visita.autorId) ?? 'Autor desconocido'
           const primeraFoto = visita.fotos?.[0]
           const esUltimo = indice === visitasRecientes.length - 1
+          // No repetir la misma fecha en cada tarjeta cuando varias visitas
+          // caen el mismo día — el espacio libre se nota más que la fecha.
+          const fechaCambio = indice === 0 || visita.fechaVisita !== visitasRecientes[indice - 1].fechaVisita
 
           return (
             <Box key={visita.id} sx={{ width: 224, flexShrink: 0 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.75, display: 'block' }}>
-                {visita.fechaVisita}
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.75, display: 'block', height: 18 }}>
+                {fechaCambio ? formatearFechaCorta(visita.fechaVisita) : ''}
               </Typography>
 
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -176,7 +181,7 @@ export function LineaTiempoPortafolio() {
                 <Paper
                   variant="outlined"
                   onClick={() => setVisitaSeleccionada(visita)}
-                  sx={{ p: 1.5, cursor: 'pointer', width: '100%' }}
+                  sx={{ p: 1.5, cursor: 'pointer', width: '100%', display: 'flex', flexDirection: 'column' }}
                 >
                   <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 1 }}>
                     {primeraFoto ? (
@@ -196,14 +201,19 @@ export function LineaTiempoPortafolio() {
                     </Box>
                   </Box>
                   <BarraAvance valor={visita.porcentajeAvanceCampo} />
-                  {severidad && (
-                    <Chip
-                      size="small"
-                      icon={<WarningAmberIcon sx={{ fontSize: 13, color: '#fff !important' }} />}
-                      label={`${visita.alertas?.length ?? 0} alerta${(visita.alertas?.length ?? 0) > 1 ? 's' : ''}`}
-                      sx={{ height: 20, mt: 1, bgcolor: COLOR_SEVERIDAD[severidad], color: '#fff', fontWeight: 700 }}
-                    />
-                  )}
+                  {/* Alto parejo entre tarjetas: esta fila queda reservada
+                      aunque no haya alerta, en vez de que la tarjeta se
+                      achique y desalinee el riel. */}
+                  <Box sx={{ height: 28, display: 'flex', alignItems: 'center', mt: 1 }}>
+                    {severidad && (
+                      <Chip
+                        size="small"
+                        icon={<WarningAmberIcon sx={{ fontSize: 13, color: '#fff !important' }} />}
+                        label={`${visita.alertas?.length ?? 0} alerta${(visita.alertas?.length ?? 0) > 1 ? 's' : ''}`}
+                        sx={{ height: 20, bgcolor: COLOR_SEVERIDAD[severidad], color: '#fff', fontWeight: 700 }}
+                      />
+                    )}
+                  </Box>
                 </Paper>
               </motion.div>
             </Box>
