@@ -59,3 +59,12 @@ export function estaEnPlaneacion(obra: ObraVisor): boolean {
   const actual = etapaActual(obra)
   return actual !== null && ETAPAS_DE_PLANEACION.includes(actual.nombre)
 }
+
+// "En ejecución" = ya se contrató y hay obra física en curso (de
+// Contratación a Ejecución obra) — antes de la entrega/dotación final.
+const ETAPAS_DE_EJECUCION: readonly string[] = ['Contratación', 'Inicio', 'Diseños', 'Ejecución obra']
+
+export function estaEnEjecucion(obra: ObraVisor): boolean {
+  const actual = etapaActual(obra)
+  return actual !== null && ETAPAS_DE_EJECUCION.includes(actual.nombre)
+}

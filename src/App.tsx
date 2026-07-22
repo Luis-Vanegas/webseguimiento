@@ -14,6 +14,7 @@ import { HistorialObra } from './pages/seguimiento/HistorialObra'
 import { MapaSeguimiento } from './pages/seguimiento/MapaSeguimiento'
 import { Calendario } from './pages/seguimiento/Calendario'
 import { GestionVisitas } from './pages/seguimiento/GestionVisitas'
+import { LineaTiempoPortafolio } from './pages/seguimiento/LineaTiempoPortafolio'
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
                   <Route path="mapa" element={<MapaSeguimiento />} />
                   <Route path="calendario" element={<Calendario />} />
                   <Route path="gestion" element={<GestionVisitas />} />
+                  <Route path="linea-tiempo" element={<LineaTiempoPortafolio />} />
                 </Route>
               </Route>
             </Routes>

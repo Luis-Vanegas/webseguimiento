@@ -23,6 +23,7 @@ import AssessmentIcon from '@mui/icons-material/Assessment'
 import RateReviewIcon from '@mui/icons-material/RateReview'
 import MapIcon from '@mui/icons-material/Map'
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
+import TimelineIcon from '@mui/icons-material/Timeline'
 import LogoutIcon from '@mui/icons-material/Logout'
 import EngineeringIcon from '@mui/icons-material/Engineering'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
@@ -46,6 +47,7 @@ const ITEMS: { to: string; label: string; icon: JSX.Element; roles?: RolUsuario[
   { to: '/seguimiento/mis-visitas', label: 'Mis visitas', icon: <AssignmentIcon />, roles: ['ingeniero', 'visitador'] },
   { to: '/seguimiento/revisar', label: 'Revisar visitas', icon: <RateReviewIcon />, roles: ['ingeniero', 'visitador'] },
   { to: '/seguimiento/mapa', label: 'Mapa de obras', icon: <MapIcon /> },
+  { to: '/seguimiento/linea-tiempo', label: 'Línea de tiempo', icon: <TimelineIcon /> },
   { to: '/seguimiento/gestion', label: 'Gestión', icon: <AssessmentIcon />, roles: ['visualizador'] },
 ]
 

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { ETAPAS_OBRA, estaEnPlaneacion, etapaActual, etiquetaEtapa } from './etapas.util.ts'
+import { ETAPAS_OBRA, estaEnEjecucion, estaEnPlaneacion, etapaActual, etiquetaEtapa } from './etapas.util.ts'
 import type { EtapaObra, ObraVisor } from '../../types/obra.types.ts'
 
 function etapas(parciales: Partial<Record<(typeof ETAPAS_OBRA)[number], Partial<EtapaObra>>>): EtapaObra[] {
@@ -75,4 +75,26 @@ test('estaEnPlaneacion es false una vez pasada la etapa de licencias', () => {
     }),
   )
   assert.equal(estaEnPlaneacion(o), false)
+})
+
+test('estaEnEjecucion es true de Contratación a Ejecución obra', () => {
+  const o = obra(
+    etapas({
+      'Planeación (MGA)': { porcentaje: 100 },
+      'Estudios preliminares': { porcentaje: 100 },
+      'Viabilización (DAP)': { porcentaje: 100 },
+      'Licencias (Curaduría)': { porcentaje: 100 },
+      'Gestión predial': { porcentaje: 100 },
+      'Ejecución obra': { porcentaje: 45 },
+    }),
+  )
+  assert.equal(estaEnEjecucion(o), true)
+})
+
+test('estaEnEjecucion es false en planeación y false ya entregada', () => {
+  const enPlaneacion = obra(etapas({ 'Planeación (MGA)': { porcentaje: 10 } }))
+  assert.equal(estaEnEjecucion(enPlaneacion), false)
+
+  const entregada = obra(etapas(Object.fromEntries(ETAPAS_OBRA.map((n) => [n, { porcentaje: 100 }]))))
+  assert.equal(estaEnEjecucion(entregada), false)
 })
