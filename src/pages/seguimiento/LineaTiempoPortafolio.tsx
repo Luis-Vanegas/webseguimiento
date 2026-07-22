@@ -76,22 +76,22 @@ export function LineaTiempoPortafolio() {
       {/* Pipeline del portafolio: una sola línea de tiempo horizontal, de
           la planeación a la entrega. Cada parada trae 2 obras de ejemplo
           para que el ancho de la tarjeta se use de verdad, no quede vacío. */}
-      <Box sx={{ overflowX: 'auto', mb: 5, pb: 1 }}>
+      <Box sx={{ overflowX: 'auto', mb: 7, pb: 1.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
           {etapas.map((etapa, indice) => (
             <Box key={etapa.etiqueta} sx={{ display: 'flex', alignItems: 'flex-start' }}>
               <Box sx={{ width: 232, flexShrink: 0, px: 1.5 }}>
-                <Typography variant="h4" sx={{ fontWeight: 700, color: etapa.color, lineHeight: 1.1 }}>
+                <Typography variant="h4" sx={{ fontWeight: 700, color: etapa.color, lineHeight: 1.1, mb: 1.5 }}>
                   <ContadorAnimado valor={etapa.obras.length} />
                 </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, my: 0.75 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
                   <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: etapa.color, flexShrink: 0 }} />
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
                     {etapa.etiqueta}
                   </Typography>
                 </Box>
                 {etapa.obras.length > 0 && (
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 1.5 }}>
                     {etapa.obras.slice(0, 2).map((obra) => (
                       <Chip key={obra.obraId} size="small" label={obra.nombre} sx={{ maxWidth: '100%' }} />
                     ))}
@@ -110,7 +110,7 @@ export function LineaTiempoPortafolio() {
                   style={{
                     height: 2,
                     width: 28,
-                    marginTop: 26,
+                    marginTop: 32,
                     flexShrink: 0,
                     background: 'rgba(10, 30, 61, 0.14)',
                     transformOrigin: 'left',
@@ -122,7 +122,7 @@ export function LineaTiempoPortafolio() {
         </Box>
       </Box>
 
-      <Typography variant="subtitle1" sx={{ mb: 2 }}>
+      <Typography variant="subtitle1" sx={{ mb: 3 }}>
         Actividad reciente
       </Typography>
 
@@ -134,7 +134,7 @@ export function LineaTiempoPortafolio() {
 
       {/* Feed de visitas como línea de tiempo horizontal, con scroll
           lateral — la más reciente primero, igual que ya venía ordenado. */}
-      <Box sx={{ display: 'flex', overflowX: 'auto', pb: 2 }}>
+      <Box sx={{ display: 'flex', overflowX: 'auto', pb: 3, gap: 0.5 }}>
         {visitasRecientes.map((visita, indice) => {
           const severidad = severidadMaxima(visita.alertas)
           const color = severidad ? COLOR_SEVERIDAD[severidad] : COLOR_ESTADO[visita.estado]
@@ -148,7 +148,7 @@ export function LineaTiempoPortafolio() {
 
           return (
             <Box key={visita.id} sx={{ width: 224, flexShrink: 0 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.75, display: 'block', height: 18 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 1.5, display: 'block', height: 18 }}>
                 {fechaCambio ? formatearFechaCorta(visita.fechaVisita) : ''}
               </Typography>
 
@@ -176,14 +176,14 @@ export function LineaTiempoPortafolio() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.4 }}
                 transition={{ delay: Math.min(indice, 12) * 0.05, duration: 0.3, ease: 'easeOut' }}
-                style={{ width: '100%', marginTop: 10 }}
+                style={{ width: '100%', marginTop: 16 }}
               >
                 <Paper
                   variant="outlined"
                   onClick={() => setVisitaSeleccionada(visita)}
-                  sx={{ p: 1.5, cursor: 'pointer', width: '100%', display: 'flex', flexDirection: 'column' }}
+                  sx={{ p: 2, cursor: 'pointer', width: '100%', display: 'flex', flexDirection: 'column' }}
                 >
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 1 }}>
+                  <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'center', mb: 1.5 }}>
                     {primeraFoto ? (
                       <MiniaturaFoto storagePath={primeraFoto.storagePath} />
                     ) : (
@@ -204,7 +204,7 @@ export function LineaTiempoPortafolio() {
                   {/* Alto parejo entre tarjetas: esta fila queda reservada
                       aunque no haya alerta, en vez de que la tarjeta se
                       achique y desalinee el riel. */}
-                  <Box sx={{ height: 28, display: 'flex', alignItems: 'center', mt: 1 }}>
+                  <Box sx={{ height: 28, display: 'flex', alignItems: 'center', mt: 1.5 }}>
                     {severidad && (
                       <Chip
                         size="small"
