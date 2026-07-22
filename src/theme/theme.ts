@@ -8,6 +8,8 @@ export const COLOR_ACENTO = '#29B6E8'
 // Hover del acento (oscurecido) — antes repetido como literal en varios
 // componentes con botones/controles sobre COLOR_ACENTO.
 export const COLOR_ACENTO_HOVER = '#1f9fce'
+// Fondo tenue del acento, para chips/etiquetas informativas sobre fondo claro.
+export const COLOR_ACENTO_FONDO_SUAVE = 'rgba(41, 182, 232, 0.12)'
 
 // Ruta planeada en el mapa (índigo, distinto del cian de recorridos
 // grabados) — antes duplicado como const local en 3 archivos.

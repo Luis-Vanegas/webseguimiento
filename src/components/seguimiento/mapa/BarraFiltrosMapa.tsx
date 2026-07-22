@@ -1,5 +1,6 @@
 import { Box, Button, Chip, TextField, Typography } from '@mui/material'
 import { useEsMovil } from '../../../hooks/useEsMovil'
+import { COLOR_ACENTO, COLOR_ACENTO_FONDO_SUAVE } from '../../../theme/theme'
 
 interface BarraFiltrosMapaProps {
   fechaDesde: string
@@ -10,6 +11,7 @@ interface BarraFiltrosMapaProps {
   proyectoFiltro: string | null
   dependenciaFiltro: string | null
   estiloMapa: 'calles' | 'satelite'
+  esVisualizador: boolean
   onCambiarFechaDesde: (valor: string) => void
   onCambiarFechaHasta: (valor: string) => void
   onCambiarEntregaDesde: (valor: string) => void
@@ -27,6 +29,7 @@ export function BarraFiltrosMapa({
   proyectoFiltro,
   dependenciaFiltro,
   estiloMapa,
+  esVisualizador,
   onCambiarFechaDesde,
   onCambiarFechaHasta,
   onCambiarEntregaDesde,
@@ -56,6 +59,14 @@ export function BarraFiltrosMapa({
       <Typography variant="h6" sx={{ fontWeight: 600, mr: 1 }}>
         Mapa de obras
       </Typography>
+
+      {esVisualizador && (
+        <Chip
+          size="small"
+          label="Modo consulta: sin registrar visitas ni grabar recorridos"
+          sx={{ bgcolor: COLOR_ACENTO_FONDO_SUAVE, color: COLOR_ACENTO, fontWeight: 600 }}
+        />
+      )}
 
       <TextField
         size="small"

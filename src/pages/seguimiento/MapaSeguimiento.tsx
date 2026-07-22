@@ -223,6 +223,7 @@ export function MapaSeguimiento() {
         proyectoFiltro={filtros.proyectoFiltro}
         dependenciaFiltro={filtros.dependenciaFiltro}
         estiloMapa={estiloMapa}
+        esVisualizador={usuario?.rol === 'visualizador'}
         onCambiarFechaDesde={(v) => actualizarFiltro('fechaDesde', v)}
         onCambiarFechaHasta={(v) => actualizarFiltro('fechaHasta', v)}
         onCambiarEntregaDesde={(v) => actualizarFiltro('entregaDesde', v)}

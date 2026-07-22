@@ -13,7 +13,7 @@ import {
 } from '../../components/seguimiento/DetalleVisitaDialog'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { claveDeDate, claveDia } from '../../utils/seguimiento/fechas.util'
-import { COLOR_ACENTO, COLOR_PROXIMA_ENTREGA } from '../../theme/theme'
+import { COLOR_ACENTO, COLOR_ACENTO_FONDO_SUAVE, COLOR_PROXIMA_ENTREGA } from '../../theme/theme'
 import type { ObraVisor } from '../../types/obra.types'
 import type { VisitaSeguimiento } from '../../types/seguimiento.types'
 
@@ -95,6 +95,15 @@ export function Calendario() {
       <PageHeader
         titulo="Calendario"
         subtitulo="Entregas estimadas de obras y visitas registradas por día"
+        accion={
+          usuario?.rol === 'visualizador' && (
+            <Chip
+              size="small"
+              label="Viendo visitas de todo el equipo"
+              sx={{ bgcolor: COLOR_ACENTO_FONDO_SUAVE, color: COLOR_ACENTO, fontWeight: 600 }}
+            />
+          )
+        }
       />
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, flexWrap: 'wrap' }}>

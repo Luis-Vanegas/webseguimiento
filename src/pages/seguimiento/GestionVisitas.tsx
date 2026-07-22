@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
+  Alert,
   Avatar,
   Box,
   Card,
@@ -42,6 +43,12 @@ import type { SeveridadAlerta, VisitaSeguimiento } from '../../types/seguimiento
 // debajo de AA), esto solo matiza el fondo y mantiene la lectura.
 const FONDO_VISTO = 'rgba(46, 125, 50, 0.045)'
 
+// Esta es la única pantalla exclusiva del rol visualizador — no hay
+// ningún otro lugar de la app que le explique qué puede hacer acá, así
+// que el aviso se guarda "visto" en localStorage para no repetirlo cada
+// vez que entra.
+const CLAVE_GUIA_VISTA = 'seguimiento_guia_gestion_vista'
+
 export function GestionVisitas() {
   const esMovil = useEsMovil()
   const dispatch = useAppDispatch()
@@ -50,6 +57,12 @@ export function GestionVisitas() {
     useDatosFiltro()
   const [filtros, setFiltros] = useState(FILTROS_VACIOS)
   const [visitaSeleccionada, setVisitaSeleccionada] = useState<VisitaSeguimiento | null>(null)
+  const [mostrarGuia, setMostrarGuia] = useState(() => localStorage.getItem(CLAVE_GUIA_VISTA) !== '1')
+
+  function descartarGuia() {
+    localStorage.setItem(CLAVE_GUIA_VISTA, '1')
+    setMostrarGuia(false)
+  }
 
   useEffect(() => {
     dispatch(listarTodasLasVisitas())
@@ -101,6 +114,13 @@ export function GestionVisitas() {
         titulo="Gestión de visitas"
         subtitulo="Resumen ejecutivo de las visitas registradas por todo el equipo"
       />
+
+      {mostrarGuia && (
+        <Alert severity="info" onClose={descartarGuia} sx={{ mb: 2.5 }}>
+          Acá ves todas las visitas registradas por el equipo. Podés marcarlas como revisadas, pero no podés
+          editarlas ni crear nuevas — eso lo hacen ingeniería y el equipo de campo desde el mapa.
+        </Alert>
+      )}
 
       <ResumenGerencia resumen={resumen} />
 
