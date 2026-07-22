@@ -15,8 +15,6 @@ import {
   TableHead,
   TableRow,
   Typography,
-  useMediaQuery,
-  useTheme,
 } from '@mui/material'
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday'
 import LocationOnIcon from '@mui/icons-material/LocationOn'
@@ -39,6 +37,7 @@ import {
   type CambiosVisitaEditables,
 } from '../../components/seguimiento/DetalleVisitaDialog'
 import { PageHeader } from '../../components/layout/PageHeader'
+import { useEsMovil } from '../../hooks/useEsMovil'
 import { filtrarVisitas } from '../../utils/seguimiento/filtrar-visitas.util'
 import { severidadMaxima } from '../../utils/seguimiento/alertas.util'
 import { FILTROS_VACIOS } from '../../types/filtros.types'
@@ -46,8 +45,7 @@ import { COLOR_ESTADO, COLOR_SEVERIDAD, ETIQUETA_ESTADO } from '../../theme/them
 import type { VisitaSeguimiento } from '../../types/seguimiento.types'
 
 export function RevisarVisitas() {
-  const theme = useTheme()
-  const esMovil = useMediaQuery(theme.breakpoints.down('sm'))
+  const esMovil = useEsMovil()
   const dispatch = useAppDispatch()
   const { usuario } = useUsuarioActual()
   const { pendientes, cargando } = useAppSelector((state) => state.seguimiento)
@@ -249,7 +247,7 @@ export function RevisarVisitas() {
                     <TableCell align="center">
                       {alertas > 0 ? (
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.4 }}>
-                          <WarningAmberIcon sx={{ fontSize: 16, color: '#f9a825' }} />
+                          <WarningAmberIcon sx={{ fontSize: 16, color: COLOR_SEVERIDAD.media }} />
                           <Typography variant="body2">{alertas}</Typography>
                         </Box>
                       ) : (

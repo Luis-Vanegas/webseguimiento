@@ -12,8 +12,6 @@ import {
   Switch,
   TextField,
   Typography,
-  useMediaQuery,
-  useTheme,
 } from '@mui/material'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import HistoryIcon from '@mui/icons-material/History'
@@ -22,7 +20,8 @@ import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import { useNavigate } from 'react-router-dom'
 import { CarruselFotos } from './CarruselFotos'
 import { Seccion } from '../layout/Seccion'
-import { COLOR_ESTADO, COLOR_SEVERIDAD, ETIQUETA_ESTADO } from '../../theme/theme'
+import { useEsMovil } from '../../hooks/useEsMovil'
+import { COLOR_ESTADO, COLOR_FONDO_DIALOGO, COLOR_SEVERIDAD, ETIQUETA_ESTADO } from '../../theme/theme'
 import type { TipoAlerta, VisitaSeguimiento } from '../../types/seguimiento.types'
 
 export interface CambiosVisitaEditables {
@@ -61,7 +60,7 @@ export function DetalleVisitaDialog({
   onCambiarVisto,
 }: DetalleVisitaDialogProps) {
   const navigate = useNavigate()
-  const esMovil = useMediaQuery(useTheme().breakpoints.down('sm'))
+  const esMovil = useEsMovil()
   const [editando, setEditando] = useState(false)
   const [avance, setAvance] = useState(visita.porcentajeAvanceCampo)
   const [observaciones, setObservaciones] = useState(visita.observaciones)
@@ -106,7 +105,7 @@ export function DetalleVisitaDialog({
         </Box>
       </DialogTitle>
 
-      <DialogContent id="ficha-visita-imprimible" sx={{ bgcolor: '#f7f9fc' }}>
+      <DialogContent id="ficha-visita-imprimible" sx={{ bgcolor: COLOR_FONDO_DIALOGO }}>
         {!soloLectura && visita.estado === 'revisada' && (
           <Alert severity="success" sx={{ mb: 2.5 }}>
             Visita revisada: todavía se puede editar o corregir.

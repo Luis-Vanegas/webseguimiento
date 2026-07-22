@@ -122,9 +122,13 @@ export function Calendario() {
         </Button>
       </Box>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.75 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: { xs: 0.4, sm: 0.75 } }}>
         {DIAS_SEMANA.map((d) => (
-          <Typography key={d} variant="caption" sx={{ textAlign: 'center', fontWeight: 600, color: 'text.secondary' }}>
+          <Typography
+            key={d}
+            variant="caption"
+            sx={{ textAlign: 'center', fontWeight: 600, color: 'text.secondary', fontSize: { xs: 10, sm: 12 } }}
+          >
             {d}
           </Typography>
         ))}
@@ -142,8 +146,8 @@ export function Calendario() {
               key={clave}
               onClick={() => setDiaAbierto(clave)}
               sx={{
-                minHeight: 64,
-                p: 0.75,
+                minHeight: { xs: 40, sm: 64 },
+                p: { xs: 0.4, sm: 0.75 },
                 borderRadius: 1.5,
                 border: '1px solid',
                 borderColor: abierto ? 'primary.main' : 'divider',

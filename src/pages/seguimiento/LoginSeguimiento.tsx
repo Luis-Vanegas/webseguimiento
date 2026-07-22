@@ -4,7 +4,7 @@ import EngineeringIcon from '@mui/icons-material/Engineering'
 import { Navigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { useUsuarioActual } from '../../features/auth/useUsuarioActual'
-import { COLOR_SIDEBAR } from '../../theme/theme'
+import { COLOR_ACENTO, COLOR_SIDEBAR } from '../../theme/theme'
 
 export function LoginSeguimiento() {
   const { usuario, cargando } = useUsuarioActual()
@@ -48,7 +48,7 @@ export function LoginSeguimiento() {
         onSubmit={manejarEnvio}
       >
         <Box sx={{ textAlign: 'center', mb: 1 }}>
-          <EngineeringIcon sx={{ fontSize: 42, color: '#29B6E8' }} />
+          <EngineeringIcon sx={{ fontSize: 42, color: COLOR_ACENTO }} />
           <Typography variant="h5" sx={{ fontWeight: 700 }}>
             Seguimiento de Obras
           </Typography>

@@ -9,20 +9,15 @@ import {
   DialogTitle,
   TextField,
   Typography,
-  useMediaQuery,
-  useTheme,
 } from '@mui/material'
 import RouteIcon from '@mui/icons-material/Route'
 import UndoIcon from '@mui/icons-material/Undo'
 import CheckIcon from '@mui/icons-material/Check'
 import { crearRecorrido } from '../../features/seguimiento/recorridosApi'
 import { calcularDistanciaTotal } from '../../utils/seguimiento/geo.util'
+import { useEsMovil } from '../../hooks/useEsMovil'
+import { COLOR_FONDO_DIALOGO, COLOR_RUTA_PLANEADA } from '../../theme/theme'
 import type { PuntoTrazo, RecorridoSeguimiento } from '../../types/seguimiento.types'
-
-// Identidad visual del modo "planeación": índigo, distinto del rojo (GPS en
-// vivo) y del cian (recorrido grabado ya guardado). Mismo patrón de const de
-// color local que ROJO_GRABACION en PanelRecorrido y COLOR_COMUNA en el mapa.
-const COLOR_RUTA_PLANEADA = '#6366f1'
 
 function formatearDistancia(metros: number): string {
   if (metros < 1000) return `${Math.round(metros)} m`
@@ -51,7 +46,7 @@ export function PanelPlaneacionRuta({
   onCancelar,
   onGuardado,
 }: PanelPlaneacionRutaProps) {
-  const esMovil = useMediaQuery(useTheme().breakpoints.down('sm'))
+  const esMovil = useEsMovil()
 
   // Formulario de guardado (paso "terminar ruta").
   const [mostrandoDialogo, setMostrandoDialogo] = useState(false)
@@ -224,7 +219,7 @@ export function PanelPlaneacionRuta({
           </Box>
         </DialogTitle>
 
-        <DialogContent sx={{ bgcolor: '#f7f9fc' }}>
+        <DialogContent sx={{ bgcolor: COLOR_FONDO_DIALOGO }}>
           <TextField
             label="Título"
             fullWidth

@@ -27,7 +27,7 @@ import { useUsuarioActual } from '../../features/auth/useUsuarioActual'
 import { PanelRecorrido } from '../../components/seguimiento/PanelRecorrido'
 import { PanelPlaneacionRuta } from '../../components/seguimiento/PanelPlaneacionRuta'
 import { DetalleRecorridoDialog } from '../../components/seguimiento/DetalleRecorridoDialog'
-import { COLOR_ACENTO, COLOR_PROXIMA_ENTREGA } from '../../theme/theme'
+import { COLOR_ACENTO, COLOR_PROXIMA_ENTREGA, COLOR_RUTA_PLANEADA } from '../../theme/theme'
 import { DIAS_PROXIMA_ENTREGA, estaDesatendida, estaProximaAEntregar } from '../../utils/seguimiento/fechas.util'
 import type { ObraVisor } from '../../types/obra.types'
 import type { PuntoTrazo, RecorridoSeguimiento } from '../../types/seguimiento.types'
@@ -36,12 +36,6 @@ import type { PuntoTrazo, RecorridoSeguimiento } from '../../types/seguimiento.t
 
 const COLOR_COMUNA = '#f97316'
 const COLOR_DESATENDIDA = '#9ca3af'
-
-// Identidad visual del recorrido 'planeado': índigo, distinto del cian de los
-// grabados y del rojo del trazo GPS en vivo. Misma línea, pero punteada. Se
-// repite como const local (mismo criterio que COLOR_COMUNA) en el panel de
-// planeación y en el detalle, para no acoplar theme.ts a esta feature.
-const COLOR_RUTA_PLANEADA = '#6366f1'
 
 const ESTILOS_MAPA = {
   calles: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',

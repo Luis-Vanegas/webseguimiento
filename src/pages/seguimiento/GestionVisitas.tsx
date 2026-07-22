@@ -18,8 +18,6 @@ import {
   TableRow,
   Tooltip,
   Typography,
-  useMediaQuery,
-  useTheme,
 } from '@mui/material'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import InsightsIcon from '@mui/icons-material/Insights'
@@ -32,6 +30,7 @@ import { FiltrosVisitasBar } from '../../components/seguimiento/FiltrosVisitasBa
 import { DetalleVisitaDialog } from '../../components/seguimiento/DetalleVisitaDialog'
 import { BarraAvance } from '../../components/seguimiento/BarraAvance'
 import { PageHeader } from '../../components/layout/PageHeader'
+import { useEsMovil } from '../../hooks/useEsMovil'
 import { filtrarVisitas } from '../../utils/seguimiento/filtrar-visitas.util'
 import { severidadMaxima } from '../../utils/seguimiento/alertas.util'
 import { FILTROS_VACIOS } from '../../types/filtros.types'
@@ -44,8 +43,7 @@ import type { SeveridadAlerta, VisitaSeguimiento } from '../../types/seguimiento
 const FONDO_VISTO = 'rgba(46, 125, 50, 0.045)'
 
 export function GestionVisitas() {
-  const theme = useTheme()
-  const esMovil = useMediaQuery(theme.breakpoints.down('sm'))
+  const esMovil = useEsMovil()
   const dispatch = useAppDispatch()
   const { todasLasVisitas, cargando } = useAppSelector((state) => state.seguimiento)
   const { proyectoEstrategicoPorObra, proyectosEstrategicos, tiposAlerta, obraPorId, nombrePorAutor, usuarios } =

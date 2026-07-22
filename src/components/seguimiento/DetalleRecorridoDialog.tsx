@@ -7,18 +7,13 @@ import {
   DialogTitle,
   Button,
   Typography,
-  useMediaQuery,
-  useTheme,
 } from '@mui/material'
 import RouteIcon from '@mui/icons-material/Route'
 import { CarruselFotos } from './CarruselFotos'
 import { Seccion } from '../layout/Seccion'
-import { COLOR_ACENTO } from '../../theme/theme'
+import { useEsMovil } from '../../hooks/useEsMovil'
+import { COLOR_ACENTO, COLOR_FONDO_DIALOGO, COLOR_RUTA_PLANEADA } from '../../theme/theme'
 import type { FotoVisita, RecorridoSeguimiento } from '../../types/seguimiento.types'
-
-// Índigo del recorrido 'planeado' — misma const local que en el mapa y el
-// panel de planeación (evita acoplar theme.ts a esta feature).
-const COLOR_RUTA_PLANEADA = '#6366f1'
 
 function formatearDistancia(metros: number): string {
   if (metros < 1000) return `${Math.round(metros)} m`
@@ -53,7 +48,7 @@ interface DetalleRecorridoDialogProps {
 }
 
 export function DetalleRecorridoDialog({ recorrido, nombreAutor, onCerrar }: DetalleRecorridoDialogProps) {
-  const esMovil = useMediaQuery(useTheme().breakpoints.down('sm'))
+  const esMovil = useEsMovil()
   const fotos = recorrido.fotos ?? []
   const esPlaneado = recorrido.tipo === 'planeado'
   const colorTipo = esPlaneado ? COLOR_RUTA_PLANEADA : COLOR_ACENTO
@@ -86,7 +81,7 @@ export function DetalleRecorridoDialog({ recorrido, nombreAutor, onCerrar }: Det
         </Box>
       </DialogTitle>
 
-      <DialogContent sx={{ bgcolor: '#f7f9fc' }}>
+      <DialogContent sx={{ bgcolor: COLOR_FONDO_DIALOGO }}>
         <Box
           sx={{
             display: 'flex',

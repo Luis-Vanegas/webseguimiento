@@ -5,6 +5,17 @@ import type { EstadoVisita, SeveridadAlerta } from '../types/seguimiento.types'
 // se tenga acceso a theme.ts del repo real.
 export const COLOR_SIDEBAR = '#0A1E3D'
 export const COLOR_ACENTO = '#29B6E8'
+// Hover del acento (oscurecido) — antes repetido como literal en varios
+// componentes con botones/controles sobre COLOR_ACENTO.
+export const COLOR_ACENTO_HOVER = '#1f9fce'
+
+// Ruta planeada en el mapa (índigo, distinto del cian de recorridos
+// grabados) — antes duplicado como const local en 3 archivos.
+export const COLOR_RUTA_PLANEADA = '#6366f1'
+
+// Fondo de contenido de diálogos (visitas, recorridos, cámara) — antes
+// repetido como literal en 5 componentes.
+export const COLOR_FONDO_DIALOGO = '#f7f9fc'
 
 export const COLOR_ESTADO = {
   revisada: '#2e7d32', // verde

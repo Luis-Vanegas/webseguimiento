@@ -9,14 +9,13 @@ import {
   DialogTitle,
   TextField,
   Typography,
-  useMediaQuery,
-  useTheme,
 } from '@mui/material'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import StopIcon from '@mui/icons-material/Stop'
 import { crearRecorrido, subirFotoRecorrido } from '../../features/seguimiento/recorridosApi'
 import { CapturaFotoCamara } from './CapturaFotoCamara'
-import { COLOR_ACENTO } from '../../theme/theme'
+import { useEsMovil } from '../../hooks/useEsMovil'
+import { COLOR_ACENTO, COLOR_ACENTO_HOVER, COLOR_FONDO_DIALOGO } from '../../theme/theme'
 import type { useGrabacionRecorrido } from '../../features/seguimiento/useGrabacionRecorrido'
 import type { FotoRecorrido, RecorridoSeguimiento } from '../../types/seguimiento.types'
 
@@ -46,7 +45,7 @@ interface PanelRecorridoProps {
 export function PanelRecorrido({ grabacion, autorId, onGuardado }: PanelRecorridoProps) {
   const { estado, puntos, error, fechaInicio, fechaFin, distanciaMetros, iniciar, detener, descartar } =
     grabacion
-  const esMovil = useMediaQuery(useTheme().breakpoints.down('sm'))
+  const esMovil = useEsMovil()
 
   // Cronómetro en vivo: tick cada segundo mientras se graba.
   const [ahora, setAhora] = useState(() => Date.now())
@@ -245,7 +244,7 @@ export function PanelRecorrido({ grabacion, autorId, onGuardado }: PanelRecorrid
         </Box>
       </DialogTitle>
 
-      <DialogContent sx={{ bgcolor: '#f7f9fc' }}>
+      <DialogContent sx={{ bgcolor: COLOR_FONDO_DIALOGO }}>
         <TextField
           label="Título"
           fullWidth
@@ -286,7 +285,7 @@ export function PanelRecorrido({ grabacion, autorId, onGuardado }: PanelRecorrid
           variant="contained"
           onClick={guardar}
           disabled={!puedeGuardar}
-          sx={{ bgcolor: COLOR_ACENTO, '&:hover': { bgcolor: '#1f9fce' } }}
+          sx={{ bgcolor: COLOR_ACENTO, '&:hover': { bgcolor: COLOR_ACENTO_HOVER } }}
         >
           {enviando ? 'Guardando…' : 'Guardar recorrido'}
         </Button>

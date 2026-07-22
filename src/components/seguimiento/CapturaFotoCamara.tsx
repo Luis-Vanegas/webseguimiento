@@ -7,15 +7,14 @@ import {
   Dialog,
   IconButton,
   Typography,
-  useMediaQuery,
-  useTheme,
 } from '@mui/material'
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
 import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary'
 import CloseIcon from '@mui/icons-material/Close'
 import { convertirBlobHeicAJpeg, esArchivoHeic } from '../../utils/seguimiento/heic.util'
 import { comprimirImagen } from '../../utils/seguimiento/comprimirImagen.util'
-import { COLOR_ACENTO } from '../../theme/theme'
+import { useEsMovil } from '../../hooks/useEsMovil'
+import { COLOR_ACENTO, COLOR_ACENTO_HOVER } from '../../theme/theme'
 
 // Las fotos HEIC del iPhone (solo posibles al elegir de la galería; la captura
 // por cámara siempre produce JPEG desde canvas) se convierten a JPEG antes de
@@ -36,7 +35,7 @@ interface CapturaFotoCamaraProps {
 }
 
 export function CapturaFotoCamara({ fotos, onAgregar, onQuitar, onProcesandoChange }: CapturaFotoCamaraProps) {
-  const esMovil = useMediaQuery(useTheme().breakpoints.down('sm'))
+  const esMovil = useEsMovil()
 
   const [camaraAbierta, setCamaraAbierta] = useState(false)
   const [errorCamara, setErrorCamara] = useState<string | null>(null)
@@ -184,7 +183,7 @@ export function CapturaFotoCamara({ fotos, onAgregar, onQuitar, onProcesandoChan
           variant="contained"
           startIcon={<PhotoCameraIcon />}
           onClick={abrirCamara}
-          sx={{ flex: 1, minWidth: 140, bgcolor: COLOR_ACENTO, '&:hover': { bgcolor: '#1f9fce' } }}
+          sx={{ flex: 1, minWidth: 140, bgcolor: COLOR_ACENTO, '&:hover': { bgcolor: COLOR_ACENTO_HOVER } }}
         >
           Tomar foto
         </Button>
@@ -334,7 +333,7 @@ export function CapturaFotoCamara({ fotos, onAgregar, onQuitar, onProcesandoChan
                     sx={{
                       minWidth: 64,
                       bgcolor: COLOR_ACENTO,
-                      '&:hover': { bgcolor: '#1f9fce' },
+                      '&:hover': { bgcolor: COLOR_ACENTO_HOVER },
                     }}
                   >
                     Listo

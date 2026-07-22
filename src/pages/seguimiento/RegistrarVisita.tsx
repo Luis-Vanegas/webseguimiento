@@ -26,6 +26,7 @@ import { claveDeDate } from '../../utils/seguimiento/fechas.util'
 import { CambioVisitaItem } from '../../components/seguimiento/CambioVisitaItem'
 import { CapturaFotoCamara } from '../../components/seguimiento/CapturaFotoCamara'
 import { Seccion } from '../../components/layout/Seccion'
+import { COLOR_FONDO_DIALOGO } from '../../theme/theme'
 import type { VisitaSeguimiento } from '../../types/seguimiento.types'
 
 // El detalle es obligatorio solo para alertas de tipo "Otra" (regla de
@@ -235,7 +236,7 @@ export function RegistrarVisita() {
       )}
 
       {visitaAnterior && (
-        <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, mb: 2.5, bgcolor: '#f7f9fc' }}>
+        <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, mb: 2.5, bgcolor: COLOR_FONDO_DIALOGO }}>
           <Typography variant="subtitle2" sx={{ mb: 1 }}>
             Respecto a la visita anterior ({visitaAnterior.fechaVisita})
           </Typography>
