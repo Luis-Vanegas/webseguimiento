@@ -124,6 +124,7 @@ insert into tipos_alerta (nombre) values
   ('Gestión predial'),
   ('Prórroga'),
   ('Adición de recursos'),
+  ('Diseños'),
   ('Otra');
 
 -- Row Level Security: todas las tablas quedan cerradas a `authenticated`

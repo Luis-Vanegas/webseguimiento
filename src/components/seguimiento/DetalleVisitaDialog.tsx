@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   Alert,
   Box,
@@ -19,6 +19,8 @@ import AddLocationAltIcon from '@mui/icons-material/AddLocationAlt'
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import { useNavigate } from 'react-router-dom'
 import { CarruselFotos } from './CarruselFotos'
+import { BarraFormatoTexto } from './BarraFormatoTexto'
+import { TextoConFormato } from './TextoConFormato'
 import { Seccion } from '../layout/Seccion'
 import { useEsMovil } from '../../hooks/useEsMovil'
 import { COLOR_ESTADO, COLOR_FONDO_DIALOGO, COLOR_SEVERIDAD, ETIQUETA_ESTADO } from '../../theme/theme'
@@ -61,6 +63,7 @@ export function DetalleVisitaDialog({
 }: DetalleVisitaDialogProps) {
   const navigate = useNavigate()
   const esMovil = useEsMovil()
+  const observacionesRef = useRef<HTMLTextAreaElement>(null)
   const [editando, setEditando] = useState(false)
   const [avance, setAvance] = useState(visita.porcentajeAvanceCampo)
   const [observaciones, setObservaciones] = useState(visita.observaciones)
@@ -166,17 +169,27 @@ export function DetalleVisitaDialog({
 
         <Seccion titulo="Observaciones">
           {editando ? (
-            <TextField
-              multiline
-              minRows={3}
-              fullWidth
-              value={observaciones}
-              onChange={(e) => setObservaciones(e.target.value)}
-            />
-          ) : (
-            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-              {visita.observaciones || 'Sin observaciones.'}
+            <>
+              <BarraFormatoTexto
+                valor={observaciones}
+                onCambiar={setObservaciones}
+                textareaRef={observacionesRef}
+              />
+              <TextField
+                multiline
+                minRows={3}
+                fullWidth
+                value={observaciones}
+                onChange={(e) => setObservaciones(e.target.value)}
+                inputRef={observacionesRef}
+              />
+            </>
+          ) : visita.observaciones ? (
+            <Typography variant="body2" component="div">
+              <TextoConFormato texto={visita.observaciones} />
             </Typography>
+          ) : (
+            <Typography variant="body2">Sin observaciones.</Typography>
           )}
         </Seccion>
 
