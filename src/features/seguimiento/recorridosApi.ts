@@ -58,6 +58,28 @@ export async function subirFotoRecorrido(
   return mapFotoRecorridoRow(data)
 }
 
+// Mismo motivo que eliminarVisita en seguimientoApi.ts: el "on delete
+// cascade" de fotos_recorrido borra la fila, no el archivo real en Storage.
+export async function eliminarRecorrido(recorridoId: string): Promise<void> {
+  const { data: fotos, error: errorFotos } = await supabase
+    .from('fotos_recorrido')
+    .select('storage_path')
+    .eq('recorrido_id', recorridoId)
+  if (errorFotos) throw errorFotos
+
+  if (fotos && fotos.length > 0) {
+    await supabase.storage.from('fotos-seguimiento').remove(fotos.map((f) => f.storage_path))
+  }
+
+  // Ver el comentario equivalente en eliminarVisita (seguimientoApi.ts): sin
+  // policy de delete, PostgREST devuelve éxito con 0 filas, no un error.
+  const { data, error } = await supabase.from('recorridos_seguimiento').delete().eq('id', recorridoId).select('id')
+  if (error) throw error
+  if (!data || data.length === 0) {
+    throw new Error('No se pudo borrar el recorrido: falta la policy de borrado en la base de datos.')
+  }
+}
+
 export async function listarRecorridos(): Promise<RecorridoSeguimiento[]> {
   const { data, error } = await supabase
     .from('recorridos_seguimiento')

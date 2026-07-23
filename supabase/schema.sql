@@ -189,12 +189,43 @@ create policy "escribir_de_visita_propia" on fotos_visita for insert to authenti
 create policy "insertar_propio_usuario" on historial_revision for insert to authenticated
   with check (usuario_id = auth.uid());
 
+-- Borrado de visitas: el autor borra la suya, o cualquier ingeniero borra
+-- cualquiera (rol de supervisor). Los hijos (alertas/fotos/historial) llevan
+-- la misma regla para que el "on delete cascade" no se tope con RLS al borrar
+-- la fila padre.
+create policy "borrar_propia_o_ingeniero" on visitas_seguimiento for delete to authenticated
+  using (autor_id = auth.uid() or rol_actual() = 'ingeniero');
+create policy "borrar_de_visita_propia_o_ingeniero" on alertas_visita for delete to authenticated
+  using (
+    exists (select 1 from visitas_seguimiento v where v.id = visita_id and v.autor_id = auth.uid())
+    or rol_actual() = 'ingeniero'
+  );
+create policy "borrar_de_visita_propia_o_ingeniero" on fotos_visita for delete to authenticated
+  using (
+    exists (select 1 from visitas_seguimiento v where v.id = visita_id and v.autor_id = auth.uid())
+    or rol_actual() = 'ingeniero'
+  );
+create policy "borrar_de_visita_propia_o_ingeniero" on historial_revision for delete to authenticated
+  using (
+    exists (select 1 from visitas_seguimiento v where v.id = visita_id and v.autor_id = auth.uid())
+    or rol_actual() = 'ingeniero'
+  );
+
 -- Cada quien crea sus propios recorridos y sus fotos.
 create policy "crear_propio_recorrido" on recorridos_seguimiento for insert to authenticated
   with check (autor_id = auth.uid());
 create policy "escribir_fotos_de_recorrido_propio" on fotos_recorrido for insert to authenticated
   with check (
     exists (select 1 from recorridos_seguimiento r where r.id = recorrido_id and r.autor_id = auth.uid())
+  );
+
+-- Borrado de recorridos: misma regla (autor propio o ingeniero).
+create policy "borrar_propio_o_ingeniero" on recorridos_seguimiento for delete to authenticated
+  using (autor_id = auth.uid() or rol_actual() = 'ingeniero');
+create policy "borrar_de_recorrido_propio_o_ingeniero" on fotos_recorrido for delete to authenticated
+  using (
+    exists (select 1 from recorridos_seguimiento r where r.id = recorrido_id and r.autor_id = auth.uid())
+    or rol_actual() = 'ingeniero'
   );
 
 -- rol_actual() es SECURITY DEFINER; solo authenticated puede invocarla por RPC.
@@ -310,3 +341,41 @@ create policy "subir_fotos_autenticados" on storage.objects for insert to authen
 --
 -- alter table recorridos_seguimiento add column tipo text not null default 'grabado'
 --   check (tipo in ('grabado', 'planeado'));
+
+-- Migración 7 — CORRER ESTA en el SQL Editor de Supabase (proyecto real):
+-- agrega "Diseños" al catálogo de tipos de alerta. Sin esto, no aparece como
+-- opción al registrar una alerta de campo en la base real todavía.
+--
+-- insert into tipos_alerta (nombre) values ('Diseños');
+
+-- Migración 8 — CORRER ESTA en el SQL Editor de Supabase (proyecto real):
+-- agrega las policies de borrado de visitas y recorridos (autor propio o
+-- cualquier ingeniero). Sin esto, la app ya muestra el botón "Borrar" pero
+-- el DELETE contra la base real falla con 403 porque no hay policy `for
+-- delete` en estas tablas todavía (RLS deniega por defecto lo que no
+-- autoriza explícitamente ninguna policy).
+--
+-- create policy "borrar_propia_o_ingeniero" on visitas_seguimiento for delete to authenticated
+--   using (autor_id = auth.uid() or rol_actual() = 'ingeniero');
+-- create policy "borrar_de_visita_propia_o_ingeniero" on alertas_visita for delete to authenticated
+--   using (
+--     exists (select 1 from visitas_seguimiento v where v.id = visita_id and v.autor_id = auth.uid())
+--     or rol_actual() = 'ingeniero'
+--   );
+-- create policy "borrar_de_visita_propia_o_ingeniero" on fotos_visita for delete to authenticated
+--   using (
+--     exists (select 1 from visitas_seguimiento v where v.id = visita_id and v.autor_id = auth.uid())
+--     or rol_actual() = 'ingeniero'
+--   );
+-- create policy "borrar_de_visita_propia_o_ingeniero" on historial_revision for delete to authenticated
+--   using (
+--     exists (select 1 from visitas_seguimiento v where v.id = visita_id and v.autor_id = auth.uid())
+--     or rol_actual() = 'ingeniero'
+--   );
+-- create policy "borrar_propio_o_ingeniero" on recorridos_seguimiento for delete to authenticated
+--   using (autor_id = auth.uid() or rol_actual() = 'ingeniero');
+-- create policy "borrar_de_recorrido_propio_o_ingeniero" on fotos_recorrido for delete to authenticated
+--   using (
+--     exists (select 1 from recorridos_seguimiento r where r.id = recorrido_id and r.autor_id = auth.uid())
+--     or rol_actual() = 'ingeniero'
+--   );

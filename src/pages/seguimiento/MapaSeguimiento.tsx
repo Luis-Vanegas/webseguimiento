@@ -6,7 +6,8 @@ import { useNavigate } from 'react-router-dom'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import * as obrasVisorApi from '../../api/obrasVisorApi'
 import * as seguimientoApi from '../../features/seguimiento/seguimientoApi'
-import { listarRecorridos } from '../../features/seguimiento/recorridosApi'
+import { eliminarRecorrido, listarRecorridos } from '../../features/seguimiento/recorridosApi'
+import { puedeBorrar } from '../../utils/seguimiento/permisos.util'
 import { useGrabacionRecorrido } from '../../features/seguimiento/useGrabacionRecorrido'
 import { useUsuarioActual } from '../../features/auth/useUsuarioActual'
 import { PanelRecorrido } from '../../components/seguimiento/PanelRecorrido'
@@ -553,6 +554,19 @@ export function MapaSeguimiento() {
         <DetalleRecorridoDialog
           recorrido={recorridoSeleccionado}
           onCerrar={() => setRecorridoSeleccionado(null)}
+          onBorrar={
+            puedeBorrar(recorridoSeleccionado.autorId, usuario)
+              ? async () => {
+                  try {
+                    await eliminarRecorrido(recorridoSeleccionado.id)
+                    setRecorridos((prev) => prev.filter((r) => r.id !== recorridoSeleccionado.id))
+                    setRecorridoSeleccionado(null)
+                  } catch (err) {
+                    window.alert(err instanceof Error ? err.message : 'No se pudo borrar el recorrido')
+                  }
+                }
+              : undefined
+          }
         />
       )}
     </Box>

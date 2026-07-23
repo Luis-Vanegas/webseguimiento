@@ -9,6 +9,7 @@ import {
   Typography,
 } from '@mui/material'
 import RouteIcon from '@mui/icons-material/Route'
+import DeleteIcon from '@mui/icons-material/Delete'
 import { CarruselFotos } from './CarruselFotos'
 import { Seccion } from '../layout/Seccion'
 import { useEsMovil } from '../../hooks/useEsMovil'
@@ -45,9 +46,12 @@ interface DetalleRecorridoDialogProps {
   recorrido: RecorridoSeguimiento
   nombreAutor?: string
   onCerrar: () => void
+  // Si no viene, no se muestra "Borrar" — quien llama decide el permiso
+  // (autor del recorrido o rol ingeniero, ver permisos.util.ts).
+  onBorrar?: () => void
 }
 
-export function DetalleRecorridoDialog({ recorrido, nombreAutor, onCerrar }: DetalleRecorridoDialogProps) {
+export function DetalleRecorridoDialog({ recorrido, nombreAutor, onCerrar, onBorrar }: DetalleRecorridoDialogProps) {
   const esMovil = useEsMovil()
   const fotos = recorrido.fotos ?? []
   const esPlaneado = recorrido.tipo === 'planeado'
@@ -122,6 +126,20 @@ export function DetalleRecorridoDialog({ recorrido, nombreAutor, onCerrar }: Det
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 2 }}>
+        {onBorrar && (
+          <Button
+            color="error"
+            startIcon={<DeleteIcon />}
+            onClick={() => {
+              if (window.confirm('¿Seguro que querés borrar este recorrido? No se puede deshacer.')) {
+                onBorrar()
+              }
+            }}
+            sx={{ mr: 'auto' }}
+          >
+            Borrar
+          </Button>
+        )}
         <Button onClick={onCerrar}>Cerrar</Button>
       </DialogActions>
     </Dialog>

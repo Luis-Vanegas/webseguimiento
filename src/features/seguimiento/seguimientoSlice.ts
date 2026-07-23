@@ -71,6 +71,11 @@ export const marcarVistoGerencia = createAsyncThunk(
   ({ id, visto }: { id: string; visto: boolean }) => api.marcarVistoGerencia(id, visto),
 )
 
+export const eliminarVisita = createAsyncThunk('seguimiento/eliminarVisita', async (id: string) => {
+  await api.eliminarVisita(id)
+  return id
+})
+
 const thunksDeEstado = [
   crearVisita,
   listarMisVisitas,
@@ -81,6 +86,7 @@ const thunksDeEstado = [
   marcarRevisada,
   listarTodasLasVisitas,
   marcarVistoGerencia,
+  eliminarVisita,
 ]
 
 function reemplazarEnListas(state: SeguimientoState, visita: VisitaSeguimiento) {
@@ -122,6 +128,11 @@ const seguimientoSlice = createSlice({
       })
       .addCase(marcarVistoGerencia.fulfilled, (state, action) => {
         reemplazarEnListas(state, action.payload)
+      })
+      .addCase(eliminarVisita.fulfilled, (state, action) => {
+        for (const lista of ['misVisitas', 'pendientes', 'visitasObraActual', 'todasLasVisitas'] as const) {
+          state[lista] = state[lista].filter((v) => v.id !== action.payload)
+        }
       })
       .addMatcher(isAnyOf(...thunksDeEstado.map((t) => t.pending)), (state) => {
         state.cargando = true

@@ -293,6 +293,31 @@ export async function marcarRevisada(
   return mapVisitaRow(data)
 }
 
+// Antes de borrar la visita hay que borrar los archivos del bucket a mano:
+// el "on delete cascade" de fotos_visita borra la FILA, no el archivo real
+// en Storage, que quedaría huérfano para siempre si no se limpia acá.
+export async function eliminarVisita(visitaId: string): Promise<void> {
+  const { data: fotos, error: errorFotos } = await supabase
+    .from('fotos_visita')
+    .select('storage_path')
+    .eq('visita_id', visitaId)
+  if (errorFotos) throw errorFotos
+
+  if (fotos && fotos.length > 0) {
+    await supabase.storage.from('fotos-seguimiento').remove(fotos.map((f) => f.storage_path))
+  }
+
+  // Con RLS, un delete sin policy que lo autorice no tira error: PostgREST
+  // devuelve éxito con 0 filas afectadas (las filtra en silencio). Por eso se
+  // pide .select() de vuelta y se verifica que algo haya salido de verdad —
+  // si no, la Migración 8 de schema.sql todavía no corrió contra esta base.
+  const { data, error } = await supabase.from('visitas_seguimiento').delete().eq('id', visitaId).select('id')
+  if (error) throw error
+  if (!data || data.length === 0) {
+    throw new Error('No se pudo borrar la visita: falta la policy de borrado en la base de datos.')
+  }
+}
+
 export async function subirFoto(
   visitaId: string,
   archivo: File,

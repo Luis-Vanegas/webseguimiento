@@ -17,7 +17,8 @@ import LocationOnIcon from '@mui/icons-material/LocationOn'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import { Link } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
-import { editarVisita, listarMisVisitas } from '../../features/seguimiento/seguimientoSlice'
+import { editarVisita, eliminarVisita, listarMisVisitas } from '../../features/seguimiento/seguimientoSlice'
+import { puedeBorrar } from '../../utils/seguimiento/permisos.util'
 import { useUsuarioActual } from '../../features/auth/useUsuarioActual'
 import { useDatosFiltro } from '../../features/seguimiento/useDatosFiltro'
 import { BarraAvance } from '../../components/seguimiento/BarraAvance'
@@ -47,6 +48,14 @@ export function MisVisitas() {
     if (!visitaSeleccionada || !usuario) return
     dispatch(editarVisita({ id: visitaSeleccionada.id, usuarioId: usuario.id, cambios }))
     setVisitaSeleccionada(null)
+  }
+
+  function borrarVisita() {
+    if (!visitaSeleccionada) return
+    dispatch(eliminarVisita(visitaSeleccionada.id))
+      .unwrap()
+      .then(() => setVisitaSeleccionada(null))
+      .catch((err) => window.alert(err?.message ?? 'No se pudo borrar la visita'))
   }
 
   useEffect(() => {
@@ -178,6 +187,7 @@ export function MisVisitas() {
           tiposAlerta={tiposAlerta}
           onCerrar={() => setVisitaSeleccionada(null)}
           onGuardar={guardarEdicion}
+          onBorrar={puedeBorrar(visitaSeleccionada.autorId, usuario) ? borrarVisita : undefined}
         />
       )}
 

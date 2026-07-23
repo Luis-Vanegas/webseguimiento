@@ -17,6 +17,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import HistoryIcon from '@mui/icons-material/History'
 import AddLocationAltIcon from '@mui/icons-material/AddLocationAlt'
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
+import DeleteIcon from '@mui/icons-material/Delete'
 import { useNavigate } from 'react-router-dom'
 import { CarruselFotos } from './CarruselFotos'
 import { BarraFormatoTexto } from './BarraFormatoTexto'
@@ -47,6 +48,9 @@ interface DetalleVisitaDialogProps {
   // Se pasan juntos: si no vienen, el toggle "Visto por gerencia" no se muestra.
   vistoGerencia?: boolean
   onCambiarVisto?: (visto: boolean) => void
+  // Si no viene, no se muestra "Borrar" — quien llama decide el permiso
+  // (autor de la visita o rol ingeniero, ver permisos.util.ts) antes de pasarlo.
+  onBorrar?: () => void
 }
 
 export function DetalleVisitaDialog({
@@ -60,6 +64,7 @@ export function DetalleVisitaDialog({
   soloLectura = false,
   vistoGerencia,
   onCambiarVisto,
+  onBorrar,
 }: DetalleVisitaDialogProps) {
   const navigate = useNavigate()
   const esMovil = useEsMovil()
@@ -262,6 +267,19 @@ export function DetalleVisitaDialog({
           <Box />
         )}
         <Box sx={{ display: 'flex', gap: 1 }}>
+          {!soloLectura && onBorrar && (
+            <Button
+              color="error"
+              startIcon={<DeleteIcon />}
+              onClick={() => {
+                if (window.confirm('¿Seguro que querés borrar esta visita? No se puede deshacer.')) {
+                  onBorrar()
+                }
+              }}
+            >
+              Borrar
+            </Button>
+          )}
           <Button startIcon={<PictureAsPdfIcon />} onClick={() => window.print()}>
             Exportar PDF
           </Button>

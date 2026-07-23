@@ -25,10 +25,12 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { useUsuarioActual } from '../../features/auth/useUsuarioActual'
 import {
   editarVisita,
+  eliminarVisita,
   listarPendientes,
   marcarEnRevision,
   marcarRevisada as marcarRevisadaAccion,
 } from '../../features/seguimiento/seguimientoSlice'
+import { puedeBorrar } from '../../utils/seguimiento/permisos.util'
 import { useDatosFiltro } from '../../features/seguimiento/useDatosFiltro'
 import { BarraAvance } from '../../components/seguimiento/BarraAvance'
 import { FiltrosVisitasBar } from '../../components/seguimiento/FiltrosVisitasBar'
@@ -86,6 +88,14 @@ export function RevisarVisitas() {
   function marcarRevisada(visita: VisitaSeguimiento) {
     if (!usuario) return
     dispatch(marcarRevisadaAccion({ id: visita.id, revisadoPor: usuario.id }))
+  }
+
+  function borrarVisita() {
+    if (!visitaSeleccionada) return
+    dispatch(eliminarVisita(visitaSeleccionada.id))
+      .unwrap()
+      .then(() => setVisitaSeleccionada(null))
+      .catch((err) => window.alert(err?.message ?? 'No se pudo borrar la visita'))
   }
 
   const nombreObra = (obraId: number) => obraPorId.get(obraId)?.nombre ?? `Obra ${obraId}`
@@ -301,6 +311,7 @@ export function RevisarVisitas() {
           tiposAlerta={tiposAlerta}
           onCerrar={() => setVisitaSeleccionada(null)}
           onGuardar={guardarEdicion}
+          onBorrar={puedeBorrar(visitaSeleccionada.autorId, usuario) ? borrarVisita : undefined}
         />
       )}
     </Box>

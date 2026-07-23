@@ -4,7 +4,13 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import TodayIcon from '@mui/icons-material/Today'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
-import { editarVisita, listarMisVisitas, listarTodasLasVisitas } from '../../features/seguimiento/seguimientoSlice'
+import {
+  editarVisita,
+  eliminarVisita,
+  listarMisVisitas,
+  listarTodasLasVisitas,
+} from '../../features/seguimiento/seguimientoSlice'
+import { puedeBorrar } from '../../utils/seguimiento/permisos.util'
 import { useUsuarioActual } from '../../features/auth/useUsuarioActual'
 import { useDatosFiltro } from '../../features/seguimiento/useDatosFiltro'
 import {
@@ -68,6 +74,14 @@ export function Calendario() {
     if (!visitaSeleccionada || !usuario) return
     dispatch(editarVisita({ id: visitaSeleccionada.id, usuarioId: usuario.id, cambios }))
     setVisitaSeleccionada(null)
+  }
+
+  function borrarVisita() {
+    if (!visitaSeleccionada) return
+    dispatch(eliminarVisita(visitaSeleccionada.id))
+      .unwrap()
+      .then(() => setVisitaSeleccionada(null))
+      .catch((err) => window.alert(err?.message ?? 'No se pudo borrar la visita'))
   }
 
   const obras = useMemo(() => [...obraPorId.values()], [obraPorId])
@@ -250,6 +264,7 @@ export function Calendario() {
           tiposAlerta={tiposAlerta}
           onCerrar={() => setVisitaSeleccionada(null)}
           onGuardar={guardarEdicion}
+          onBorrar={puedeBorrar(visitaSeleccionada.autorId, usuario) ? borrarVisita : undefined}
         />
       )}
     </Box>
