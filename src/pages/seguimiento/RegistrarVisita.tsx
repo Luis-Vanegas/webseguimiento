@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useForm, useFieldArray, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
@@ -25,7 +25,7 @@ import { compararVisitas } from '../../utils/seguimiento/visita-comparator.util'
 import { claveDeDate } from '../../utils/seguimiento/fechas.util'
 import { CambioVisitaItem } from '../../components/seguimiento/CambioVisitaItem'
 import { CapturaFotoCamara } from '../../components/seguimiento/CapturaFotoCamara'
-import { BarraFormatoTexto } from '../../components/seguimiento/BarraFormatoTexto'
+import { EditorTextoConFormato } from '../../components/seguimiento/EditorTextoConFormato'
 import { Seccion } from '../../components/layout/Seccion'
 import { COLOR_FONDO_DIALOGO } from '../../theme/theme'
 import type { VisitaSeguimiento } from '../../types/seguimiento.types'
@@ -102,7 +102,6 @@ export function RegistrarVisita() {
   const { obraPorId, tiposAlerta } = useDatosFiltro()
   const obra = obraPorId.get(obraIdNum)
   const { visitasObraActual } = useAppSelector((state) => state.seguimiento)
-  const observacionesRef = useRef<HTMLTextAreaElement>(null)
   const [fotos, setFotos] = useState<File[]>([])
   const [convirtiendoFotos, setConvirtiendoFotos] = useState(false)
   const [enviando, setEnviando] = useState(false)
@@ -286,22 +285,7 @@ export function RegistrarVisita() {
           control={control}
           name="observaciones"
           render={({ field }) => (
-            <Box>
-              <BarraFormatoTexto
-                valor={field.value ?? ''}
-                onCambiar={field.onChange}
-                textareaRef={observacionesRef}
-              />
-              <TextField
-                label="Observaciones"
-                multiline
-                minRows={3}
-                fullWidth
-                value={field.value ?? ''}
-                onChange={field.onChange}
-                inputRef={observacionesRef}
-              />
-            </Box>
+            <EditorTextoConFormato valor={field.value ?? ''} onCambiar={field.onChange} placeholder="Observaciones" />
           )}
         />
       </Seccion>

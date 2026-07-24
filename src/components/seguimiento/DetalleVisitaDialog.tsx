@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import {
   Alert,
   Box,
@@ -20,7 +20,7 @@ import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import DeleteIcon from '@mui/icons-material/Delete'
 import { useNavigate } from 'react-router-dom'
 import { CarruselFotos } from './CarruselFotos'
-import { BarraFormatoTexto } from './BarraFormatoTexto'
+import { EditorTextoConFormato } from './EditorTextoConFormato'
 import { TextoConFormato } from './TextoConFormato'
 import { Seccion } from '../layout/Seccion'
 import { useEsMovil } from '../../hooks/useEsMovil'
@@ -68,7 +68,6 @@ export function DetalleVisitaDialog({
 }: DetalleVisitaDialogProps) {
   const navigate = useNavigate()
   const esMovil = useEsMovil()
-  const observacionesRef = useRef<HTMLTextAreaElement>(null)
   const [editando, setEditando] = useState(false)
   const [avance, setAvance] = useState(visita.porcentajeAvanceCampo)
   const [observaciones, setObservaciones] = useState(visita.observaciones)
@@ -174,21 +173,7 @@ export function DetalleVisitaDialog({
 
         <Seccion titulo="Observaciones">
           {editando ? (
-            <>
-              <BarraFormatoTexto
-                valor={observaciones}
-                onCambiar={setObservaciones}
-                textareaRef={observacionesRef}
-              />
-              <TextField
-                multiline
-                minRows={3}
-                fullWidth
-                value={observaciones}
-                onChange={(e) => setObservaciones(e.target.value)}
-                inputRef={observacionesRef}
-              />
-            </>
+            <EditorTextoConFormato valor={observaciones} onCambiar={setObservaciones} />
           ) : visita.observaciones ? (
             <Typography variant="body2" component="div">
               <TextoConFormato texto={visita.observaciones} />
