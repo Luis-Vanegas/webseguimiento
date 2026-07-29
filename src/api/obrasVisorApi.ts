@@ -44,7 +44,11 @@ function mapEtapas(row: any): EtapaObra[] {
 
 function mapObraRow(row: any): ObraVisor {
   return {
-    obraId: row.id,
+    // La API externa devuelve TODO como texto, incluido el id — sin este
+    // Number(), obraId queda string y nunca matchea contra las claves
+    // numéricas de ultimaVisitaPorObra (Map<number,...> armado desde
+    // Supabase), así que el mapa mostraba todas las obras como "sin visitar".
+    obraId: Number(row.id),
     nombre: row.NOMBRE,
     dependencia: row.DEPENDENCIA ?? null,
     comuna: row['COMUNA O CORREGIMIENTO'] ?? null,
