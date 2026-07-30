@@ -1,5 +1,5 @@
-import { COLOR_PROXIMA_ENTREGA } from '../../../theme/theme'
-import { DIAS_PROXIMA_ENTREGA } from '../../../utils/seguimiento/fechas.util'
+import { COLOR_PROXIMA_ENTREGA } from '../../../theme/theme.ts'
+import { DIAS_PROXIMA_ENTREGA } from '../../../utils/seguimiento/fechas.util.ts'
 import type { ObraVisor } from '../../../types/obra.types'
 
 export const COLOR_COMUNA = '#f97316'
