@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { listarTodasLasVisitas } from '../../features/seguimiento/seguimientoSlice'
 import { useDatosFiltro } from '../../features/seguimiento/useDatosFiltro'
 import { useFotoUrl } from '../../components/seguimiento/FotoVisitaImg'
+import { useEnPantalla } from '../../hooks/useEnPantalla'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { DetalleVisitaDialog } from '../../components/seguimiento/DetalleVisitaDialog'
 import { BarraAvance } from '../../components/seguimiento/BarraAvance'
@@ -238,15 +239,18 @@ export function LineaTiempoPortafolio() {
 }
 
 function MiniaturaFoto({ storagePath }: { storagePath: string }) {
-  const { url } = useFotoUrl(storagePath)
-  if (!url) return <Box sx={{ width: 36, height: 36, borderRadius: 1.5, bgcolor: '#eee', flexShrink: 0 }} />
+  const { ref, visible } = useEnPantalla<HTMLDivElement>()
+  const { url } = useFotoUrl(storagePath, visible)
+  if (!url) return <Box ref={ref} sx={{ width: 36, height: 36, borderRadius: 1.5, bgcolor: '#eee', flexShrink: 0 }} />
   return (
-    <Box
-      component="img"
-      src={url}
-      alt=""
-      sx={{ width: 36, height: 36, borderRadius: 1.5, objectFit: 'cover', flexShrink: 0 }}
-    />
+    <Box ref={ref} sx={{ width: 36, height: 36, flexShrink: 0 }}>
+      <Box
+        component="img"
+        src={url}
+        alt=""
+        sx={{ width: 36, height: 36, borderRadius: 1.5, objectFit: 'cover' }}
+      />
+    </Box>
   )
 }
 

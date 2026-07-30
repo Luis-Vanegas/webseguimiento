@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Dialog } from '@mui/material'
 import { obtenerUrlFoto } from '../../features/seguimiento/seguimientoApi'
 import { convertirBlobHeicAJpeg, esRutaHeic } from '../../utils/seguimiento/heic.util'
+import { useEnPantalla } from '../../hooks/useEnPantalla'
 
 const BASE_STYLE = { width: 120, height: 90, borderRadius: 4 }
 
@@ -33,11 +34,16 @@ async function resolverUrl(storagePath: string): Promise<string> {
 
 // Extraído para que CarruselFotos.tsx pueda resolver la URL de una foto
 // arbitraria (no solo la del thumbnail) compartiendo el mismo urlCache.
-export function useFotoUrl(storagePath: string) {
+// `habilitado` (default true) deja el fetch en pausa — lo usan los
+// thumbnails fuera de pantalla vía useEnPantalla, para no disparar de
+// golpe el pedido de firma + descarga de decenas de fotos a la vez
+// (eso saturaba el egress del plan Free y generaba 400 por la ráfaga).
+export function useFotoUrl(storagePath: string, habilitado = true) {
   const [url, setUrl] = useState<string | null>(null)
   const [error, setError] = useState(false)
 
   useEffect(() => {
+    if (!habilitado) return
     let activo = true
     setUrl(null)
     setError(false)
@@ -56,7 +62,7 @@ export function useFotoUrl(storagePath: string) {
     return () => {
       activo = false
     }
-  }, [storagePath])
+  }, [storagePath, habilitado])
 
   return { url, error }
 }
@@ -69,12 +75,14 @@ interface FotoVisitaImgProps {
 }
 
 export function FotoVisitaImg({ storagePath, onAbrir }: FotoVisitaImgProps) {
-  const { url, error } = useFotoUrl(storagePath)
+  const { ref, visible } = useEnPantalla<HTMLDivElement>()
+  const { url, error } = useFotoUrl(storagePath, visible)
   const [expandida, setExpandida] = useState(false)
 
   if (error) {
     return (
       <div
+        ref={ref}
         style={{
           ...BASE_STYLE,
           background: '#fee2e2',
@@ -92,10 +100,10 @@ export function FotoVisitaImg({ storagePath, onAbrir }: FotoVisitaImgProps) {
     )
   }
 
-  if (!url) return <div style={{ ...BASE_STYLE, background: '#eee' }} />
+  if (!url) return <div ref={ref} style={{ ...BASE_STYLE, background: '#eee' }} />
 
   return (
-    <>
+    <div ref={ref}>
       <img
         src={url}
         alt=""
@@ -112,6 +120,6 @@ export function FotoVisitaImg({ storagePath, onAbrir }: FotoVisitaImgProps) {
           />
         </Dialog>
       )}
-    </>
+    </div>
   )
 }
