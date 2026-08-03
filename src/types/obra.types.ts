@@ -14,6 +14,7 @@ export interface ObraVisor {
   presupuestoOficial: number
   porcentajeAvanceOficial: number
   proyectoEstrategico: string | null
+  subproyectoEstrategico: string | null
   entregada: boolean
   estado: string | null
   descripcion: string | null

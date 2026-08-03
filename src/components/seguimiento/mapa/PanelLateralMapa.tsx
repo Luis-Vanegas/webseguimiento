@@ -21,10 +21,13 @@ interface PanelLateralMapaProps {
   onCambiarComunaFiltro: (valor: string | null) => void
   proyectoFiltro: string | null
   onCambiarProyectoFiltro: (valor: string | null) => void
+  subproyectoFiltro: string | null
+  onCambiarSubproyectoFiltro: (valor: string | null) => void
   dependenciaFiltro: string | null
   onCambiarDependenciaFiltro: (valor: string | null) => void
   nombresComunas: string[]
   nombresProyectos: string[]
+  nombresSubproyectos: string[]
   nombresDependencias: string[]
   resultadosBusqueda: ObraVisor[]
   obrasFiltradas: ObraVisor[]
@@ -39,17 +42,20 @@ export function PanelLateralMapa({
   onCambiarComunaFiltro,
   proyectoFiltro,
   onCambiarProyectoFiltro,
+  subproyectoFiltro,
+  onCambiarSubproyectoFiltro,
   dependenciaFiltro,
   onCambiarDependenciaFiltro,
   nombresComunas,
   nombresProyectos,
+  nombresSubproyectos,
   nombresDependencias,
   resultadosBusqueda,
   obrasFiltradas,
   ultimaVisitaPorObra,
   onSeleccionarObra,
 }: PanelLateralMapaProps) {
-  const hayFiltroCategorico = comunaFiltro || proyectoFiltro || dependenciaFiltro
+  const hayFiltroCategorico = comunaFiltro || proyectoFiltro || subproyectoFiltro || dependenciaFiltro
 
   return (
     <Box
@@ -87,9 +93,9 @@ export function PanelLateralMapa({
           }}
         />
 
-        {/* Los tres selects se acotan entre sí (ver filtrar-obras.util.ts):
+        {/* Los cuatro selects se acotan entre sí (ver filtrar-obras.util.ts):
             elegir uno recalcula qué opciones quedan disponibles en los
-            otros dos, para no ofrecer combinaciones sin resultados. */}
+            otros tres, para no ofrecer combinaciones sin resultados. */}
         <select
           value={comunaFiltro ?? ''}
           onChange={(e) => onCambiarComunaFiltro(e.target.value || null)}
@@ -110,6 +116,19 @@ export function PanelLateralMapa({
         >
           <option value="">Todos los proyectos</option>
           {nombresProyectos.map((nombre) => (
+            <option key={nombre} value={nombre}>
+              {nombre}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={subproyectoFiltro ?? ''}
+          onChange={(e) => onCambiarSubproyectoFiltro(e.target.value || null)}
+          style={ESTILO_SELECT}
+        >
+          <option value="">Todos los subproyectos</option>
+          {nombresSubproyectos.map((nombre) => (
             <option key={nombre} value={nombre}>
               {nombre}
             </option>
@@ -150,7 +169,7 @@ export function PanelLateralMapa({
           <>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1 }}>
               <Typography variant="subtitle2">
-                {[comunaFiltro, proyectoFiltro, dependenciaFiltro].filter(Boolean).join(' · ')} ·{' '}
+                {[comunaFiltro, proyectoFiltro, subproyectoFiltro, dependenciaFiltro].filter(Boolean).join(' · ')} ·{' '}
                 {obrasFiltradas.length} obras
               </Typography>
               <IconButton
@@ -158,6 +177,7 @@ export function PanelLateralMapa({
                 onClick={() => {
                   onCambiarComunaFiltro(null)
                   onCambiarProyectoFiltro(null)
+                  onCambiarSubproyectoFiltro(null)
                   onCambiarDependenciaFiltro(null)
                 }}
               >
@@ -176,7 +196,7 @@ export function PanelLateralMapa({
 
         {!busqueda && !hayFiltroCategorico && (
           <Typography variant="body2" color="text.secondary" sx={{ px: 2, py: 2 }}>
-            Buscá una obra por nombre, o elegí una comuna, proyecto o dependencia para ver sus obras.
+            Buscá una obra por nombre, o elegí una comuna, proyecto, subproyecto o dependencia para ver sus obras.
           </Typography>
         )}
       </Box>

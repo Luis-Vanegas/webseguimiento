@@ -25,6 +25,7 @@ function obra(etapasObra: EtapaObra[]): ObraVisor {
     presupuestoOficial: 0,
     porcentajeAvanceOficial: 0,
     proyectoEstrategico: null,
+    subproyectoEstrategico: null,
     entregada: false,
     estado: null,
     descripcion: null,

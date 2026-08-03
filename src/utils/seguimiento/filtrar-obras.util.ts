@@ -7,6 +7,7 @@ export interface FiltrosMapaObra {
   entregaHasta: string
   comunaFiltro: string | null
   proyectoFiltro: string | null
+  subproyectoFiltro: string | null
   dependenciaFiltro: string | null
 }
 
@@ -17,14 +18,16 @@ export const FILTROS_MAPA_VACIOS: FiltrosMapaObra = {
   entregaHasta: '',
   comunaFiltro: null,
   proyectoFiltro: null,
+  subproyectoFiltro: null,
   dependenciaFiltro: null,
 }
 
-export type DimensionCategorica = 'comuna' | 'proyecto' | 'dependencia'
+export type DimensionCategorica = 'comuna' | 'proyecto' | 'subproyecto' | 'dependencia'
 
 const CAMPO_POR_DIMENSION: Record<DimensionCategorica, keyof ObraVisor> = {
   comuna: 'comuna',
   proyecto: 'proyectoEstrategico',
+  subproyecto: 'subproyectoEstrategico',
   dependencia: 'dependencia',
 }
 
@@ -65,6 +68,9 @@ export function filtrarObras(
   }
   if (omitir !== 'proyecto' && filtros.proyectoFiltro) {
     resultado = resultado.filter((o) => o.proyectoEstrategico === filtros.proyectoFiltro)
+  }
+  if (omitir !== 'subproyecto' && filtros.subproyectoFiltro) {
+    resultado = resultado.filter((o) => o.subproyectoEstrategico === filtros.subproyectoFiltro)
   }
   if (omitir !== 'dependencia' && filtros.dependenciaFiltro) {
     resultado = resultado.filter((o) => o.dependencia === filtros.dependenciaFiltro)

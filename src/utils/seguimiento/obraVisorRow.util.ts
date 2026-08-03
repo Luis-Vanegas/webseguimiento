@@ -42,6 +42,7 @@ export function mapObraRow(row: any): ObraVisor {
     presupuestoOficial: numeroOrNull(row['COSTO TOTAL ACTUALIZADO'] ?? row['COSTO ESTIMADO TOTAL']) ?? 0,
     porcentajeAvanceOficial: numeroOrNull(row['AVANCE GENERAL MANUAL'] ?? row['PORCENTAJE Planeación (MGA)']) ?? 0,
     proyectoEstrategico: row['PROYECTO ESTRATÉGICO'] ?? null,
+    subproyectoEstrategico: row['SUBPROYECTO ESTRATÉGICO'] ?? null,
     // El valor real de la API es 'si'/'no' en minúsculas y sin tilde (no 'Sí');
     // se normaliza para no depender de mayúsculas/tildes que puedan variar.
     entregada:

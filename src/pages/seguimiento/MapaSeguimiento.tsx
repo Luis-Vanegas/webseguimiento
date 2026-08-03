@@ -153,6 +153,11 @@ export function MapaSeguimiento() {
     [obras, ultimaVisitaPorObra, filtros],
   )
 
+  const nombresSubproyectos = useMemo(
+    () => opcionesDeDimension(obras, ultimaVisitaPorObra, filtros, 'subproyecto'),
+    [obras, ultimaVisitaPorObra, filtros],
+  )
+
   const nombresDependencias = useMemo(
     () => opcionesDeDimension(obras, ultimaVisitaPorObra, filtros, 'dependencia'),
     [obras, ultimaVisitaPorObra, filtros],
@@ -204,14 +209,14 @@ export function MapaSeguimiento() {
     setFiltros(FILTROS_MAPA_VACIOS)
   }
 
-  // Al elegir una comuna, proyecto o dependencia en el filtro, encuadrar el
-  // mapa en sus obras.
+  // Al elegir una comuna, proyecto, subproyecto o dependencia en el filtro,
+  // encuadrar el mapa en sus obras.
   useEffect(() => {
-    if (!filtros.comunaFiltro && !filtros.proyectoFiltro && !filtros.dependenciaFiltro) return
+    if (!filtros.comunaFiltro && !filtros.proyectoFiltro && !filtros.subproyectoFiltro && !filtros.dependenciaFiltro) return
     const bounds = calcularBounds(obrasFiltradas)
     if (bounds) mapRef.current?.fitBounds(bounds, { padding: 60, maxZoom: 15, duration: 800 })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtros.comunaFiltro, filtros.proyectoFiltro, filtros.dependenciaFiltro])
+  }, [filtros.comunaFiltro, filtros.proyectoFiltro, filtros.subproyectoFiltro, filtros.dependenciaFiltro])
 
   return (
     <Box sx={{ height: 'calc(100vh - 48px)', display: 'flex', flexDirection: 'column' }}>
@@ -222,6 +227,7 @@ export function MapaSeguimiento() {
         entregaHasta={filtros.entregaHasta}
         comunaFiltro={filtros.comunaFiltro}
         proyectoFiltro={filtros.proyectoFiltro}
+        subproyectoFiltro={filtros.subproyectoFiltro}
         dependenciaFiltro={filtros.dependenciaFiltro}
         estiloMapa={estiloMapa}
         esVisualizador={usuario?.rol === 'visualizador'}
@@ -241,10 +247,13 @@ export function MapaSeguimiento() {
           onCambiarComunaFiltro={(v) => actualizarFiltro('comunaFiltro', v)}
           proyectoFiltro={filtros.proyectoFiltro}
           onCambiarProyectoFiltro={(v) => actualizarFiltro('proyectoFiltro', v)}
+          subproyectoFiltro={filtros.subproyectoFiltro}
+          onCambiarSubproyectoFiltro={(v) => actualizarFiltro('subproyectoFiltro', v)}
           dependenciaFiltro={filtros.dependenciaFiltro}
           onCambiarDependenciaFiltro={(v) => actualizarFiltro('dependenciaFiltro', v)}
           nombresComunas={nombresComunas}
           nombresProyectos={nombresProyectos}
+          nombresSubproyectos={nombresSubproyectos}
           nombresDependencias={nombresDependencias}
           resultadosBusqueda={resultadosBusqueda}
           obrasFiltradas={obrasFiltradas}
