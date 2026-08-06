@@ -97,14 +97,26 @@ export function PanelRecorrido({ grabacion, autorId, onGuardado }: PanelRecorrid
         tipo: 'grabado',
       })
       // Mismo orden que crearVisita: crear el recorrido, luego subir las fotos
-      // secuencialmente (necesitan el id ya creado).
+      // secuencialmente (necesitan el id ya creado). Una foto que falla no
+      // tira abajo el recorrido ya guardado — si lo hiciera, el usuario vería
+      // un error, reintentaría y terminaría con un recorrido duplicado.
       const fotosSubidas: FotoRecorrido[] = []
+      let fotosFallidas = 0
       for (let i = 0; i < fotos.length; i++) {
-        fotosSubidas.push(await subirFotoRecorrido(recorrido.id, fotos[i], i))
+        try {
+          fotosSubidas.push(await subirFotoRecorrido(recorrido.id, fotos[i], i))
+        } catch {
+          fotosFallidas++
+        }
       }
       onGuardado?.({ ...recorrido, fotos: fotosSubidas })
       limpiarFormulario()
       descartar()
+      if (fotosFallidas > 0) {
+        window.alert(
+          `El recorrido se guardó, pero ${fotosFallidas} de ${fotos.length} fotos no se pudieron subir. Revisá la conexión.`,
+        )
+      }
     } catch (err) {
       setErrorGuardar(err instanceof Error ? err.message : 'No se pudo guardar el recorrido.')
     } finally {

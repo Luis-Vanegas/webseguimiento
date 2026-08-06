@@ -21,15 +21,33 @@ const estadoInicial: SeguimientoState = {
   error: null,
 }
 
+export interface ResultadoCrearVisita {
+  visita: VisitaSeguimiento
+  fotosFallidas: number
+  fotosTotales: number
+}
+
 export const crearVisita = createAsyncThunk(
   'seguimiento/crearVisita',
-  async (input: NuevaVisitaInput & { fotos?: File[] }) => {
+  async (input: NuevaVisitaInput & { fotos?: File[] }): Promise<ResultadoCrearVisita> => {
     const { fotos = [], ...datos } = input
     const visita = await api.crearVisita(datos)
+
+    // La visita YA quedó guardada en este punto. Si una foto falla (conexión
+    // de campo inestable, cuota de Storage llena), no se tira abajo el
+    // registro entero: antes el thunk rechazaba con la visita ya insertada,
+    // el usuario veía un error, asumía que no se había guardado nada y
+    // volvía a cargarla — creando una visita duplicada y dejando las fotos
+    // de la primera huérfanas. Se cuenta cuántas fallaron y se informa.
+    let fotosFallidas = 0
     for (let i = 0; i < fotos.length; i++) {
-      await api.subirFoto(visita.id, fotos[i], null, i)
+      try {
+        await api.subirFoto(visita.id, fotos[i], null, i)
+      } catch {
+        fotosFallidas++
+      }
     }
-    return visita
+    return { visita, fotosFallidas, fotosTotales: fotos.length }
   },
 )
 
@@ -103,7 +121,7 @@ const seguimientoSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(crearVisita.fulfilled, (state, action) => {
-        state.misVisitas.unshift(action.payload)
+        state.misVisitas.unshift(action.payload.visita)
       })
       .addCase(listarMisVisitas.fulfilled, (state, action) => {
         state.misVisitas = action.payload
