@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useForm, useFieldArray, Controller } from 'react-hook-form'
+import type { FieldErrors } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import {
@@ -69,6 +70,20 @@ function crearEsquemaVisita(idAlertaOtra: string | undefined) {
 }
 
 type FormVisita = yup.InferType<ReturnType<typeof crearEsquemaVisita>>
+
+// Nombre visible de cada campo validado, para poder decir QUÉ falta en vez
+// de un "revisá el formulario" genérico. Las claves son las de FormVisita.
+const ETIQUETA_CAMPO: Record<string, string> = {
+  fechaVisita: 'Fecha de visita',
+  porcentajeAvanceCampo: '% de avance observado en campo',
+  alertas: 'Descripción de la alerta',
+}
+
+function mensajeDeCamposFaltantes(errores: FieldErrors<FormVisita>): string {
+  const nombres = Object.keys(errores).map((campo) => ETIQUETA_CAMPO[campo] ?? campo)
+  if (nombres.length === 0) return 'Revisá los datos del formulario antes de guardar.'
+  return `No se guardó: falta completar ${nombres.join(', ')}. Está marcado en rojo más arriba.`
+}
 
 // Secciones de un mismo Paper, con título uniforme — reutilizado tres veces
 // en este formulario para no repetir el mismo bloque de estilos.
@@ -177,7 +192,7 @@ export function RegistrarVisita() {
     setError(null)
 
     try {
-      await dispatch(
+      const resultado = await dispatch(
         crearVisita({
           obraId: obraIdNum,
           autorId: usuario.id,
@@ -196,6 +211,14 @@ export function RegistrarVisita() {
           fotos,
         }),
       ).unwrap()
+      // La visita quedó guardada aunque alguna foto no haya subido: se avisa
+      // de forma bloqueante para que en campo no pase inadvertido, pero se
+      // navega igual — reintentar el registro completo duplicaría la visita.
+      if (resultado.fotosFallidas > 0) {
+        window.alert(
+          `La visita se guardó correctamente, pero ${resultado.fotosFallidas} de ${resultado.fotosTotales} fotos no se pudieron subir. Revisá la conexión.`,
+        )
+      }
       navigate('/seguimiento/mis-visitas')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error inesperado en seguimiento')
@@ -204,8 +227,31 @@ export function RegistrarVisita() {
     }
   }
 
+  // Sin esto, un formulario inválido no hacía NADA visible al tocar "Guardar
+  // visita": react-hook-form corta antes de onSubmit y el único indicio
+  // quedaba en el helperText del campo con error, que en un celular está
+  // varias pantallas más arriba que el botón (el bloque de fotos ocupa
+  // mucho). El resultado en campo era "la app no me registra la visita",
+  // sin request al servidor ni error en los logs, porque nunca salía nada.
+  function onInvalid(errores: FieldErrors<FormVisita>) {
+    setError(mensajeDeCamposFaltantes(errores))
+    // El foco automático de react-hook-form no alcanza en mobile: el input
+    // queda enfocado pero no siempre a la vista. Se scrollea al primero que
+    // MUI marcó como inválido (funciona también para las alertas del
+    // useFieldArray, que no son campos de primer nivel).
+    requestAnimationFrame(() => {
+      document
+        .querySelector('[aria-invalid="true"]')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+  }
+
   return (
-    <Box sx={{ width: '100%', maxWidth: 720, mx: 'auto' }} component="form" onSubmit={handleSubmit(onSubmit)}>
+    <Box
+      sx={{ width: '100%', maxWidth: 720, mx: 'auto' }}
+      component="form"
+      onSubmit={handleSubmit(onSubmit, onInvalid)}
+    >
       <Typography variant="h5">Registrar visita</Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: obra ? 0.5 : 3 }}>
         {obra ? `${obra.nombre} (ID ${obraIdNum})` : `Obra sin datos oficiales (ID ${obraIdNum})`}
@@ -365,7 +411,7 @@ export function RegistrarVisita() {
       </Seccion>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}
         </Alert>
       )}
@@ -378,7 +424,7 @@ export function RegistrarVisita() {
         sx={{ mb: 4 }}
         disabled={enviando || convirtiendoFotos}
       >
-        {enviando ? 'Guardando…' : 'Guardar visita'}
+        {enviando ? 'Guardando…' : convirtiendoFotos ? 'Procesando fotos…' : 'Guardar visita'}
       </Button>
     </Box>
   )
