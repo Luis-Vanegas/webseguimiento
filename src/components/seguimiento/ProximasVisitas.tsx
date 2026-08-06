@@ -4,6 +4,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import TodayIcon from '@mui/icons-material/Today'
 import EventAvailableIcon from '@mui/icons-material/EventAvailable'
 import { diasHasta } from '../../utils/seguimiento/fechas.util'
+import { visitasConProximaPendiente } from '../../utils/seguimiento/proximas-visitas.util'
 import type { ObraVisor } from '../../types/obra.types'
 import type { VisitaSeguimiento } from '../../types/seguimiento.types'
 
@@ -44,6 +45,9 @@ const LIMITE_DIAS_RAZONABLE = 3650
 
 interface ProximasVisitasProps {
   visitas: VisitaSeguimiento[]
+  // Última fecha de visita por obra considerando a TODO el equipo, no solo
+  // al usuario actual (ver el filtro de abajo).
+  ultimaVisitaPorObra: Map<number, string>
   obraPorId: Map<number, ObraVisor>
   onSeleccionar: (visita: VisitaSeguimiento) => void
 }
@@ -51,21 +55,15 @@ interface ProximasVisitasProps {
 // Tira horizontal de las visitas con "próxima visita" agendada, ordenadas
 // por cercanía — para que el visitador vea de un vistazo qué se le viene
 // sin tener que abrir cada tarjeta de la lista de abajo.
-export function ProximasVisitas({ visitas, obraPorId, onSeleccionar }: ProximasVisitasProps) {
-  // Una obra revisitada ya "cumplió" cualquier próxima-visita agendada por
-  // visitas anteriores de esa misma obra — solo la MÁS RECIENTE puede tener
-  // una próxima visita todavía pendiente. Sin este dedupe, una obra con 2+
-  // visitas mostraba una tarjeta por cada una, incluida la vieja ya superada
-  // (ej. "vencida" aunque ya se haya vuelto). No se borra ni se toca el
-  // historial — esto solo decide qué tarjeta mostrar acá arriba.
-  const masRecientePorObra = new Map<number, VisitaSeguimiento>()
-  for (const v of visitas) {
-    const actual = masRecientePorObra.get(v.obraId)
-    if (!actual || v.fechaVisita > actual.fechaVisita) masRecientePorObra.set(v.obraId, v)
-  }
-
-  const proximas = [...masRecientePorObra.values()]
-    .filter((v) => !!v.fechaProximaVisita)
+export function ProximasVisitas({
+  visitas,
+  ultimaVisitaPorObra,
+  obraPorId,
+  onSeleccionar,
+}: ProximasVisitasProps) {
+  // Descarta las próximas-visitas ya cumplidas porque alguien (yo u otro)
+  // volvió después a esa obra — ver proximas-visitas.util.ts.
+  const proximas = visitasConProximaPendiente(visitas, ultimaVisitaPorObra)
     .map((v) => ({ visita: v, dias: diasHasta(v.fechaProximaVisita!) }))
     .filter(({ dias }) => Math.abs(dias) <= LIMITE_DIAS_RAZONABLE)
     .sort((a, b) => a.dias - b.dias)

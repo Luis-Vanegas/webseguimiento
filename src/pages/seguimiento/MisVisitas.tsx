@@ -18,6 +18,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import { Link } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { editarVisita, eliminarVisita, listarMisVisitas } from '../../features/seguimiento/seguimientoSlice'
+import * as seguimientoApi from '../../features/seguimiento/seguimientoApi'
 import { puedeBorrar } from '../../utils/seguimiento/permisos.util'
 import { useUsuarioActual } from '../../features/auth/useUsuarioActual'
 import { useDatosFiltro } from '../../features/seguimiento/useDatosFiltro'
@@ -43,6 +44,10 @@ export function MisVisitas() {
     useDatosFiltro()
   const [filtros, setFiltros] = useState(FILTROS_VACIOS)
   const [visitaSeleccionada, setVisitaSeleccionada] = useState<VisitaSeguimiento | null>(null)
+  // De TODO el equipo, no solo del usuario actual: la tira de "Próximas
+  // visitas" lo necesita para saber si otro ya volvió a la obra (consulta
+  // liviana, solo obra_id + fecha_visita).
+  const [ultimaVisitaPorObra, setUltimaVisitaPorObra] = useState<Map<number, string>>(new Map())
 
   function guardarEdicion(cambios: CambiosVisitaEditables) {
     if (!visitaSeleccionada || !usuario) return
@@ -61,6 +66,13 @@ export function MisVisitas() {
   useEffect(() => {
     if (usuario) dispatch(listarMisVisitas(usuario.id))
   }, [dispatch, usuario])
+
+  useEffect(() => {
+    seguimientoApi
+      .obtenerUltimaVisitaPorObra()
+      .then(setUltimaVisitaPorObra)
+      .catch(() => {})
+  }, [])
 
   const visitasFiltradas = useMemo(
     () => filtrarVisitas(misVisitas, filtros, proyectoEstrategicoPorObra),
@@ -84,7 +96,12 @@ export function MisVisitas() {
         }
       />
 
-      <ProximasVisitas visitas={misVisitas} obraPorId={obraPorId} onSeleccionar={setVisitaSeleccionada} />
+      <ProximasVisitas
+        visitas={misVisitas}
+        ultimaVisitaPorObra={ultimaVisitaPorObra}
+        obraPorId={obraPorId}
+        onSeleccionar={setVisitaSeleccionada}
+      />
 
       <FiltrosVisitasBar
         filtros={filtros}
