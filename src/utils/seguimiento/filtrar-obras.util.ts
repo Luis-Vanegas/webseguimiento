@@ -9,7 +9,6 @@ export interface FiltrosMapaObra {
   proyectoFiltro: string | null
   subproyectoFiltro: string | null
   dependenciaFiltro: string | null
-  soloPorVisitar: boolean
 }
 
 export const FILTROS_MAPA_VACIOS: FiltrosMapaObra = {
@@ -21,7 +20,6 @@ export const FILTROS_MAPA_VACIOS: FiltrosMapaObra = {
   proyectoFiltro: null,
   subproyectoFiltro: null,
   dependenciaFiltro: null,
-  soloPorVisitar: false,
 }
 
 // Agenda de visitas priorizadas: 18 obras concretas del Visor.
@@ -63,6 +61,13 @@ export const OBRAS_POR_VISITAR = new Set([
   902, // Recreo Altavista
 ])
 
+// Las 18 obras de la agenda, resueltas contra el listado completo y
+// ordenadas por nombre — lo que necesita el <select> del panel lateral para
+// mostrarlas por nombre y saltar a la elegida.
+export function obrasDeLaAgenda(obras: ObraVisor[]): ObraVisor[] {
+  return obras.filter((o) => OBRAS_POR_VISITAR.has(o.obraId)).sort((a, b) => a.nombre.localeCompare(b.nombre))
+}
+
 export type DimensionCategorica = 'comuna' | 'proyecto' | 'subproyecto' | 'dependencia'
 
 const CAMPO_POR_DIMENSION: Record<DimensionCategorica, keyof ObraVisor> = {
@@ -84,13 +89,6 @@ export function filtrarObras(
   omitir?: DimensionCategorica,
 ): ObraVisor[] {
   let resultado = obras.filter((o) => o.latitud !== null && o.longitud !== null)
-
-  // No es una dimensión categórica: es un recorte fijo sobre la agenda de
-  // visitas, así que se aplica siempre (nunca se omite) y además acota las
-  // opciones de los cuatro <select> a lo que exista dentro de esas obras.
-  if (filtros.soloPorVisitar) {
-    resultado = resultado.filter((o) => OBRAS_POR_VISITAR.has(o.obraId))
-  }
 
   if (filtros.fechaDesde || filtros.fechaHasta) {
     resultado = resultado.filter((o) => {

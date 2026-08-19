@@ -20,7 +20,7 @@ import { PopupObra } from '../../components/seguimiento/mapa/PopupObra'
 import { COLOR_COMUNA, COLOR_DESATENDIDA, infoObra } from '../../components/seguimiento/mapa/mapaEstado.util'
 import { COLOR_ACENTO, COLOR_PROXIMA_ENTREGA, COLOR_RUTA_PLANEADA } from '../../theme/theme'
 import { estaDesatendida, estaProximaAEntregar } from '../../utils/seguimiento/fechas.util'
-import { FILTROS_MAPA_VACIOS, filtrarObras, opcionesDeDimension } from '../../utils/seguimiento/filtrar-obras.util'
+import { FILTROS_MAPA_VACIOS, filtrarObras, obrasDeLaAgenda, opcionesDeDimension } from '../../utils/seguimiento/filtrar-obras.util'
 import type { FiltrosMapaObra } from '../../utils/seguimiento/filtrar-obras.util'
 import type { ObraVisor } from '../../types/obra.types'
 import type { PuntoTrazo, RecorridoSeguimiento } from '../../types/seguimiento.types'
@@ -209,8 +209,8 @@ export function MapaSeguimiento() {
     setFiltros(FILTROS_MAPA_VACIOS)
   }
 
-  // Solo las dimensiones categóricas + "por visitar": el X del panel lateral
-  // cierra la lista de obras sin tirar abajo los rangos de fecha elegidos.
+  // Solo las dimensiones categóricas: el X del panel lateral cierra la
+  // lista de obras sin tirar abajo los rangos de fecha elegidos.
   function limpiarFiltrosCategoricos() {
     setFiltros((f) => ({
       ...f,
@@ -218,31 +218,20 @@ export function MapaSeguimiento() {
       proyectoFiltro: null,
       subproyectoFiltro: null,
       dependenciaFiltro: null,
-      soloPorVisitar: false,
     }))
   }
 
   // Al elegir una comuna, proyecto, subproyecto o dependencia en el filtro,
   // encuadrar el mapa en sus obras.
   useEffect(() => {
-    if (
-      !filtros.comunaFiltro &&
-      !filtros.proyectoFiltro &&
-      !filtros.subproyectoFiltro &&
-      !filtros.dependenciaFiltro &&
-      !filtros.soloPorVisitar
-    )
+    if (!filtros.comunaFiltro && !filtros.proyectoFiltro && !filtros.subproyectoFiltro && !filtros.dependenciaFiltro)
       return
     const bounds = calcularBounds(obrasFiltradas)
     if (bounds) mapRef.current?.fitBounds(bounds, { padding: 60, maxZoom: 15, duration: 800 })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    filtros.comunaFiltro,
-    filtros.proyectoFiltro,
-    filtros.subproyectoFiltro,
-    filtros.dependenciaFiltro,
-    filtros.soloPorVisitar,
-  ])
+  }, [filtros.comunaFiltro, filtros.proyectoFiltro, filtros.subproyectoFiltro, filtros.dependenciaFiltro])
+
+  const obrasAgendaPrioritaria = useMemo(() => obrasDeLaAgenda(obras), [obras])
 
   return (
     <Box sx={{ height: 'calc(100vh - 48px)', display: 'flex', flexDirection: 'column' }}>
@@ -255,14 +244,12 @@ export function MapaSeguimiento() {
         proyectoFiltro={filtros.proyectoFiltro}
         subproyectoFiltro={filtros.subproyectoFiltro}
         dependenciaFiltro={filtros.dependenciaFiltro}
-        soloPorVisitar={filtros.soloPorVisitar}
         estiloMapa={estiloMapa}
         esVisualizador={usuario?.rol === 'visualizador'}
         onCambiarFechaDesde={(v) => actualizarFiltro('fechaDesde', v)}
         onCambiarFechaHasta={(v) => actualizarFiltro('fechaHasta', v)}
         onCambiarEntregaDesde={(v) => actualizarFiltro('entregaDesde', v)}
         onCambiarEntregaHasta={(v) => actualizarFiltro('entregaHasta', v)}
-        onAlternarSoloPorVisitar={() => actualizarFiltro('soloPorVisitar', !filtros.soloPorVisitar)}
         onLimpiarFiltros={limpiarFiltros}
         onCambiarEstiloMapa={setEstiloMapa}
       />
@@ -279,12 +266,12 @@ export function MapaSeguimiento() {
           onCambiarSubproyectoFiltro={(v) => actualizarFiltro('subproyectoFiltro', v)}
           dependenciaFiltro={filtros.dependenciaFiltro}
           onCambiarDependenciaFiltro={(v) => actualizarFiltro('dependenciaFiltro', v)}
-          soloPorVisitar={filtros.soloPorVisitar}
           onLimpiarFiltrosCategoricos={limpiarFiltrosCategoricos}
           nombresComunas={nombresComunas}
           nombresProyectos={nombresProyectos}
           nombresSubproyectos={nombresSubproyectos}
           nombresDependencias={nombresDependencias}
+          obrasDeLaAgenda={obrasAgendaPrioritaria}
           resultadosBusqueda={resultadosBusqueda}
           obrasFiltradas={obrasFiltradas}
           ultimaVisitaPorObra={ultimaVisitaPorObra}

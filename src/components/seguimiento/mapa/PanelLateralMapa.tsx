@@ -25,12 +25,12 @@ interface PanelLateralMapaProps {
   onCambiarSubproyectoFiltro: (valor: string | null) => void
   dependenciaFiltro: string | null
   onCambiarDependenciaFiltro: (valor: string | null) => void
-  soloPorVisitar: boolean
   onLimpiarFiltrosCategoricos: () => void
   nombresComunas: string[]
   nombresProyectos: string[]
   nombresSubproyectos: string[]
   nombresDependencias: string[]
+  obrasDeLaAgenda: ObraVisor[]
   resultadosBusqueda: ObraVisor[]
   obrasFiltradas: ObraVisor[]
   ultimaVisitaPorObra: Map<number, string>
@@ -48,19 +48,18 @@ export function PanelLateralMapa({
   onCambiarSubproyectoFiltro,
   dependenciaFiltro,
   onCambiarDependenciaFiltro,
-  soloPorVisitar,
   onLimpiarFiltrosCategoricos,
   nombresComunas,
   nombresProyectos,
   nombresSubproyectos,
   nombresDependencias,
+  obrasDeLaAgenda,
   resultadosBusqueda,
   obrasFiltradas,
   ultimaVisitaPorObra,
   onSeleccionarObra,
 }: PanelLateralMapaProps) {
-  const hayFiltroCategorico =
-    comunaFiltro || proyectoFiltro || subproyectoFiltro || dependenciaFiltro || soloPorVisitar
+  const hayFiltroCategorico = comunaFiltro || proyectoFiltro || subproyectoFiltro || dependenciaFiltro
 
   return (
     <Box
@@ -152,6 +151,27 @@ export function PanelLateralMapa({
             </option>
           ))}
         </select>
+
+        {/* Select de "acción": elegir una obra la selecciona en el mapa y el
+            valor vuelve al placeholder (no queda "pegado" a la última
+            obra elegida), igual que un menú de navegación. No filtra nada:
+            es un atajo para saltar directo a una de las 18 obras de la
+            agenda priorizada sin tener que tipear su nombre. */}
+        <select
+          value=""
+          onChange={(e) => {
+            const obra = obrasDeLaAgenda.find((o) => o.obraId === Number(e.target.value))
+            if (obra) onSeleccionarObra(obra)
+          }}
+          style={ESTILO_SELECT}
+        >
+          <option value="">Obra prioritaria…</option>
+          {obrasDeLaAgenda.map((obra) => (
+            <option key={obra.obraId} value={obra.obraId}>
+              {obra.nombre}
+            </option>
+          ))}
+        </select>
       </Box>
 
       <Box sx={{ overflowY: 'auto', flex: 1 }}>
@@ -174,9 +194,7 @@ export function PanelLateralMapa({
           <>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1 }}>
               <Typography variant="subtitle2">
-                {[soloPorVisitar ? 'Por visitar' : null, comunaFiltro, proyectoFiltro, subproyectoFiltro, dependenciaFiltro]
-                  .filter(Boolean)
-                  .join(' · ')}{' '}
+                {[comunaFiltro, proyectoFiltro, subproyectoFiltro, dependenciaFiltro].filter(Boolean).join(' · ')}{' '}
                 · {obrasFiltradas.length} obras
               </Typography>
               <IconButton size="small" onClick={onLimpiarFiltrosCategoricos}>
