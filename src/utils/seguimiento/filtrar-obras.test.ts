@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { FILTROS_MAPA_VACIOS, filtrarObras, opcionesDeDimension } from './filtrar-obras.util.ts'
+import { FILTROS_MAPA_VACIOS, OBRAS_POR_VISITAR, filtrarObras, opcionesDeDimension } from './filtrar-obras.util.ts'
 import type { ObraVisor } from '../../types/obra.types.ts'
 
 function obra(overrides: Partial<ObraVisor>): ObraVisor {
@@ -86,4 +86,32 @@ test('opcionesDeDimension de dependencia se acota por proyecto', () => {
     'dependencia',
   )
   assert.deepEqual(opciones, ['INDER', 'Infraestructura'])
+})
+
+test('soloPorVisitar deja únicamente las obras de la agenda priorizada', () => {
+  const obras = [
+    obra({ obraId: 2273 }), // ReCreo Cultural El Jordán — está en la agenda
+    obra({ obraId: 900 }), // Recreo Los Alpes — está en la agenda
+    obra({ obraId: 999999 }), // fuera de la agenda
+  ]
+  const resultado = filtrarObras(obras, new Map(), { ...FILTROS_MAPA_VACIOS, soloPorVisitar: true })
+  assert.deepEqual(resultado.map((o) => o.obraId), [2273, 900])
+})
+
+test('la agenda tiene las 18 obras confirmadas contra el Visor', () => {
+  assert.equal(OBRAS_POR_VISITAR.size, 18)
+})
+
+test('soloPorVisitar acota las opciones de los demás selects', () => {
+  const obras = [
+    obra({ obraId: 2273, comuna: 'La América' }),
+    obra({ obraId: 999999, comuna: 'Belén' }),
+  ]
+  const opciones = opcionesDeDimension(
+    obras,
+    new Map(),
+    { ...FILTROS_MAPA_VACIOS, soloPorVisitar: true },
+    'comuna',
+  )
+  assert.deepEqual(opciones, ['La América'])
 })

@@ -9,6 +9,7 @@ export interface FiltrosMapaObra {
   proyectoFiltro: string | null
   subproyectoFiltro: string | null
   dependenciaFiltro: string | null
+  soloPorVisitar: boolean
 }
 
 export const FILTROS_MAPA_VACIOS: FiltrosMapaObra = {
@@ -20,7 +21,47 @@ export const FILTROS_MAPA_VACIOS: FiltrosMapaObra = {
   proyectoFiltro: null,
   subproyectoFiltro: null,
   dependenciaFiltro: null,
+  soloPorVisitar: false,
 }
+
+// Agenda de visitas priorizadas: 18 obras concretas del Visor.
+//
+// Se filtra por obraId y NO por nombre a propósito. La lista original llegó
+// como texto de una planilla y NINGUNO de los 17 nombres coincidía con el
+// Visor: ahí "Recreo Museo del Reguetón" figura como "Recreo Cultural Museo
+// del Reggaeton (Francisco Antonio Zea)" (doble g, ortografía inglesa) y los
+// items sueltos ("Alpes", "Pastora") son en realidad "Recreo Los Alpes" y
+// "Recreo La Pastora". Ninguna normalización de texto cubre eso; el id sí.
+//
+// El comentario de cada línea es el nombre en la planilla del usuario, para
+// poder auditar la lista sin volver a consultar la API.
+// Verificado contra obras-proxy con scripts/diff-subproyectos-por-visitar.mjs.
+export const OBRAS_POR_VISITAR = new Set([
+  560, // Buen Comienzo – Popular      -> JIBC Popular
+  515, // Buen Comienzo – Santa Eufrasia -> JIBC Santa Eufrasia
+  1492, // I.E. La Libertad            -> Sección Escuela La Libertad
+  1493, // I.E. Rodrigo Lara           -> Sección Escuela Rodrigo Lara Bonilla
+  1499, // I.E. Niño Jesús de Praga    -> Sección Escuela Niño Jesús de Praga
+  1494, // S.E. El Tirol               -> Sección Escuela El Tirol
+  1258, // I.E. Bello Oriente          -> Institución Educativa Bello Oriente
+  2275, // Recreo Cultural Ciudad del Río -> Recreo Cultural Ciudad del Rio
+  2274, // Recreo Cultural Guayabal    -> ReCreo Cultural Guayabal
+  2273, // Recreo Cultural Jordán      -> ReCreo Cultural El Jordán
+  2276, // Recreo Museo del Reguetón   -> Recreo Cultural Museo del Reggaeton
+  1560, // Recreo Deportivo Frontera   -> Recreo La Frontera
+  900, // Alpes                        -> Recreo Los Alpes
+  1561, // Pastora                     -> Recreo La Pastora
+  2255, // Trinidad                    -> Recreo Trinidad
+  2568, // San Cristóbal               -> Recreo San Cristobal
+
+  // Los dos ReCreos Deportivos que la planilla no nombraba. Se suman por
+  // decisión del usuario para cubrir los 7 del subproyecto completo: la
+  // planilla listaba 5 de 7 y, en cambio, traía un item "Popular" que no
+  // existe en el Visor (no hay ningún Recreo ni UVA en la comuna Popular;
+  // la única obra que encajaba era JIBC Popular, ya incluida arriba en 560).
+  901, // Recreo Brisas de Robledo
+  902, // Recreo Altavista
+])
 
 export type DimensionCategorica = 'comuna' | 'proyecto' | 'subproyecto' | 'dependencia'
 
@@ -43,6 +84,13 @@ export function filtrarObras(
   omitir?: DimensionCategorica,
 ): ObraVisor[] {
   let resultado = obras.filter((o) => o.latitud !== null && o.longitud !== null)
+
+  // No es una dimensión categórica: es un recorte fijo sobre la agenda de
+  // visitas, así que se aplica siempre (nunca se omite) y además acota las
+  // opciones de los cuatro <select> a lo que exista dentro de esas obras.
+  if (filtros.soloPorVisitar) {
+    resultado = resultado.filter((o) => OBRAS_POR_VISITAR.has(o.obraId))
+  }
 
   if (filtros.fechaDesde || filtros.fechaHasta) {
     resultado = resultado.filter((o) => {

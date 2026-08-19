@@ -25,6 +25,8 @@ interface PanelLateralMapaProps {
   onCambiarSubproyectoFiltro: (valor: string | null) => void
   dependenciaFiltro: string | null
   onCambiarDependenciaFiltro: (valor: string | null) => void
+  soloPorVisitar: boolean
+  onLimpiarFiltrosCategoricos: () => void
   nombresComunas: string[]
   nombresProyectos: string[]
   nombresSubproyectos: string[]
@@ -46,6 +48,8 @@ export function PanelLateralMapa({
   onCambiarSubproyectoFiltro,
   dependenciaFiltro,
   onCambiarDependenciaFiltro,
+  soloPorVisitar,
+  onLimpiarFiltrosCategoricos,
   nombresComunas,
   nombresProyectos,
   nombresSubproyectos,
@@ -55,7 +59,8 @@ export function PanelLateralMapa({
   ultimaVisitaPorObra,
   onSeleccionarObra,
 }: PanelLateralMapaProps) {
-  const hayFiltroCategorico = comunaFiltro || proyectoFiltro || subproyectoFiltro || dependenciaFiltro
+  const hayFiltroCategorico =
+    comunaFiltro || proyectoFiltro || subproyectoFiltro || dependenciaFiltro || soloPorVisitar
 
   return (
     <Box
@@ -169,18 +174,12 @@ export function PanelLateralMapa({
           <>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1 }}>
               <Typography variant="subtitle2">
-                {[comunaFiltro, proyectoFiltro, subproyectoFiltro, dependenciaFiltro].filter(Boolean).join(' · ')} ·{' '}
-                {obrasFiltradas.length} obras
+                {[soloPorVisitar ? 'Por visitar' : null, comunaFiltro, proyectoFiltro, subproyectoFiltro, dependenciaFiltro]
+                  .filter(Boolean)
+                  .join(' · ')}{' '}
+                · {obrasFiltradas.length} obras
               </Typography>
-              <IconButton
-                size="small"
-                onClick={() => {
-                  onCambiarComunaFiltro(null)
-                  onCambiarProyectoFiltro(null)
-                  onCambiarSubproyectoFiltro(null)
-                  onCambiarDependenciaFiltro(null)
-                }}
-              >
+              <IconButton size="small" onClick={onLimpiarFiltrosCategoricos}>
                 <CloseIcon fontSize="small" />
               </IconButton>
             </Box>

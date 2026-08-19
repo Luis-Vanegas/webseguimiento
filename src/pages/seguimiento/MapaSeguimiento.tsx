@@ -209,14 +209,40 @@ export function MapaSeguimiento() {
     setFiltros(FILTROS_MAPA_VACIOS)
   }
 
+  // Solo las dimensiones categóricas + "por visitar": el X del panel lateral
+  // cierra la lista de obras sin tirar abajo los rangos de fecha elegidos.
+  function limpiarFiltrosCategoricos() {
+    setFiltros((f) => ({
+      ...f,
+      comunaFiltro: null,
+      proyectoFiltro: null,
+      subproyectoFiltro: null,
+      dependenciaFiltro: null,
+      soloPorVisitar: false,
+    }))
+  }
+
   // Al elegir una comuna, proyecto, subproyecto o dependencia en el filtro,
   // encuadrar el mapa en sus obras.
   useEffect(() => {
-    if (!filtros.comunaFiltro && !filtros.proyectoFiltro && !filtros.subproyectoFiltro && !filtros.dependenciaFiltro) return
+    if (
+      !filtros.comunaFiltro &&
+      !filtros.proyectoFiltro &&
+      !filtros.subproyectoFiltro &&
+      !filtros.dependenciaFiltro &&
+      !filtros.soloPorVisitar
+    )
+      return
     const bounds = calcularBounds(obrasFiltradas)
     if (bounds) mapRef.current?.fitBounds(bounds, { padding: 60, maxZoom: 15, duration: 800 })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtros.comunaFiltro, filtros.proyectoFiltro, filtros.subproyectoFiltro, filtros.dependenciaFiltro])
+  }, [
+    filtros.comunaFiltro,
+    filtros.proyectoFiltro,
+    filtros.subproyectoFiltro,
+    filtros.dependenciaFiltro,
+    filtros.soloPorVisitar,
+  ])
 
   return (
     <Box sx={{ height: 'calc(100vh - 48px)', display: 'flex', flexDirection: 'column' }}>
@@ -229,12 +255,14 @@ export function MapaSeguimiento() {
         proyectoFiltro={filtros.proyectoFiltro}
         subproyectoFiltro={filtros.subproyectoFiltro}
         dependenciaFiltro={filtros.dependenciaFiltro}
+        soloPorVisitar={filtros.soloPorVisitar}
         estiloMapa={estiloMapa}
         esVisualizador={usuario?.rol === 'visualizador'}
         onCambiarFechaDesde={(v) => actualizarFiltro('fechaDesde', v)}
         onCambiarFechaHasta={(v) => actualizarFiltro('fechaHasta', v)}
         onCambiarEntregaDesde={(v) => actualizarFiltro('entregaDesde', v)}
         onCambiarEntregaHasta={(v) => actualizarFiltro('entregaHasta', v)}
+        onAlternarSoloPorVisitar={() => actualizarFiltro('soloPorVisitar', !filtros.soloPorVisitar)}
         onLimpiarFiltros={limpiarFiltros}
         onCambiarEstiloMapa={setEstiloMapa}
       />
@@ -251,6 +279,8 @@ export function MapaSeguimiento() {
           onCambiarSubproyectoFiltro={(v) => actualizarFiltro('subproyectoFiltro', v)}
           dependenciaFiltro={filtros.dependenciaFiltro}
           onCambiarDependenciaFiltro={(v) => actualizarFiltro('dependenciaFiltro', v)}
+          soloPorVisitar={filtros.soloPorVisitar}
+          onLimpiarFiltrosCategoricos={limpiarFiltrosCategoricos}
           nombresComunas={nombresComunas}
           nombresProyectos={nombresProyectos}
           nombresSubproyectos={nombresSubproyectos}

@@ -11,12 +11,14 @@ interface BarraFiltrosMapaProps {
   proyectoFiltro: string | null
   subproyectoFiltro: string | null
   dependenciaFiltro: string | null
+  soloPorVisitar: boolean
   estiloMapa: 'calles' | 'satelite'
   esVisualizador: boolean
   onCambiarFechaDesde: (valor: string) => void
   onCambiarFechaHasta: (valor: string) => void
   onCambiarEntregaDesde: (valor: string) => void
   onCambiarEntregaHasta: (valor: string) => void
+  onAlternarSoloPorVisitar: () => void
   onLimpiarFiltros: () => void
   onCambiarEstiloMapa: (estilo: 'calles' | 'satelite') => void
 }
@@ -30,12 +32,14 @@ export function BarraFiltrosMapa({
   proyectoFiltro,
   subproyectoFiltro,
   dependenciaFiltro,
+  soloPorVisitar,
   estiloMapa,
   esVisualizador,
   onCambiarFechaDesde,
   onCambiarFechaHasta,
   onCambiarEntregaDesde,
   onCambiarEntregaHasta,
+  onAlternarSoloPorVisitar,
   onLimpiarFiltros,
   onCambiarEstiloMapa,
 }: BarraFiltrosMapaProps) {
@@ -107,6 +111,15 @@ export function BarraFiltrosMapa({
         sx={anchoCampoFecha}
       />
 
+      <Chip
+        label="Por visitar"
+        size="small"
+        variant={soloPorVisitar ? 'filled' : 'outlined'}
+        color={soloPorVisitar ? 'primary' : 'default'}
+        onClick={onAlternarSoloPorVisitar}
+        title="Mostrar solo las obras de la agenda de visitas priorizadas"
+      />
+
       {(fechaDesde ||
         fechaHasta ||
         entregaDesde ||
@@ -114,7 +127,8 @@ export function BarraFiltrosMapa({
         comunaFiltro ||
         proyectoFiltro ||
         subproyectoFiltro ||
-        dependenciaFiltro) && (
+        dependenciaFiltro ||
+        soloPorVisitar) && (
         <Button size="small" variant="outlined" onClick={onLimpiarFiltros}>
           Limpiar filtros
         </Button>
