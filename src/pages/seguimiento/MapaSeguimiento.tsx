@@ -306,8 +306,12 @@ export function MapaSeguimiento() {
                 setPuntosPlaneados((prev) => [...prev, { lat: evt.lngLat.lat, lon: evt.lngLat.lng, ts: Date.now() }])
               }
             }}
+            // El 'supported' esperado viene del hack de arriba y se ignora; el
+            // resto se loguea — sin esto, un fallo de maplibre en un celular
+            // (WebGL, estilo que no carga) no deja ningun rastro.
             onError={(e: any) => {
               if (e?.error?.message?.includes('supported')) return
+              console.error('[MapaSeguimiento]', e?.error ?? e)
             }}
           >
             <NavigationControl position="top-right" />
