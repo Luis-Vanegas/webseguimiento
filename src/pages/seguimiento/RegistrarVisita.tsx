@@ -216,7 +216,7 @@ export function RegistrarVisita() {
       // navega igual — reintentar el registro completo duplicaría la visita.
       if (resultado.fotosFallidas > 0) {
         window.alert(
-          `La visita se guardó correctamente, pero ${resultado.fotosFallidas} de ${resultado.fotosTotales} fotos no se pudieron subir. Revisá la conexión.`,
+          `La visita se guardó correctamente, pero ${resultado.fotosFallidas} de ${resultado.fotosTotales} fotos no se pudieron subir. Puede ser la conexión o que se llenó el espacio de almacenamiento — avisá a soporte si vuelve a pasar.`,
         )
       }
       navigate('/seguimiento/mis-visitas')

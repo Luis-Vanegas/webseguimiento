@@ -105,7 +105,10 @@ export function PanelRecorrido({ grabacion, autorId, onGuardado }: PanelRecorrid
       for (let i = 0; i < fotos.length; i++) {
         try {
           fotosSubidas.push(await subirFotoRecorrido(recorrido.id, fotos[i], i))
-        } catch {
+        } catch (err) {
+          // Se loguea el motivo real (cuota de Storage llena, red, etc.) porque
+          // el usuario solo ve "no se pudieron subir" sin detalle técnico.
+          console.error('Falló la subida de una foto de recorrido:', err)
           fotosFallidas++
         }
       }
@@ -114,7 +117,7 @@ export function PanelRecorrido({ grabacion, autorId, onGuardado }: PanelRecorrid
       descartar()
       if (fotosFallidas > 0) {
         window.alert(
-          `El recorrido se guardó, pero ${fotosFallidas} de ${fotos.length} fotos no se pudieron subir. Revisá la conexión.`,
+          `El recorrido se guardó, pero ${fotosFallidas} de ${fotos.length} fotos no se pudieron subir. Puede ser la conexión o que se llenó el espacio de almacenamiento — avisá a soporte si vuelve a pasar.`,
         )
       }
     } catch (err) {

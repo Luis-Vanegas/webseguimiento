@@ -43,7 +43,10 @@ export const crearVisita = createAsyncThunk(
     for (let i = 0; i < fotos.length; i++) {
       try {
         await api.subirFoto(visita.id, fotos[i], null, i)
-      } catch {
+      } catch (err) {
+        // Se loguea el motivo real (cuota de Storage llena, red, etc.) porque
+        // el usuario solo ve "no se pudieron subir" sin detalle técnico.
+        console.error('Falló la subida de una foto de visita:', err)
         fotosFallidas++
       }
     }
