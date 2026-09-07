@@ -18,6 +18,8 @@ import { PanelLateralMapa } from '../../components/seguimiento/mapa/PanelLateral
 import { LeyendaMapa } from '../../components/seguimiento/mapa/LeyendaMapa'
 import { PopupObra } from '../../components/seguimiento/mapa/PopupObra'
 import { COLOR_COMUNA, COLOR_DESATENDIDA, infoObra } from '../../components/seguimiento/mapa/mapaEstado.util'
+import { obrasAGeoJSON } from '../../components/seguimiento/mapa/geojson.util.ts'
+import { calcularBounds, puntosALinea, recorridosALineas } from '../../utils/seguimiento/geojson.util.ts'
 import { COLOR_ACENTO, COLOR_PROXIMA_ENTREGA, COLOR_RUTA_PLANEADA } from '../../theme/theme'
 import { estaDesatendida, estaProximaAEntregar } from '../../utils/seguimiento/fechas.util'
 import { FILTROS_MAPA_VACIOS, filtrarObras, obrasDeLaAgenda, opcionesDeDimension } from '../../utils/seguimiento/filtrar-obras.util'
@@ -31,69 +33,6 @@ const ESTILOS_MAPA = {
   calles: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
   satelite: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
 } as const
-
-// FeatureCollection de puntos: uno por obra, con su color de estado y si
-// está desatendida ya resueltos como propiedades — así el layer de
-// MapLibre solo necesita 'get', sin duplicar la lógica en el paint.
-function obrasAGeoJSON(obras: ObraVisor[], ultimaVisitaPorObra: Map<number, string>) {
-  return {
-    type: 'FeatureCollection' as const,
-    features: obras.map((obra) => ({
-      type: 'Feature' as const,
-      geometry: { type: 'Point' as const, coordinates: [obra.longitud, obra.latitud] },
-      properties: {
-        obraId: obra.obraId,
-        color: infoObra(obra, ultimaVisitaPorObra).color,
-        desatendida: estaDesatendida(ultimaVisitaPorObra.get(obra.obraId)),
-      },
-    })),
-  }
-}
-
-// Un LineString por recorrido con trazo utilizable (>= 2 puntos), con su id
-// como propiedad — mismo criterio que obrasAGeoJSON: la lógica de selección
-// se resuelve en el click leyendo `get('recorridoId')`, sin duplicarla.
-function recorridosALineas(recorridos: RecorridoSeguimiento[]) {
-  return {
-    type: 'FeatureCollection' as const,
-    features: recorridos
-      .filter((r) => r.trazo.length >= 2)
-      .map((r) => ({
-        type: 'Feature' as const,
-        geometry: { type: 'LineString' as const, coordinates: r.trazo.map((p) => [p.lon, p.lat]) },
-        properties: { recorridoId: r.id, tipo: r.tipo },
-      })),
-  }
-}
-
-// Trazo en vivo mientras se graba: una sola línea a partir de los puntos que
-// va emitiendo el hook de grabación.
-function puntosALinea(puntos: PuntoTrazo[]) {
-  return {
-    type: 'FeatureCollection' as const,
-    features:
-      puntos.length >= 2
-        ? [
-            {
-              type: 'Feature' as const,
-              geometry: { type: 'LineString' as const, coordinates: puntos.map((p) => [p.lon, p.lat]) },
-              properties: {},
-            },
-          ]
-        : [],
-  }
-}
-
-function calcularBounds(obras: ObraVisor[]): [[number, number], [number, number]] | null {
-  const conCoordenadas = obras.filter((o) => o.latitud !== null && o.longitud !== null)
-  if (conCoordenadas.length === 0) return null
-  const lons = conCoordenadas.map((o) => o.longitud!)
-  const lats = conCoordenadas.map((o) => o.latitud!)
-  return [
-    [Math.min(...lons), Math.min(...lats)],
-    [Math.max(...lons), Math.max(...lats)],
-  ]
-}
 
 export function MapaSeguimiento() {
   const navigate = useNavigate()
