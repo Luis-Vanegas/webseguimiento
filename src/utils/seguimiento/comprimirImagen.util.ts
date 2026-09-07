@@ -4,8 +4,10 @@
 // Se redimensionan a un máximo razonable para documentación y se recodifican
 // antes de guardarlas — Canvas es nativo del navegador, no hace falta
 // ninguna librería.
-const DIMENSION_MAXIMA = 1600
-const CALIDAD = 0.8
+// Los mismos valores están replicados en scripts/recomprimir-fotos.mjs (la
+// migración de las fotos viejas) — si se cambian acá, cambiarlos allá también.
+const DIMENSION_MAXIMA = 1280
+const CALIDAD = 0.72
 
 // Safari (macOS e iOS) no sabe CODIFICAR webp desde canvas.toBlob — solo
 // sabe mostrarlo. Si se le pide 'image/webp' y no lo soporta, el navegador
