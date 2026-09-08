@@ -18,20 +18,25 @@ function infoDias(dias: number): {
   color: string
   Icono: typeof WarningAmberIcon
 } {
+  // Los colores van oscurecidos respecto del tono puro (#ef4444, #f97316,
+  // #eab308): el mismo valor pinta el icono, el numero grande y un caption de
+  // 12px, y ese caption necesita 4.5:1 sobre el fondo claro. En tono puro daban
+  // 3.76, 2.80 y 1.92. El amarillo es el caso extremo — no existe amarillo
+  // brillante que pase como texto sobre fondo claro.
   if (dias < 0) {
     return {
       numero: String(-dias),
       unidad: -dias === 1 ? 'día vencido' : 'días vencidos',
-      color: '#ef4444',
+      color: '#d73d3d',
       Icono: WarningAmberIcon,
     }
   }
-  if (dias === 0) return { numero: 'Hoy', unidad: '', color: '#f97316', Icono: TodayIcon }
-  if (dias === 1) return { numero: 'Mañana', unidad: '', color: '#f97316', Icono: TodayIcon }
+  if (dias === 0) return { numero: 'Hoy', unidad: '', color: '#bd5711', Icono: TodayIcon }
+  if (dias === 1) return { numero: 'Mañana', unidad: '', color: '#bd5711', Icono: TodayIcon }
   return {
     numero: String(dias),
     unidad: 'días',
-    color: dias <= 7 ? '#eab308' : '#64748b',
+    color: dias <= 7 ? '#916f05' : '#64748b',
     Icono: EventAvailableIcon,
   }
 }
