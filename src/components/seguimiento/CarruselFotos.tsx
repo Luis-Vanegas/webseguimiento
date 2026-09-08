@@ -3,7 +3,8 @@ import { Box, Dialog, IconButton, Typography } from '@mui/material'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import CloseIcon from '@mui/icons-material/Close'
-import { FotoVisitaImg, useFotoUrl } from './FotoVisitaImg'
+import { FotoVisitaImg } from './FotoVisitaImg'
+import { useFotoUrl } from '../../hooks/useFotoUrl'
 import type { FotoVisita } from '../../types/seguimiento.types'
 
 // Fila de thumbnails (igual que antes) + un visor grande con navegación

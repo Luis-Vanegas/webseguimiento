@@ -1,0 +1,11 @@
+# Normaliza los saltos de línea en el repo (LF) y deja que cada quien los
+# tenga en su formato nativo al trabajar. Sin esto, cada `git add` en Windows
+# avisaba "LF will be replaced by CRLF" por cada archivo tocado.
+* text=auto eol=lf
+
+# Binarios: nunca tocar.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.pdf binary
