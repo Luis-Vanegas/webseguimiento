@@ -18,6 +18,7 @@ import { formatearFechaCorta } from '../../utils/seguimiento/fechas.util'
 import { COLOR_ESTADO, COLOR_SEVERIDAD, COLOR_SIDEBAR } from '../../theme/theme'
 import type { ObraVisor } from '../../types/obra.types'
 import type { VisitaSeguimiento } from '../../types/seguimiento.types'
+import { iniciales } from '../../utils/seguimiento/formatoTexto.util'
 
 // Rampa ordinal (skill de dataviz): las 4 etapas del portafolio son una
 // posición en una secuencia ("funnel stage"), no identidades sueltas —
@@ -254,14 +255,3 @@ function MiniaturaFoto({ storagePath }: { storagePath: string }) {
   )
 }
 
-function iniciales(nombre: string): string {
-  return (
-    nombre
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((parte) => parte[0])
-      .join('')
-      .toUpperCase() || '?'
-  )
-}

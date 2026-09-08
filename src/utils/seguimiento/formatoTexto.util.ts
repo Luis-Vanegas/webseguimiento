@@ -62,3 +62,18 @@ function parsearLineaInline(linea: string): SegmentoTexto[] {
       return { tipo: 'texto', contenido: parte }
     })
 }
+
+// Iniciales para los avatares de autor: hasta dos letras. Estaba duplicada
+// en GestionVisitas y LineaTiempoPortafolio; el '?' final cubre el caso de
+// un nombre vacío o de solo espacios, que si no dejaba el avatar en blanco.
+export function iniciales(nombre: string): string {
+  return (
+    nombre
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((parte) => parte[0])
+      .join('')
+      .toUpperCase() || '?'
+  )
+}

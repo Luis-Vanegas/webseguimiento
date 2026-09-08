@@ -34,6 +34,8 @@ import { PageHeader } from '../../components/layout/PageHeader'
 import { useEsMovil } from '../../hooks/useEsMovil'
 import { filtrarVisitas } from '../../utils/seguimiento/filtrar-visitas.util'
 import { severidadMaxima } from '../../utils/seguimiento/alertas.util'
+import { iniciales } from '../../utils/seguimiento/formatoTexto.util'
+import { resumirVisitas } from '../../utils/seguimiento/resumen-visitas.util'
 import { FILTROS_VACIOS } from '../../types/filtros.types'
 import { COLOR_ACENTO, COLOR_ESTADO, COLOR_SEVERIDAD, ETIQUETA_ESTADO } from '../../theme/theme'
 import type { SeveridadAlerta, VisitaSeguimiento } from '../../types/seguimiento.types'
@@ -82,18 +84,7 @@ export function GestionVisitas() {
 
   // KPIs derivados del conjunto ya filtrado: al filtrar por proyecto/autor el
   // resumen se recalcula para esa porción — no hace falta pedir más datos.
-  const resumen = useMemo(() => {
-    const total = visitasFiltradas.length
-    const revisadas = visitasFiltradas.filter((v) => v.vistoGerencia).length
-    const conAlertas = visitasFiltradas.filter((v) => (v.alertas?.length ?? 0) > 0).length
-    return {
-      total,
-      revisadas,
-      sinRevisar: total - revisadas,
-      conAlertas,
-      cobertura: total === 0 ? 0 : Math.round((revisadas / total) * 100),
-    }
-  }, [visitasFiltradas])
+  const resumen = useMemo(() => resumirVisitas(visitasFiltradas), [visitasFiltradas])
 
   const nombreObra = (obraId: number) => obraPorId.get(obraId)?.nombre ?? `Obra ${obraId}`
   const nombreAutor = (autorId: string) => nombrePorAutor.get(autorId) ?? 'Autor desconocido'
@@ -402,14 +393,3 @@ function ChipSeveridad({ severidad, cantidad }: { severidad: SeveridadAlerta; ca
   )
 }
 
-function iniciales(nombre: string) {
-  return (
-    nombre
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((parte) => parte[0])
-      .join('')
-      .toUpperCase() || '?'
-  )
-}

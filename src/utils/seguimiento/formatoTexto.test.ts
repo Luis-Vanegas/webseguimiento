@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { parsearTextoConFormato } from './formatoTexto.util.ts'
+import { iniciales, parsearTextoConFormato } from './formatoTexto.util.ts'
 
 describe('parsearTextoConFormato', () => {
   it('devuelve un solo párrafo para texto plano sin marcadores', () => {
@@ -49,5 +49,25 @@ describe('parsearTextoConFormato', () => {
 
   it('devuelve un array vacío para texto vacío', () => {
     assert.deepEqual(parsearTextoConFormato(''), [])
+  })
+})
+
+describe('iniciales', () => {
+  it('toma hasta dos palabras', () => {
+    assert.equal(iniciales('Luis Perez'), 'LP')
+    assert.equal(iniciales('Ana Maria Gomez Diaz'), 'AM')
+  })
+
+  it('un nombre de una sola palabra da una sola inicial', () => {
+    assert.equal(iniciales('Luis'), 'L')
+  })
+
+  it('un nombre vacio o de solo espacios da ? en vez de string vacio', () => {
+    assert.equal(iniciales(''), '?')
+    assert.equal(iniciales('   '), '?')
+  })
+
+  it('los espacios de mas no producen iniciales vacias', () => {
+    assert.equal(iniciales('  Luis   Perez  '), 'LP')
   })
 })

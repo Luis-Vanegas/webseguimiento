@@ -24,6 +24,7 @@ import { crearVisita, listarVisitasDeObra } from '../../features/seguimiento/seg
 import { useDatosFiltro } from '../../features/seguimiento/useDatosFiltro'
 import { compararVisitas } from '../../utils/seguimiento/visita-comparator.util'
 import { claveDeDate } from '../../utils/seguimiento/fechas.util'
+import { mensajeDeCamposFaltantes } from '../../utils/seguimiento/camposFaltantes.util'
 import { CambioVisitaItem } from '../../components/seguimiento/CambioVisitaItem'
 import { CapturaFotoCamara } from '../../components/seguimiento/CapturaFotoCamara'
 import { EditorTextoConFormato } from '../../components/seguimiento/EditorTextoConFormato'
@@ -70,20 +71,6 @@ function crearEsquemaVisita(idAlertaOtra: string | undefined) {
 }
 
 type FormVisita = yup.InferType<ReturnType<typeof crearEsquemaVisita>>
-
-// Nombre visible de cada campo validado, para poder decir QUÉ falta en vez
-// de un "revisá el formulario" genérico. Las claves son las de FormVisita.
-const ETIQUETA_CAMPO: Record<string, string> = {
-  fechaVisita: 'Fecha de visita',
-  porcentajeAvanceCampo: '% de avance observado en campo',
-  alertas: 'Descripción de la alerta',
-}
-
-function mensajeDeCamposFaltantes(errores: FieldErrors<FormVisita>): string {
-  const nombres = Object.keys(errores).map((campo) => ETIQUETA_CAMPO[campo] ?? campo)
-  if (nombres.length === 0) return 'Revisá los datos del formulario antes de guardar.'
-  return `No se guardó: falta completar ${nombres.join(', ')}. Está marcado en rojo más arriba.`
-}
 
 // Secciones de un mismo Paper, con título uniforme — reutilizado tres veces
 // en este formulario para no repetir el mismo bloque de estilos.
