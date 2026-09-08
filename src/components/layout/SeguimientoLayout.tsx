@@ -29,7 +29,7 @@ import EngineeringIcon from '@mui/icons-material/Engineering'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { useUsuarioActual } from '../../features/auth/useUsuarioActual'
-import { COLOR_ACENTO, COLOR_SIDEBAR } from '../../theme/theme'
+import { COLOR_ACENTO, COLOR_TEXTO_SOBRE_ACENTO, COLOR_SIDEBAR } from '../../theme/theme'
 import type { RolUsuario } from '../../types/seguimiento.types'
 
 const DRAWER_WIDTH = 240
@@ -110,7 +110,7 @@ export function SeguimientoLayout() {
 
       <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)' }} />
       <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        <Avatar sx={{ width: 34, height: 34, bgcolor: COLOR_ACENTO, fontSize: 15 }}>
+        <Avatar sx={{ width: 34, height: 34, bgcolor: COLOR_ACENTO, color: COLOR_TEXTO_SOBRE_ACENTO, fontSize: 15, fontWeight: 700 }}>
           {(usuario?.nombre ?? '?').charAt(0).toUpperCase()}
         </Avatar>
         <Box sx={{ flex: 1, minWidth: 0 }}>

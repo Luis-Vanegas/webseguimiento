@@ -10,6 +10,10 @@ export const COLOR_ACENTO = '#29B6E8'
 export const COLOR_ACENTO_HOVER = '#1f9fce'
 // Fondo tenue del acento, para chips/etiquetas informativas sobre fondo claro.
 export const COLOR_ACENTO_FONDO_SUAVE = 'rgba(41, 182, 232, 0.12)'
+// Color de texto cuando va ENCIMA de COLOR_ACENTO. En blanco el celeste da
+// 2.35:1, muy por debajo del minimo AA (4.5:1); con el azul del sidebar sube
+// a 7.07:1 y ademas evita tener que oscurecer el celeste de marca.
+export const COLOR_TEXTO_SOBRE_ACENTO = COLOR_SIDEBAR
 
 // Ruta planeada en el mapa (índigo, distinto del cian de recorridos
 // grabados) — antes duplicado como const local en 3 archivos.
@@ -30,7 +34,9 @@ export const COLOR_ESTADO = {
 
 // Usado por el mapa y el calendario para marcar obras con fecha estimada
 // de entrega próxima — un solo color para que ambas vistas se lean igual.
-export const COLOR_PROXIMA_ENTREGA = '#a855f7'
+// Oscurecido un 10% respecto del violeta original (#a855f7): con texto blanco
+// encima daba 3.96:1 y ahora da 4.77:1, sin que el tono cambie a simple vista.
+export const COLOR_PROXIMA_ENTREGA = '#974cde'
 
 // Antes vivía duplicado como const local en DetalleVisitaDialog.tsx — se
 // unifica acá para que las tarjetas de listado también puedan colorear su

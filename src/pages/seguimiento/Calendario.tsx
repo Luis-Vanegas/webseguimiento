@@ -19,7 +19,7 @@ import {
 } from '../../components/seguimiento/DetalleVisitaDialog'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { claveDeDate, claveDia } from '../../utils/seguimiento/fechas.util'
-import { COLOR_ACENTO, COLOR_ACENTO_FONDO_SUAVE, COLOR_PROXIMA_ENTREGA } from '../../theme/theme'
+import { COLOR_ACENTO, COLOR_ACENTO_FONDO_SUAVE, COLOR_PROXIMA_ENTREGA, COLOR_TEXTO_SOBRE_ACENTO } from '../../theme/theme'
 import type { ObraVisor } from '../../types/obra.types'
 import type { VisitaSeguimiento } from '../../types/seguimiento.types'
 
@@ -197,7 +197,7 @@ export function Calendario() {
                   <Chip
                     size="small"
                     label={visitasDia.length}
-                    sx={{ height: 16, fontSize: 10, bgcolor: COLOR_ACENTO, color: '#fff', '& .MuiChip-label': { px: 0.5 } }}
+                    sx={{ height: 16, fontSize: 10, bgcolor: COLOR_ACENTO, color: COLOR_TEXTO_SOBRE_ACENTO, fontWeight: 700, '& .MuiChip-label': { px: 0.5 } }}
                   />
                 )}
               </Box>

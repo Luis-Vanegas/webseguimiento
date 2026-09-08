@@ -15,7 +15,7 @@ import StopIcon from '@mui/icons-material/Stop'
 import { crearRecorrido, subirFotoRecorrido } from '../../features/seguimiento/recorridosApi'
 import { CapturaFotoCamara } from './CapturaFotoCamara'
 import { useEsMovil } from '../../hooks/useEsMovil'
-import { COLOR_ACENTO, COLOR_ACENTO_HOVER, COLOR_FONDO_DIALOGO } from '../../theme/theme'
+import { COLOR_ACENTO, COLOR_ACENTO_HOVER, COLOR_TEXTO_SOBRE_ACENTO, COLOR_FONDO_DIALOGO } from '../../theme/theme'
 import type { useGrabacionRecorrido } from '../../features/seguimiento/useGrabacionRecorrido'
 import type { FotoRecorrido, RecorridoSeguimiento } from '../../types/seguimiento.types'
 
@@ -300,7 +300,7 @@ export function PanelRecorrido({ grabacion, autorId, onGuardado }: PanelRecorrid
           variant="contained"
           onClick={guardar}
           disabled={!puedeGuardar}
-          sx={{ bgcolor: COLOR_ACENTO, '&:hover': { bgcolor: COLOR_ACENTO_HOVER } }}
+          sx={{ bgcolor: COLOR_ACENTO, color: COLOR_TEXTO_SOBRE_ACENTO, '&:hover': { bgcolor: COLOR_ACENTO_HOVER } }}
         >
           {enviando ? 'Guardando…' : 'Guardar recorrido'}
         </Button>

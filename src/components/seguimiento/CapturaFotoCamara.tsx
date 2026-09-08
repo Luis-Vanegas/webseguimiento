@@ -14,7 +14,7 @@ import CloseIcon from '@mui/icons-material/Close'
 import { convertirBlobHeicAJpeg, esArchivoHeic } from '../../utils/seguimiento/heic.util'
 import { comprimirImagen } from '../../utils/seguimiento/comprimirImagen.util'
 import { useEsMovil } from '../../hooks/useEsMovil'
-import { COLOR_ACENTO, COLOR_ACENTO_HOVER } from '../../theme/theme'
+import { COLOR_ACENTO, COLOR_ACENTO_HOVER, COLOR_TEXTO_SOBRE_ACENTO } from '../../theme/theme'
 
 // Las fotos HEIC del iPhone (solo posibles al elegir de la galería; la captura
 // por cámara siempre produce JPEG desde canvas) se convierten a JPEG antes de
@@ -183,7 +183,7 @@ export function CapturaFotoCamara({ fotos, onAgregar, onQuitar, onProcesandoChan
           variant="contained"
           startIcon={<PhotoCameraIcon />}
           onClick={abrirCamara}
-          sx={{ flex: 1, minWidth: 140, bgcolor: COLOR_ACENTO, '&:hover': { bgcolor: COLOR_ACENTO_HOVER } }}
+          sx={{ flex: 1, minWidth: 140, bgcolor: COLOR_ACENTO, color: COLOR_TEXTO_SOBRE_ACENTO, '&:hover': { bgcolor: COLOR_ACENTO_HOVER } }}
         >
           Tomar foto
         </Button>
@@ -333,6 +333,7 @@ export function CapturaFotoCamara({ fotos, onAgregar, onQuitar, onProcesandoChan
                     sx={{
                       minWidth: 64,
                       bgcolor: COLOR_ACENTO,
+                      color: COLOR_TEXTO_SOBRE_ACENTO,
                       '&:hover': { bgcolor: COLOR_ACENTO_HOVER },
                     }}
                   >
