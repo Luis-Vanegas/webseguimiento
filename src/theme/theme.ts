@@ -113,6 +113,29 @@ export const theme = createTheme({
         size: 'small',
       },
     },
+    // Los dos overrides que siguen valen solo para pantallas tactiles
+    // (pointer: coarse): en escritorio con mouse la densidad chica esta bien
+    // y no se toca. En campo el telefono es el unico dispositivo.
+    MuiInputBase: {
+      styleOverrides: {
+        input: {
+          // iOS Safari hace zoom automatico al enfocar un input de menos de
+          // 16px, y despues deja la pagina desencuadrada. Con size 'small'
+          // los inputs quedaban en 15px, asi que zoomeaba en cada campo.
+          '@media (pointer: coarse)': { fontSize: 16 },
+        },
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        // WCAG 2.5.5: 44px minimo de area tactil. Los inputs quedaban en 39.
+        // El minHeight en el root no alcanza: con size 'small' MUI fija el
+        // padding del input interno, y ese padding es el que manda la altura.
+        input: {
+          '@media (pointer: coarse)': { paddingTop: 12, paddingBottom: 12 },
+        },
+      },
+    },
     MuiChip: {
       styleOverrides: {
         label: { fontWeight: 600 },
@@ -135,7 +158,12 @@ export const theme = createTheme({
     },
     MuiButton: {
       styleOverrides: {
-        root: { borderRadius: 8 },
+        root: {
+          borderRadius: 8,
+          // Mismo minimo tactil que los inputs: el boton de guardar visita se
+          // toca con el telefono en la mano, a veces con guantes.
+          '@media (pointer: coarse)': { minHeight: 44 },
+        },
       },
     },
   },
