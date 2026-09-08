@@ -43,7 +43,7 @@ import { useEsMovil } from '../../hooks/useEsMovil'
 import { filtrarVisitas } from '../../utils/seguimiento/filtrar-visitas.util'
 import { severidadMaxima } from '../../utils/seguimiento/alertas.util'
 import { FILTROS_VACIOS } from '../../types/filtros.types'
-import { COLOR_ESTADO, COLOR_SEVERIDAD, ETIQUETA_ESTADO } from '../../theme/theme'
+import { COLOR_ESTADO, COLOR_SEVERIDAD, COLOR_TEXTO_SEVERIDAD, ETIQUETA_ESTADO } from '../../theme/theme'
 import type { VisitaSeguimiento } from '../../types/seguimiento.types'
 
 export function RevisarVisitas() {
@@ -167,7 +167,7 @@ export function RevisarVisitas() {
                         size="small"
                         icon={<WarningAmberIcon sx={{ fontSize: 14, color: '#fff !important' }} />}
                         label={alertas}
-                        sx={{ backgroundColor: COLOR_SEVERIDAD[severidad], color: '#fff', fontWeight: 700 }}
+                        sx={{ backgroundColor: COLOR_SEVERIDAD[severidad], color: COLOR_TEXTO_SEVERIDAD[severidad], fontWeight: 700 }}
                       />
                     )}
                     <Chip

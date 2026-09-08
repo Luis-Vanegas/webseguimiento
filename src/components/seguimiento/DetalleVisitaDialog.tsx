@@ -24,7 +24,7 @@ import { EditorTextoConFormato } from './EditorTextoConFormato'
 import { TextoConFormato } from './TextoConFormato'
 import { Seccion } from '../layout/Seccion'
 import { useEsMovil } from '../../hooks/useEsMovil'
-import { COLOR_ESTADO, COLOR_FONDO_DIALOGO, COLOR_SEVERIDAD, ETIQUETA_ESTADO } from '../../theme/theme'
+import { COLOR_ESTADO, COLOR_FONDO_DIALOGO, COLOR_SEVERIDAD, COLOR_TEXTO_SEVERIDAD, ETIQUETA_ESTADO } from '../../theme/theme'
 import type { TipoAlerta, VisitaSeguimiento } from '../../types/seguimiento.types'
 
 export interface CambiosVisitaEditables {
@@ -200,7 +200,7 @@ export function DetalleVisitaDialog({
                       height: 20,
                       fontSize: 11,
                       bgcolor: COLOR_SEVERIDAD[alerta.severidad],
-                      color: '#fff',
+                      color: COLOR_TEXTO_SEVERIDAD[alerta.severidad],
                     }}
                   />
                 </Box>

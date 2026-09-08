@@ -15,7 +15,7 @@ import { ContadorAnimado } from '../../components/seguimiento/ContadorAnimado'
 import { agruparPortafolio } from '../../utils/seguimiento/portafolio.util'
 import { severidadMaxima } from '../../utils/seguimiento/alertas.util'
 import { formatearFechaCorta } from '../../utils/seguimiento/fechas.util'
-import { COLOR_ESTADO, COLOR_SEVERIDAD, COLOR_SIDEBAR } from '../../theme/theme'
+import { COLOR_ESTADO, COLOR_SEVERIDAD, COLOR_TEXTO_SEVERIDAD, COLOR_SIDEBAR } from '../../theme/theme'
 import type { ObraVisor } from '../../types/obra.types'
 import type { VisitaSeguimiento } from '../../types/seguimiento.types'
 import { iniciales } from '../../utils/seguimiento/formatoTexto.util'
@@ -27,7 +27,9 @@ import { iniciales } from '../../utils/seguimiento/formatoTexto.util'
 // contra superficie blanca: luminancia monótona, ΔL ≥ 0.06 entre pasos,
 // extremo claro a 2.27:1 (≥2:1) — los 4 checks pasan. El paso más oscuro
 // reusa COLOR_SIDEBAR (marca), no un hex nuevo.
-const COLOR_ETAPA_PLANEACION = '#4fb8e0'
+// Oscurecido (antes #4fb8e0): el KPI va en 34px sobre el fondo claro de la
+// app y daba 2.09:1, por debajo del 3.0 que pide AA para texto grande.
+const COLOR_ETAPA_PLANEACION = '#4197b8'
 const COLOR_ETAPA_EJECUCION = '#0f8fc7'
 const COLOR_ETAPA_POR_ENTREGAR = '#0a5f8f'
 const COLOR_ETAPA_ENTREGADA = COLOR_SIDEBAR
@@ -212,7 +214,7 @@ export function LineaTiempoPortafolio() {
                         size="small"
                         icon={<WarningAmberIcon sx={{ fontSize: 13, color: '#fff !important' }} />}
                         label={`${visita.alertas?.length ?? 0} alerta${(visita.alertas?.length ?? 0) > 1 ? 's' : ''}`}
-                        sx={{ height: 20, bgcolor: COLOR_SEVERIDAD[severidad], color: '#fff', fontWeight: 700 }}
+                        sx={{ height: 20, bgcolor: COLOR_SEVERIDAD[severidad], color: COLOR_TEXTO_SEVERIDAD[severidad], fontWeight: 700 }}
                       />
                     )}
                   </Box>

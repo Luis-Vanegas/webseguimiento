@@ -37,7 +37,7 @@ import { severidadMaxima } from '../../utils/seguimiento/alertas.util'
 import { iniciales } from '../../utils/seguimiento/formatoTexto.util'
 import { resumirVisitas } from '../../utils/seguimiento/resumen-visitas.util'
 import { FILTROS_VACIOS } from '../../types/filtros.types'
-import { COLOR_ACENTO, COLOR_ESTADO, COLOR_SEVERIDAD, ETIQUETA_ESTADO } from '../../theme/theme'
+import { COLOR_ACENTO, COLOR_ESTADO, COLOR_SEVERIDAD, COLOR_TEXTO_SEVERIDAD, ETIQUETA_ESTADO } from '../../theme/theme'
 import type { SeveridadAlerta, VisitaSeguimiento } from '../../types/seguimiento.types'
 
 // Tinte muy sutil para las filas/tarjetas ya vistas por gerencia — a
@@ -388,7 +388,7 @@ function ChipSeveridad({ severidad, cantidad }: { severidad: SeveridadAlerta; ca
       size="small"
       icon={<WarningAmberIcon sx={{ fontSize: 14, color: '#fff !important' }} />}
       label={cantidad}
-      sx={{ height: 22, backgroundColor: COLOR_SEVERIDAD[severidad], color: '#fff', fontWeight: 700, flexShrink: 0 }}
+      sx={{ height: 22, backgroundColor: COLOR_SEVERIDAD[severidad], color: COLOR_TEXTO_SEVERIDAD[severidad], fontWeight: 700, flexShrink: 0 }}
     />
   )
 }

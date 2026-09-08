@@ -24,3 +24,13 @@ body {
     width: 100%;
   }
 }
+
+/* Los filtros del mapa (PanelLateralMapa) son <select> nativos, no de MUI, así
+   que los overrides del theme no los alcanzan y en táctil quedaban en 34px.
+   Solo el alto: un <select> abre el picker nativo, no el teclado, así que no
+   dispara el zoom de iOS que sí obliga a 16px en los campos de texto. */
+@media (pointer: coarse) {
+  select {
+    min-height: 44px;
+  }
+}

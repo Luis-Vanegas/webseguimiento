@@ -44,7 +44,20 @@ export const COLOR_PROXIMA_ENTREGA = '#974cde'
 export const COLOR_SEVERIDAD: Record<SeveridadAlerta, string> = {
   baja: '#22c55e',
   media: '#f9a825',
-  alta: '#ef4444',
+  // Rojo apenas oscurecido (antes #ef4444): con texto blanco daba 3.76:1 y con
+  // texto oscuro 4.19:1 — no llegaba a AA por ninguno de los dos lados. Este
+  // pasa con blanco (4.54:1) y se sigue leyendo como el mismo rojo de alerta.
+  alta: '#d73d3d',
+}
+
+// El chip de severidad lleva texto encima y el color de fondo ES la
+// informacion (semaforo), asi que en vez de apagar el verde y el ambar se
+// oscurece el texto: 6.93:1 sobre el verde y 8.01:1 sobre el ambar. El rojo
+// es el unico que necesita texto blanco.
+export const COLOR_TEXTO_SEVERIDAD: Record<SeveridadAlerta, string> = {
+  baja: '#1a2332',
+  media: '#1a2332',
+  alta: '#ffffff',
 }
 
 export const ETIQUETA_ESTADO: Record<EstadoVisita, string> = {
@@ -67,6 +80,10 @@ export const theme = createTheme({
     text: {
       primary: '#1a2332',
       secondary: '#5c6b7a',
+      // MUI trae rgba(0,0,0,0.38) por defecto, que sobre fondo claro da
+      // 2.68:1 — por debajo del minimo AA. Se usa en los guiones de "sin
+      // dato" de las tablas, que son texto igual. Con 0.55 sube a 4.76:1.
+      disabled: 'rgba(0, 0, 0, 0.55)',
     },
     divider: 'rgba(10, 30, 61, 0.08)',
   },
