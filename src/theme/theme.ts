@@ -132,7 +132,24 @@ export const theme = createTheme({
         // El minHeight en el root no alcanza: con size 'small' MUI fija el
         // padding del input interno, y ese padding es el que manda la altura.
         input: {
-          '@media (pointer: coarse)': { paddingTop: 12, paddingBottom: 12 },
+          // Excluye el multiline a proposito: ahi MUI pone padding 0 en el
+          // textarea porque el padding lo maneja el root, y pisarlo le sumaba
+          // 24px de alto a los campos de observaciones.
+          '@media (pointer: coarse)': {
+            '&:not(.MuiInputBase-inputMultiline)': { paddingTop: 12, paddingBottom: 12 },
+          },
+        },
+      },
+    },
+    MuiIconButton: {
+      styleOverrides: {
+        root: {
+          // Los IconButton quedan en 40px por defecto. Se excluye sizeSmall a
+          // proposito: esos viven en filas densas (borrar una alerta, cerrar un
+          // chip) y estirarlos a 44 desarma esos layouts.
+          '@media (pointer: coarse)': {
+            '&:not(.MuiIconButton-sizeSmall)': { minWidth: 44, minHeight: 44 },
+          },
         },
       },
     },

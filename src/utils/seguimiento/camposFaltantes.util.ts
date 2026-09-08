@@ -12,6 +12,9 @@ const ETIQUETA_CAMPO: Record<string, string> = {
   alertas: 'Descripción de la alerta',
 }
 
+// Recibe Record en vez de FieldErrors<FormVisita> a proposito: solo usa las
+// claves, y tipar el parametro obligaria a que utils importara react-hook-form
+// y el tipo del formulario, que vive en la pagina.
 export function mensajeDeCamposFaltantes(errores: Record<string, unknown>): string {
   const nombres = Object.keys(errores).map((campo) => ETIQUETA_CAMPO[campo] ?? campo)
   if (nombres.length === 0) return 'Revisá los datos del formulario antes de guardar.'
