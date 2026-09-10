@@ -167,12 +167,11 @@ export const theme = createTheme({
     MuiIconButton: {
       styleOverrides: {
         root: {
-          // Los IconButton quedan en 40px por defecto. Se excluye sizeSmall a
-          // proposito: esos viven en filas densas (borrar una alerta, cerrar un
-          // chip) y estirarlos a 44 desarma esos layouts.
-          '@media (pointer: coarse)': {
-            '&:not(.MuiIconButton-sizeSmall)': { minWidth: 44, minHeight: 44 },
-          },
+          // 44px tambien para los sizeSmall. La exclusion anterior asumia que
+          // todos vivian en filas densas, y medido en RegistrarVisita resulto
+          // falso: los de negrita/italica/lista del editor y el de cerrar
+          // sesion quedaban en 30px y se tocan con el dedo.
+          '@media (pointer: coarse)': { minWidth: 44, minHeight: 44 },
         },
       },
     },

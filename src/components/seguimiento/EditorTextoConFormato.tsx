@@ -80,6 +80,10 @@ export function EditorTextoConFormato({ valor, onCambiar, placeholder }: EditorT
           borderRadius: 1,
           p: 1.5,
           fontSize: 14,
+          // Un contenteditable abre el teclado igual que un input: por debajo
+          // de 16px iOS zoomea al enfocarlo, y este es el campo donde mas se
+          // escribe estando en la obra. En escritorio se queda en 14.
+          '@media (pointer: coarse)': { fontSize: 16 },
           fontFamily: 'inherit',
           lineHeight: 1.5,
           '&:focus': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: -1 },
