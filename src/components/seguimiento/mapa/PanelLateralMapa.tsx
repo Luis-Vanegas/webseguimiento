@@ -1,6 +1,21 @@
-import { Box, IconButton, InputAdornment, List, ListItemButton, ListItemText, TextField, Typography } from '@mui/material'
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Box,
+  IconButton,
+  InputAdornment,
+  List,
+  ListItemButton,
+  ListItemText,
+  TextField,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import CloseIcon from '@mui/icons-material/Close'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { infoObra } from './mapaEstado.util'
 import type { CSSProperties } from 'react'
 import type { ObraVisor } from '../../../types/obra.types'
@@ -61,42 +76,12 @@ export function PanelLateralMapa({
 }: PanelLateralMapaProps) {
   const hayFiltroCategorico = comunaFiltro || proyectoFiltro || subproyectoFiltro || dependenciaFiltro
 
-  return (
-    <Box
-      sx={{
-        width: { xs: '100%', md: 320 },
-        flexShrink: 0,
-        borderRight: { md: '1px solid' },
-        borderBottom: { xs: '1px solid', md: 'none' },
-        borderColor: 'divider',
-        display: 'flex',
-        flexDirection: 'column',
-        maxHeight: { xs: 260, md: 'none' },
-      }}
-    >
-      <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
-        <TextField
-          size="small"
-          fullWidth
-          placeholder="Buscar obra por nombre…"
-          value={busqueda}
-          onChange={(e) => onCambiarBusqueda(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" />
-              </InputAdornment>
-            ),
-            endAdornment: busqueda && (
-              <InputAdornment position="end">
-                <IconButton size="small" onClick={() => onCambiarBusqueda('')}>
-                  <CloseIcon fontSize="small" />
-                </IconButton>
-              </InputAdornment>
-            ),
-          }}
-        />
+  // El panel se apila sobre el mapa hasta 'md' (ver MapaSeguimiento), no hasta
+  // 'sm' como useEsMovil: en ese rango los cinco selects apilados no caben.
+  const panelApilado = useMediaQuery(useTheme().breakpoints.down('md'))
 
+  const selectsDeFiltro = (
+    <>
         {/* Los cuatro selects se acotan entre sí (ver filtrar-obras.util.ts):
             elegir uno recalcula qué opciones quedan disponibles en los
             otros tres, para no ofrecer combinaciones sin resultados. */}
@@ -172,9 +157,63 @@ export function PanelLateralMapa({
             </option>
           ))}
         </select>
+    </>
+  )
+
+  return (
+    <Box
+      sx={{
+        width: { xs: '100%', md: 320 },
+        flexShrink: 0,
+        borderRight: { md: '1px solid' },
+        borderBottom: { xs: '1px solid', md: 'none' },
+        borderColor: 'divider',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1, flexShrink: 0 }}>
+        <TextField
+          size="small"
+          fullWidth
+          placeholder="Buscar obra por nombre…"
+          value={busqueda}
+          onChange={(e) => onCambiarBusqueda(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" />
+              </InputAdornment>
+            ),
+            endAdornment: busqueda && (
+              <InputAdornment position="end">
+                <IconButton size="small" onClick={() => onCambiarBusqueda('')}>
+                  <CloseIcon fontSize="small" />
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+        />
+
+        {/* Apilado sobre el mapa, los cinco selects más el buscador piden 307px
+            de alto: más de lo que queda para el panel, y la lista de resultados
+            se quedaba en 0px. Colapsados, el buscador y los resultados vuelven
+            a entrar; en escritorio el panel tiene alto de sobra y siguen a la vista. */}
+        {panelApilado ? (
+          <Accordion variant="outlined" disableGutters sx={{ '&:before': { display: 'none' } }}>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ minHeight: 48 }}>
+              <Typography variant="subtitle2">Filtros</Typography>
+            </AccordionSummary>
+            <AccordionDetails sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {selectsDeFiltro}
+            </AccordionDetails>
+          </Accordion>
+        ) : (
+          selectsDeFiltro
+        )}
       </Box>
 
-      <Box sx={{ overflowY: 'auto', flex: 1 }}>
+      <Box sx={{ overflowY: 'auto', flex: 1, maxHeight: { xs: 220, md: 'none' } }}>
         {busqueda && (
           <List dense disablePadding>
             {resultadosBusqueda.length === 0 && (

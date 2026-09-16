@@ -173,7 +173,16 @@ export function MapaSeguimiento() {
   const obrasAgendaPrioritaria = useMemo(() => obrasDeLaAgenda(obras), [obras])
 
   return (
-    <Box sx={{ height: 'calc(100vh - 48px)', display: 'flex', flexDirection: 'column' }}>
+    // Apilado, el panel de filtros abierto más el mapa pueden pasarse del alto
+    // de la ventana; sin scroll lo que sobra queda inalcanzable.
+    <Box
+      sx={{
+        height: 'calc(100vh - 48px)',
+        display: 'flex',
+        flexDirection: 'column',
+        overflowY: { xs: 'auto', md: 'hidden' },
+      }}
+    >
       <BarraFiltrosMapa
         fechaDesde={filtros.fechaDesde}
         fechaHasta={filtros.fechaHasta}
