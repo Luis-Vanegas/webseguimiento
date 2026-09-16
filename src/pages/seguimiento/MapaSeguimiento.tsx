@@ -387,28 +387,10 @@ export function MapaSeguimiento() {
               </>
             )}
 
-            {obrasProximasAEntregar.map((obra) => (
-              <Marker
-                key={`proxima-${obra.obraId}`}
-                longitude={obra.longitud!}
-                latitude={obra.latitud!}
-                onClick={() => seleccionarObra(obra)}
-              >
-                <div
-                  title={`${obra.nombre} — próxima a entregar`}
-                  style={{
-                    width: 14,
-                    height: 14,
-                    borderRadius: '50%',
-                    background: COLOR_PROXIMA_ENTREGA,
-                    border: '2px solid #fff',
-                    boxShadow: `0 0 0 3px ${COLOR_PROXIMA_ENTREGA}59`,
-                    cursor: 'pointer',
-                  }}
-                />
-              </Marker>
-            ))}
-
+            {/* El halo de "próxima a entregar" va como circle-stroke de esta
+                misma capa (no un <Marker> HTML aparte): un Marker siempre se
+                dibuja encima del canvas del mapa sin importar el orden en el
+                JSX, así que tapaba por completo el color de estado del punto. */}
             <Source id="obras" type="geojson" data={obrasGeoJSON}>
               <Layer
                 id="obras-puntos"
@@ -417,8 +399,22 @@ export function MapaSeguimiento() {
                 paint={{
                   'circle-radius': 5,
                   'circle-color': ['get', 'color'],
-                  'circle-stroke-width': ['case', ['get', 'desatendida'], 2, 1],
-                  'circle-stroke-color': ['case', ['get', 'desatendida'], COLOR_DESATENDIDA, '#fff'],
+                  'circle-stroke-width': [
+                    'case',
+                    ['get', 'proximaEntrega'],
+                    3,
+                    ['get', 'desatendida'],
+                    2,
+                    1,
+                  ],
+                  'circle-stroke-color': [
+                    'case',
+                    ['get', 'proximaEntrega'],
+                    COLOR_PROXIMA_ENTREGA,
+                    ['get', 'desatendida'],
+                    COLOR_DESATENDIDA,
+                    '#fff',
+                  ],
                 }}
               />
             </Source>

@@ -3,7 +3,7 @@
 // components. Las transformaciones que NO dependen del estado de la obra
 // están en utils/seguimiento/geojson.util.ts, donde sí se pueden probar.
 import { infoObra } from './mapaEstado.util.ts'
-import { estaDesatendida } from '../../../utils/seguimiento/fechas.util.ts'
+import { estaDesatendida, estaProximaAEntregar } from '../../../utils/seguimiento/fechas.util.ts'
 import type { ObraVisor } from '../../../types/obra.types'
 
 // FeatureCollection de puntos: uno por obra, con su color de estado y si
@@ -19,6 +19,7 @@ export function obrasAGeoJSON(obras: ObraVisor[], ultimaVisitaPorObra: Map<numbe
         obraId: obra.obraId,
         color: infoObra(obra, ultimaVisitaPorObra).color,
         desatendida: estaDesatendida(ultimaVisitaPorObra.get(obra.obraId)),
+        proximaEntrega: estaProximaAEntregar(obra),
       },
     })),
   }
