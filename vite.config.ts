@@ -4,15 +4,17 @@ import react from '@vitejs/plugin-react-swc'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  // Sin esto, el stack que muestra ErrorBoundary en producción sale
-  // minificado ("at Xe (index-a3f9.js:1:48210)") y no sirve para ubicar el
-  // componente que falló — que es justamente para lo que se agregó.
+  // keepNames (agregado para que el componentStack de ErrorBoundary sea
+  // legible) rompe maplibre-gl en producción: maplibre arma el Worker de
+  // tiles haciendo .toString() de sus propias funciones ya minificadas y
+  // ejecutando ese texto en un scope aislado. El helper que keepNames
+  // inyecta para restaurar fn.name (una sola var al tope del bundle) no
+  // viaja con ese texto, así que el Worker revienta con "i is not defined"
+  // apenas necesita parsear un tile — mapa en blanco en todo despliegue,
+  // reproducido incluso en el deploy anterior a este fix. Sacar keepNames
+  // es lo que hace falta para que el mapa funcione.
   //
-  // keepNames es lo que realmente funciona hoy: preserva los nombres de
-  // funciones y clases, así el componentStack de React dice
-  // "MapaSeguimiento", "Popup", "Marker" en vez de letras sueltas.
-  // El sourcemap se genera igual, pero Vercel sirve los .map con 403 hasta
-  // que se habilite en Project Settings; sin ese toggle no aporta nada.
-  esbuild: { keepNames: true },
+  // El sourcemap queda: no tiene parte en este bug, y sirve el día que se
+  // habilite en Project Settings de Vercel (hoy sirve los .map con 403).
   build: { sourcemap: true },
 })
