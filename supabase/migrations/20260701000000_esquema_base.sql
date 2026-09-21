@@ -1,7 +1,20 @@
--- Esquema del módulo de Seguimiento de Obras.
--- TEMPORAL: todas las tablas de este archivo viven en Supabase mientras no
--- existe backend definitivo para el módulo. Reemplazar cuando se fusione con
--- el sistema real del Visor Estratégico.
+-- Esquema base del módulo de Seguimiento de Obras.
+--
+-- Representa el estado FINAL de la base real (ya incorpora las 8 migraciones
+-- manuales que antes vivían comentadas en schema.sql). Producción ya lo tiene
+-- aplicado: NO se corre ahí, se marca como aplicado con
+--   supabase migration repair 20260701000000 --status applied
+-- Una base nueva (o la local con `supabase start`) sí lo ejecuta completo.
+--
+-- TEMPORAL: estas tablas viven en Supabase mientras no exista el backend
+-- definitivo del Visor Estratégico. Ver docs/base-de-datos.md.
+--
+-- Para cualquier cambio nuevo: NO editar este archivo. Crear otra migración
+-- con `npm run db:migracion -- <nombre>` (ver docs/base-de-datos.md).
+
+-- ============================================================================
+-- Tablas
+-- ============================================================================
 
 -- Perfiles de quienes usan el módulo (independiente del auth del Visor real).
 create table usuarios_seguimiento (
@@ -12,7 +25,7 @@ create table usuarios_seguimiento (
 );
 comment on table usuarios_seguimiento is 'Temporal, reemplazar cuando exista backend definitivo.';
 
--- Puntos fijos por obra, para poder comparar fotos del mismo ángulo entre visitas.
+-- Puntos fijos por obra, para comparar fotos del mismo ángulo entre visitas.
 create table puntos_referencia_obra (
   id uuid primary key default gen_random_uuid(),
   obra_id integer not null, -- id real de la obra en el Visor; sin FK, la obra vive fuera de Supabase
@@ -115,7 +128,8 @@ create table fotos_recorrido (
 );
 comment on table fotos_recorrido is 'Temporal, reemplazar cuando exista backend definitivo.';
 
--- Seed del catálogo fijo de tipos de alerta (sección 5 del brief).
+-- Catálogo fijo de tipos de alerta. Vive en la migración (no en seed.sql)
+-- porque la app lo necesita en TODO ambiente. Idempotente por el unique(nombre).
 insert into tipos_alerta (nombre) values
   ('Cimentaciones'),
   ('Trámites EPM'),
@@ -125,10 +139,14 @@ insert into tipos_alerta (nombre) values
   ('Prórroga'),
   ('Adición de recursos'),
   ('Diseños'),
-  ('Otra');
+  ('Otra')
+on conflict (nombre) do nothing;
 
+-- ============================================================================
 -- Row Level Security: todas las tablas quedan cerradas a `authenticated`
--- (ningún acceso anónimo). Ver reglas de negocio en la sección 5 del brief.
+-- (ningún acceso anónimo).
+-- ============================================================================
+
 alter table usuarios_seguimiento enable row level security;
 alter table puntos_referencia_obra enable row level security;
 alter table tipos_alerta enable row level security;
@@ -147,10 +165,12 @@ as $$
   select rol from usuarios_seguimiento where id = auth.uid()
 $$;
 
--- Catálogos, perfiles e historial: lectura abierta a cualquier autenticado del módulo.
+-- rol_actual() es SECURITY DEFINER; solo authenticated puede invocarla por RPC.
+revoke execute on function rol_actual() from anon, public;
+grant execute on function rol_actual() to authenticated;
+
+-- Lectura: abierta a cualquier autenticado del módulo.
 create policy "lectura_autenticados" on usuarios_seguimiento for select to authenticated using (true);
-create policy "insertar_propio_perfil" on usuarios_seguimiento for insert to authenticated
-  with check (id = auth.uid());
 create policy "lectura_autenticados" on puntos_referencia_obra for select to authenticated using (true);
 create policy "lectura_autenticados" on tipos_alerta for select to authenticated using (true);
 create policy "lectura_autenticados" on visitas_seguimiento for select to authenticated using (true);
@@ -160,15 +180,17 @@ create policy "lectura_autenticados" on historial_revision for select to authent
 create policy "lectura_autenticados" on recorridos_seguimiento for select to authenticated using (true);
 create policy "lectura_autenticados" on fotos_recorrido for select to authenticated using (true);
 
--- Cada quien crea su propia visita (el estado inicial ya lo decide la app según autor_rol).
+create policy "insertar_propio_perfil" on usuarios_seguimiento for insert to authenticated
+  with check (id = auth.uid());
+
+-- Visitas: cada quien crea la suya (el estado inicial lo decide la app según autor_rol).
 create policy "crear_propia_visita" on visitas_seguimiento for insert to authenticated
   with check (autor_id = auth.uid());
 
 -- Edición de visitas: sin restricción — cualquier autenticado puede editar
 -- cualquier visita, en cualquier estado. Decisión del usuario (2026-07-14):
 -- se priorizó la flexibilidad operativa sobre el control de auditoría por
--- estado/autor/rol que tenía el diseño original (ver historial de git para
--- la regla anterior, más granular, si hace falta volver atrás).
+-- estado/autor/rol que tenía el diseño original (ver historial de git).
 create policy "editar_segun_estado_y_rol" on visitas_seguimiento for update to authenticated
   using (true)
   with check (true);
@@ -211,15 +233,13 @@ create policy "borrar_de_visita_propia_o_ingeniero" on historial_revision for de
     or rol_actual() = 'ingeniero'
   );
 
--- Cada quien crea sus propios recorridos y sus fotos.
+-- Recorridos: cada quien crea los suyos y sus fotos; borra el autor o un ingeniero.
 create policy "crear_propio_recorrido" on recorridos_seguimiento for insert to authenticated
   with check (autor_id = auth.uid());
 create policy "escribir_fotos_de_recorrido_propio" on fotos_recorrido for insert to authenticated
   with check (
     exists (select 1 from recorridos_seguimiento r where r.id = recorrido_id and r.autor_id = auth.uid())
   );
-
--- Borrado de recorridos: misma regla (autor propio o ingeniero).
 create policy "borrar_propio_o_ingeniero" on recorridos_seguimiento for delete to authenticated
   using (autor_id = auth.uid() or rol_actual() = 'ingeniero');
 create policy "borrar_de_recorrido_propio_o_ingeniero" on fotos_recorrido for delete to authenticated
@@ -228,154 +248,41 @@ create policy "borrar_de_recorrido_propio_o_ingeniero" on fotos_recorrido for de
     or rol_actual() = 'ingeniero'
   );
 
--- rol_actual() es SECURITY DEFINER; solo authenticated puede invocarla por RPC.
-revoke execute on function rol_actual() from anon, public;
-grant execute on function rol_actual() to authenticated;
+-- ============================================================================
+-- Privilegios a nivel de tabla (GRANT). Van APARTE de las policies de RLS y
+-- hacen falta las dos cosas: sin GRANT, PostgREST responde
+-- "permission denied for table X" aunque la policy lo permita.
+--
+-- Supabase ya no concede privilegios por defecto a las tablas nuevas de
+-- `public`; producción los tiene porque se creó antes de ese cambio. Por eso
+-- se declaran explícitos: toda tabla nueva necesita su propio GRANT.
+-- Se concede solo lo que las policies de arriba autorizan (mínimo privilegio).
+-- ============================================================================
 
--- Storage: bucket privado, solo autenticados pueden leer/subir fotos de visita.
-insert into storage.buckets (id, name, public) values ('fotos-seguimiento', 'fotos-seguimiento', false);
+grant usage on schema public to authenticated;
+
+grant select, insert on usuarios_seguimiento to authenticated;
+grant select on puntos_referencia_obra, tipos_alerta to authenticated;
+grant select, insert, update, delete on visitas_seguimiento to authenticated;
+grant select, insert, delete on
+  alertas_visita, fotos_visita, historial_revision, recorridos_seguimiento, fotos_recorrido
+  to authenticated;
+
+-- Los scripts operativos (scripts/*.mjs) usan service_role, que salta RLS
+-- pero igual necesita privilegios de tabla.
+grant all on all tables in schema public to service_role;
+
+-- ============================================================================
+-- Storage: bucket privado, solo autenticados leen/suben fotos.
+-- (Sin policy de delete: el borrado de archivos lo hacen los scripts/ con service role.)
+-- ============================================================================
+
+insert into storage.buckets (id, name, public)
+values ('fotos-seguimiento', 'fotos-seguimiento', false)
+on conflict (id) do nothing;
 
 create policy "leer_fotos_autenticados" on storage.objects for select to authenticated
   using (bucket_id = 'fotos-seguimiento');
 
 create policy "subir_fotos_autenticados" on storage.objects for insert to authenticated
   with check (bucket_id = 'fotos-seguimiento');
-
--- ============================================================================
--- MIGRACIONES MANUALES PENDIENTES — este archivo describe el esquema para una
--- instalación NUEVA; el proyecto real ya tiene datos, así que estos cambios
--- hay que correrlos a mano en el SQL Editor de Supabase. No se aplican solos.
--- ============================================================================
-
--- Migración 1 (DESTRUCTIVA, pide confirmación antes de correrla): se elimina
--- el campo "presupuesto observado en campo" — el ingeniero de campo pidió
--- sacarlo porque es muy difícil de estimar en obra. Esto borra el histórico
--- de esa columna para siempre.
---
--- alter table visitas_seguimiento drop column presupuesto_observado_campo;
-
--- Migración 2 (SUPERADA por la Migración 3 — no correr): permitía que el
--- AUTOR de una visita la siguiera editando aunque ya estuviera 'revisada'.
--- Quedó obsoleta porque la Migración 3 es más permisiva y la contiene.
---
--- drop policy "editar_segun_estado_y_rol" on visitas_seguimiento;
--- create policy "editar_segun_estado_y_rol" on visitas_seguimiento for update to authenticated
---   using (
---     (autor_id = auth.uid() and estado = 'pendiente_revisar' and rol_actual() = 'visitador')
---     or (rol_actual() = 'ingeniero' and estado in ('pendiente_revisar', 'en_revision'))
---     or (autor_id = auth.uid() and rol_actual() = 'ingeniero')
---   )
---   with check (
---     (autor_id = auth.uid() and estado = 'pendiente_revisar' and rol_actual() = 'visitador')
---     or (rol_actual() = 'ingeniero')
---   );
-
--- Migración 3 — CORRER ESTA en el SQL Editor de Supabase (proyecto real):
--- elimina toda restricción de edición sobre visitas_seguimiento. Cualquier
--- autenticado puede editar cualquier visita, en cualquier estado, sin
--- importar quién la creó. Decisión del usuario 2026-07-14: sin esto, el
--- frontend ya deja el botón "Editar" habilitado siempre — sin correr esta
--- migración, esos intentos de guardar van a fallar con 403 porque la
--- policy vieja en la base real sigue siendo la restrictiva.
---
--- drop policy "editar_segun_estado_y_rol" on visitas_seguimiento;
--- create policy "editar_segun_estado_y_rol" on visitas_seguimiento for update to authenticated
---   using (true)
---   with check (true);
-
--- Migración 4 — CORRER ESTA en el SQL Editor de Supabase (proyecto real):
--- agrega el rol 'visualizador' (módulo de gestión para gerencia, solo
--- lectura) y la columna visto_gerencia. Sin esto, crear un usuario con
--- rol='visualizador' falla contra el constraint viejo, y la pantalla de
--- Gestión no puede guardar el toggle "Visto por gerencia".
---
--- alter table usuarios_seguimiento drop constraint usuarios_seguimiento_rol_check;
--- alter table usuarios_seguimiento add constraint usuarios_seguimiento_rol_check
---   check (rol in ('ingeniero', 'visitador', 'visualizador'));
---
--- alter table visitas_seguimiento add column visto_gerencia boolean not null default false;
-
--- Migración 5 — CORRER ESTA en el SQL Editor de Supabase (proyecto real):
--- crea las tablas nuevas para grabar recorridos con GPS (botón "Grabar
--- recorrido" en el mapa) y sus fotos. Sin esto, guardar un recorrido falla
--- porque las tablas no existen en la base real todavía.
---
--- create table recorridos_seguimiento (
---   id uuid primary key default gen_random_uuid(),
---   autor_id uuid not null references usuarios_seguimiento (id),
---   titulo text not null,
---   observaciones text not null default '',
---   trazo jsonb not null,
---   distancia_metros numeric not null default 0,
---   fecha_inicio timestamptz not null,
---   fecha_fin timestamptz not null,
---   created_at timestamptz not null default now()
--- );
--- create index recorridos_seguimiento_autor_id_idx on recorridos_seguimiento (autor_id);
---
--- create table fotos_recorrido (
---   id uuid primary key default gen_random_uuid(),
---   recorrido_id uuid not null references recorridos_seguimiento (id) on delete cascade,
---   storage_path text not null,
---   orden integer not null default 0
--- );
---
--- alter table recorridos_seguimiento enable row level security;
--- alter table fotos_recorrido enable row level security;
---
--- create policy "lectura_autenticados" on recorridos_seguimiento for select to authenticated using (true);
--- create policy "lectura_autenticados" on fotos_recorrido for select to authenticated using (true);
---
--- create policy "crear_propio_recorrido" on recorridos_seguimiento for insert to authenticated
---   with check (autor_id = auth.uid());
--- create policy "escribir_fotos_de_recorrido_propio" on fotos_recorrido for insert to authenticated
---   with check (
---     exists (select 1 from recorridos_seguimiento r where r.id = recorrido_id and r.autor_id = auth.uid())
---   );
-
--- Migración 6 — CORRER ESTA en el SQL Editor de Supabase (proyecto real):
--- agrega la columna "tipo" a recorridos_seguimiento, para distinguir un
--- recorrido grabado con GPS de una ruta planeada de antemano (clickeando
--- puntos en el mapa, sin caminar). Sin esto, guardar una ruta planeada falla
--- porque la columna no existe en la base real todavía.
---
--- alter table recorridos_seguimiento add column tipo text not null default 'grabado'
---   check (tipo in ('grabado', 'planeado'));
-
--- Migración 7 — CORRER ESTA en el SQL Editor de Supabase (proyecto real):
--- agrega "Diseños" al catálogo de tipos de alerta. Sin esto, no aparece como
--- opción al registrar una alerta de campo en la base real todavía.
---
--- insert into tipos_alerta (nombre) values ('Diseños');
-
--- Migración 8 — CORRER ESTA en el SQL Editor de Supabase (proyecto real):
--- agrega las policies de borrado de visitas y recorridos (autor propio o
--- cualquier ingeniero). Sin esto, la app ya muestra el botón "Borrar" pero
--- el DELETE contra la base real falla con 403 porque no hay policy `for
--- delete` en estas tablas todavía (RLS deniega por defecto lo que no
--- autoriza explícitamente ninguna policy).
---
--- create policy "borrar_propia_o_ingeniero" on visitas_seguimiento for delete to authenticated
---   using (autor_id = auth.uid() or rol_actual() = 'ingeniero');
--- create policy "borrar_de_visita_propia_o_ingeniero" on alertas_visita for delete to authenticated
---   using (
---     exists (select 1 from visitas_seguimiento v where v.id = visita_id and v.autor_id = auth.uid())
---     or rol_actual() = 'ingeniero'
---   );
--- create policy "borrar_de_visita_propia_o_ingeniero" on fotos_visita for delete to authenticated
---   using (
---     exists (select 1 from visitas_seguimiento v where v.id = visita_id and v.autor_id = auth.uid())
---     or rol_actual() = 'ingeniero'
---   );
--- create policy "borrar_de_visita_propia_o_ingeniero" on historial_revision for delete to authenticated
---   using (
---     exists (select 1 from visitas_seguimiento v where v.id = visita_id and v.autor_id = auth.uid())
---     or rol_actual() = 'ingeniero'
---   );
--- create policy "borrar_propio_o_ingeniero" on recorridos_seguimiento for delete to authenticated
---   using (autor_id = auth.uid() or rol_actual() = 'ingeniero');
--- create policy "borrar_de_recorrido_propio_o_ingeniero" on fotos_recorrido for delete to authenticated
---   using (
---     exists (select 1 from recorridos_seguimiento r where r.id = recorrido_id and r.autor_id = auth.uid())
---     or rol_actual() = 'ingeniero'
---   );

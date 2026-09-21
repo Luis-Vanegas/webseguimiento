@@ -19,6 +19,7 @@ dist-ssr
 
 # Estado local de la CLI de Supabase (project ref vinculado en esta máquina).
 supabase/.temp
+supabase/.branches
 
 # Editor directories and files
 .vscode/*

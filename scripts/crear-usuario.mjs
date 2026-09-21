@@ -1,7 +1,7 @@
 // Crea un usuario nuevo del módulo de seguimiento: cuenta de auth (email +
 // contraseña) más su fila en usuarios_seguimiento (nombre, rol). Las dos
 // cosas son necesarias — usuarios_seguimiento.id referencia a auth.users(id)
-// (ver supabase/schema.sql), así que un usuario sin cuenta de auth no puede
+// (ver supabase/migrations), así que un usuario sin cuenta de auth no puede
 // loguearse, y una cuenta de auth sin fila en usuarios_seguimiento no tiene
 // rol ni aparece en ningún selector de la app.
 //

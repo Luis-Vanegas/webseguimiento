@@ -1,2 +1,21 @@
+# Config de la CLI de Supabase para el entorno LOCAL (`supabase start`, requiere Docker).
+# Solo se declara lo que difiere de los defaults de la CLI.
+project_id = "webseguimiento"
+
+[db]
+major_version = 17
+
+# En Windows, Analytics exige exponer el daemon de Docker por TCP (2375). No se usa.
+[analytics]
+enabled = false
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[auth]
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173"]
+
 [functions.obras-proxy]
 verify_jwt = false
