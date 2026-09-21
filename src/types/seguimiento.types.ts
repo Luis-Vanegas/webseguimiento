@@ -1,5 +1,6 @@
 // Tipos del dominio de seguimiento en campo (tablas temporales de Supabase,
-// ver supabase/schema.sql — reemplazar cuando exista backend definitivo).
+// ver supabase/migrations y docs/base-de-datos.md — reemplazar cuando exista
+// backend definitivo). Aquí van en camelCase; la BD es snake_case.
 
 export type RolUsuario = 'ingeniero' | 'visitador' | 'visualizador'
 

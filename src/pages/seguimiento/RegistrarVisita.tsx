@@ -33,7 +33,7 @@ import { COLOR_FONDO_DIALOGO } from '../../theme/theme'
 import type { VisitaSeguimiento } from '../../types/seguimiento.types'
 
 // El detalle es obligatorio solo para alertas de tipo "Otra" (regla de
-// negocio del schema, ver comentario en supabase/schema.sql). El esquema
+// negocio de alertas_visita.detalle, ver supabase/migrations). El esquema
 // depende del id real de ese tipo, que solo se conoce tras cargar el
 // catálogo — de ahí que sea una función y no una constante.
 function crearEsquemaVisita(idAlertaOtra: string | undefined) {

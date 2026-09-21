@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import type { Database } from '../types/database.types'
 
 // TEMPORAL: cliente Supabase para la fase de pruebas del módulo de seguimiento.
 // Reemplazar cuando exista backend definitivo / se fusione con el Visor real.
@@ -11,4 +12,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
   )
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Tipado con el esquema real: renombrar o borrar una columna rompe la
+// compilación en vez de fallar en runtime. Regenerar con `npm run db:tipos`.
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)

@@ -1,8 +1,10 @@
 import { supabase } from '../../lib/supabaseClient'
+import type { Tables } from '../../types/database.types'
 import type {
   EstadoVisita,
   FotoVisita,
   RolUsuario,
+  SeveridadAlerta,
   TipoAlerta,
   UsuarioSeguimiento,
   VisitaSeguimiento,
@@ -167,7 +169,8 @@ export function listarUsuarios(): Promise<UsuarioSeguimiento[]> {
       usuariosCache = null
       throw error
     }
-    return data ?? []
+    // `rol` es text + CHECK en la BD: el generador de tipos lo ve como string.
+    return (data ?? []) as UsuarioSeguimiento[]
   })()
   return usuariosCache
 }
@@ -310,7 +313,8 @@ export async function eliminarVisita(visitaId: string): Promise<void> {
   // Con RLS, un delete sin policy que lo autorice no tira error: PostgREST
   // devuelve éxito con 0 filas afectadas (las filtra en silencio). Por eso se
   // pide .select() de vuelta y se verifica que algo haya salido de verdad —
-  // si no, la Migración 8 de schema.sql todavía no corrió contra esta base.
+  // si no, falta la policy "borrar_propia_o_ingeniero" (supabase/migrations)
+  // en esta base: hay migraciones sin aplicar.
   const { data, error } = await supabase.from('visitas_seguimiento').delete().eq('id', visitaId).select('id')
   if (error) throw error
   if (!data || data.length === 0) {
@@ -350,38 +354,44 @@ export async function subirFoto(
 
 // --- Mapeo de filas snake_case (Supabase) a los tipos camelCase del dominio ---
 
-// ponytail: any acotado a la forma cruda de la fila de Supabase; tipar el
-// schema completo generado por la CLI es más de lo que este módulo necesita hoy.
-function mapVisitaRow(row: any): VisitaSeguimiento {
+// Fila cruda de Supabase tipada con el esquema generado (`npm run db:tipos`).
+// Los casts a RolUsuario/EstadoVisita/SeveridadAlerta existen porque esas
+// columnas son text + CHECK y el generador las ve como string.
+type VisitaRow = Tables<'visitas_seguimiento'> & {
+  alertas_visita?: Tables<'alertas_visita'>[]
+  fotos_visita?: Tables<'fotos_visita'>[]
+}
+
+function mapVisitaRow(row: VisitaRow): VisitaSeguimiento {
   return {
     id: row.id,
     obraId: row.obra_id,
     autorId: row.autor_id,
-    autorRol: row.autor_rol,
+    autorRol: row.autor_rol as RolUsuario,
     fechaVisita: row.fecha_visita,
     fechaProximaVisita: row.fecha_proxima_visita,
     // PostgREST devuelve columnas `numeric` como string para no perder
     // precisión; se castea acá para que el resto del dominio trabaje con number.
     porcentajeAvanceCampo: Number(row.porcentaje_avance_campo),
     observaciones: row.observaciones,
-    estado: row.estado,
+    estado: row.estado as EstadoVisita,
     revisadoPor: row.revisado_por,
     fechaRevision: row.fecha_revision,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     vistoGerencia: row.visto_gerencia ?? false,
-    alertas: (row.alertas_visita ?? []).map((a: any) => ({
+    alertas: (row.alertas_visita ?? []).map((a) => ({
       id: a.id,
       visitaId: a.visita_id,
       tipoAlertaId: a.tipo_alerta_id,
       detalle: a.detalle,
-      severidad: a.severidad,
+      severidad: a.severidad as SeveridadAlerta,
     })),
     fotos: (row.fotos_visita ?? []).map(mapFotoRow),
   }
 }
 
-function mapFotoRow(row: any): FotoVisita {
+function mapFotoRow(row: Tables<'fotos_visita'>): FotoVisita {
   return {
     id: row.id,
     visitaId: row.visita_id,

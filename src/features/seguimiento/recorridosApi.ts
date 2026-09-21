@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabaseClient'
+import type { Json, Tables } from '../../types/database.types'
 import type { FotoRecorrido, PuntoTrazo, RecorridoSeguimiento, TipoRecorrido } from '../../types/seguimiento.types'
 
 export interface NuevoRecorridoInput {
@@ -19,7 +20,7 @@ export async function crearRecorrido(input: NuevoRecorridoInput): Promise<Recorr
       autor_id: input.autorId,
       titulo: input.titulo,
       observaciones: input.observaciones,
-      trazo: input.trazo,
+      trazo: input.trazo as unknown as Json, // columna jsonb; PuntoTrazo[] es JSON válido
       distancia_metros: input.distanciaMetros,
       fecha_inicio: input.fechaInicio,
       fecha_fin: input.fechaFin,
@@ -90,31 +91,32 @@ export async function listarRecorridos(): Promise<RecorridoSeguimiento[]> {
   return (data ?? []).map(mapRecorridoRow)
 }
 
-// ponytail: any acotado a la forma cruda de la fila de Supabase, mismo
-// criterio que mapVisitaRow en seguimientoApi.ts.
-function mapRecorridoRow(row: any): RecorridoSeguimiento {
+// Fila cruda tipada con el esquema generado; mismo criterio que mapVisitaRow
+// en seguimientoApi.ts (casts porque `tipo` es text + CHECK y `trazo` es jsonb).
+type RecorridoRow = Tables<'recorridos_seguimiento'> & { fotos_recorrido?: Tables<'fotos_recorrido'>[] }
+
+function mapRecorridoRow(row: RecorridoRow): RecorridoSeguimiento {
   return {
     id: row.id,
     autorId: row.autor_id,
     titulo: row.titulo,
     observaciones: row.observaciones,
-    trazo: row.trazo ?? [],
+    trazo: (row.trazo ?? []) as unknown as PuntoTrazo[],
     distanciaMetros: Number(row.distancia_metros),
     fechaInicio: row.fecha_inicio,
     fechaFin: row.fecha_fin,
     createdAt: row.created_at,
-    // Defensivo: si la Migración 6 (columna tipo) todavía no corrió contra la
-    // base real, o la fila es de antes de esa migración, row.tipo llega
-    // undefined — todo recorrido anterior a esta feature era, de hecho,
-    // grabado con GPS, así que ese es el valor correcto para no dejarlo
-    // invisible en el mapa (ninguna de las dos capas filtradas por tipo lo
-    // dibujaría con un valor null/undefined).
-    tipo: row.tipo ?? 'grabado',
+    // Defensivo: si la columna `tipo` no existe todavía en la base real, o la
+    // fila es anterior a ella, llega undefined — todo recorrido previo era,
+    // de hecho, grabado con GPS, así que ese es el valor correcto para no
+    // dejarlo invisible en el mapa (ninguna de las dos capas filtradas por
+    // tipo lo dibujaría con un valor null/undefined).
+    tipo: (row.tipo ?? 'grabado') as TipoRecorrido,
     fotos: (row.fotos_recorrido ?? []).map(mapFotoRecorridoRow),
   }
 }
 
-function mapFotoRecorridoRow(row: any): FotoRecorrido {
+function mapFotoRecorridoRow(row: Tables<'fotos_recorrido'>): FotoRecorrido {
   return {
     id: row.id,
     recorridoId: row.recorrido_id,
