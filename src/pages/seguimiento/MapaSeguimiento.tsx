@@ -18,7 +18,7 @@ import { PanelLateralMapa } from '../../components/seguimiento/mapa/PanelLateral
 import { LeyendaMapa } from '../../components/seguimiento/mapa/LeyendaMapa'
 import { PopupObra } from '../../components/seguimiento/mapa/PopupObra'
 import { COLOR_COMUNA, COLOR_DESATENDIDA, infoObra } from '../../components/seguimiento/mapa/mapaEstado.util'
-import { obrasAGeoJSON } from '../../components/seguimiento/mapa/geojson.util.ts'
+import { obrasAGeoJSON } from '../../components/seguimiento/mapa/obrasGeoJSON.util.ts'
 import { calcularBounds, puntosALinea, recorridosALineas } from '../../utils/seguimiento/geojson.util.ts'
 import { COLOR_ACENTO, COLOR_PROXIMA_ENTREGA, COLOR_RUTA_PLANEADA } from '../../theme/theme'
 import { estaDesatendida, estaProximaAEntregar } from '../../utils/seguimiento/fechas.util'
