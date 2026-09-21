@@ -58,8 +58,9 @@ src/
   components/   Piezas reutilizables (layout/, seguimiento/, seguimiento/mapa/)
   pages/        Una pantalla por ruta
   theme/        Tema MUI y colores (contraste AA verificado)
+postgres/       Esquema en PostgreSQL puro, sin Supabase (para la entrega a Azure)
 supabase/
-  migrations/   Esquema versionado — única fuente de verdad de la BD
+  migrations/   Esquema versionado del entorno actual con Supabase
   seed.sql      Usuarios de prueba (solo local)
   functions/    Edge Function obras-proxy
 scripts/        Utilidades operativas contra la BD real (ver abajo)
@@ -69,6 +70,7 @@ docs/           Documentación de traspaso
 
 ## Documentación
 
-- [Base de datos](docs/base-de-datos.md): modelo, tabla ↔ código, **cómo crear una tabla nueva y migrar datos**, cómo aplicar a producción.
+- **[Entrega a un backend propio (Azure PostgreSQL)](docs/entrega-backend.md)**: qué reglas y contrato debe implementar el backend, y cómo migrar los datos. El modelo en PostgreSQL puro está en [`postgres/esquema.sql`](postgres/esquema.sql).
+- [Base de datos (Supabase)](docs/base-de-datos.md): modelo, tabla ↔ código, **cómo crear una tabla nueva y migrar datos**, cómo aplicar a producción. Aplica al entorno actual con Supabase.
 - [Calidad de código con SonarQube](docs/calidad-sonarqube.md)
 - [Operación y scripts](docs/operacion.md): variables de entorno, deploy, scripts de mantenimiento.

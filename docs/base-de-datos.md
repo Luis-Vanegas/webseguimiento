@@ -1,5 +1,7 @@
 # Base de datos
 
+> Esta guía describe el entorno **actual con Supabase**. Si van a montar la base en Azure PostgreSQL con backend propio, lean [entrega-backend.md](entrega-backend.md) y usen [`postgres/esquema.sql`](../postgres/esquema.sql). `postgres/esquema.sql` es una copia del modelo a fecha de la entrega: los cambios posteriores en Supabase no se reflejan solos.
+
 Postgres en Supabase. **Todo el esquema vive en `supabase/migrations/`**, nunca en el SQL Editor del dashboard: si un cambio no está en un archivo de ahí, no existe para el próximo dev.
 
 > Todas las tablas son **temporales**: se reemplazan cuando exista el backend definitivo del Visor Estratégico.

@@ -8,4 +8,5 @@
 - [ ] Generar token de SonarQube local (`docs/calidad-sonarqube.md`) y correr `npm run sonar:scan`; priorizar issues altos y duplicaciones.
 - [ ] Partir `src/features/seguimiento/seguimientoApi.ts` (~390 líneas) por dominio: catálogos/usuarios vs visitas vs fotos.
 - [ ] Tests para la capa de integración (`*Api.ts`, thunks de Redux): hoy sin cobertura.
+- [ ] Bug: `eliminarVisita`/`eliminarRecorrido` llaman a `storage.remove` pero no hay policy de DELETE en `storage.objects`; devuelve 200 `[]` y el archivo queda huérfano (verificado en local; confirmar en producción). Agregar la policy en una migración nueva o borrar desde un backend con service role.
 - [ ] Evaluar convertir `rol`, `estado`, `severidad`, `tipo` (text + CHECK) a enums de Postgres para eliminar los casts en los mappers.
