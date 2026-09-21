@@ -1,53 +1,74 @@
 # Seguimiento de Obras
 
-Módulo de seguimiento de campo para el Visor Estratégico: ingenieros y visitadores registran visitas de obra (avance observado, presupuesto observado, alertas, fotos) y se comparan contra lo que el sistema ya reporta oficialmente.
+Módulo de seguimiento de campo para el Visor Estratégico: ingenieros y visitadores registran **visitas de obra** (avance observado, alertas, fotos), planean y graban **recorridos** con GPS, y gerencia consulta el estado. Lo observado en campo se compara contra lo que el sistema oficial reporta.
 
-Repo aislado pensado para fusionarse a futuro con el repo real del Visor Estratégico — mismo stack, mismas convenciones.
+Repo aislado pensado para fusionarse a futuro con el repo real del Visor Estratégico. Las tablas de Supabase son **temporales** hasta que exista el backend definitivo.
 
 ## Stack
 
-Vite 6 + React 18.3 + TypeScript · Redux Toolkit + redux-saga · MUI 6 · maplibre-gl + react-map-gl + use-supercluster · react-hook-form + yup · Supabase (Postgres + Auth + Storage + Edge Functions).
+Vite 6 · React 18 · TypeScript · Redux Toolkit · MUI 6 · maplibre-gl + react-map-gl · react-hook-form + yup · Supabase (Postgres, Auth, Storage, Edge Functions). Lint con oxlint; tests con el runner nativo de Node.
 
-## Configuración local
+## Arranque local (Docker)
 
-1. `npm install`
-2. Crear un archivo `.env` en la raíz con:
-   ```
-   VITE_SUPABASE_URL=https://<tu-proyecto>.supabase.co
-   VITE_SUPABASE_ANON_KEY=<tu-anon-key>
-   ```
-   Estos valores salen de Settings → API en el dashboard de Supabase del proyecto `seguimiento-obras`. **Nunca se versionan** (ver `.gitignore`).
-3. `npm run dev`
+Requisitos: Node 22+, Docker Desktop encendido, [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started).
 
-## Base de datos
-
-El esquema completo (tablas, RLS, bucket de Storage) vive en [`supabase/schema.sql`](supabase/schema.sql) — se aplica directo en el SQL Editor de Supabase o vía la CLI. Todas las tablas están marcadas como temporales: se reemplazan cuando exista el backend definitivo del Visor real.
-
-## Conexión con la API real de obras
-
-La API real del Visor se consume a través de una Edge Function (`supabase/functions/obras-proxy`), nunca directo desde el frontend — la clave de esa API va por header HTTP y no puede vivir en variables `VITE_*` (quedarían expuestas en el bundle del navegador). Los secrets de la función (`OBRAS_API_URL`, `OBRAS_API_KEY`, `OBRAS_API_HEADER_NAME`) se configuran con:
-
-```
-supabase secrets set OBRAS_API_URL=... OBRAS_API_KEY=... --project-ref <ref>
+```bash
+npm install
+npm run db:start        # Postgres + Auth + Storage en Docker; aplica migraciones y seed
+cp .env.example .env    # ya trae los valores del entorno local
+npm run dev             # http://localhost:5173
 ```
 
-## Scripts
+Entrá con `ingeniero@local.test` / `123456` (también `visitador@` y `visualizador@`). Studio (visor de la BD): http://localhost:54323. Para apagar: `npm run db:stop`. Para dejar la BD como nueva: `npm run db:reset`.
 
-- `npm run dev` — servidor de desarrollo
-- `npm run build` — build de producción
-- `npm test` — self-checks con el test runner nativo de Node (`--experimental-strip-types`)
-- `npm run lint` — oxlint
+Sin la Edge Function `obras-proxy` configurada no hay obras reales en el mapa (responde 501). Ver [Conexión con la API de obras](#conexión-con-la-api-de-obras).
+
+## Comandos
+
+| Comando | Qué hace |
+| --- | --- |
+| `npm run dev` | Servidor de desarrollo |
+| `npm run build` | Build de producción (tsc + vite) |
+| `npm run typecheck` | Chequeo de tipos sin generar archivos |
+| `npm run lint` | oxlint |
+| `npm test` | Tests (Node `--test`, sin framework) |
+| `npm run db:start` / `db:stop` / `db:reset` | BD local en Docker |
+| `npm run db:migracion -- <nombre>` | Crea una migración nueva |
+| `npm run db:tipos` | Regenera `src/types/database.types.ts` desde la BD local |
+| `npm run sonar:up` / `sonar:scan` / `sonar:down` | Calidad de código con SonarQube en Docker |
+
+Antes de abrir un PR: `npm run typecheck && npm run lint && npm test`.
 
 ## Estructura
 
+Las dependencias van **solo hacia la izquierda** (una capa importa de las anteriores, nunca de las siguientes):
+
+```
+types  <  utils  <  lib  <  api / features  <  hooks  <  components  <  pages
+```
+
 ```
 src/
-  api/            # obrasVisorApi.ts — lectura de obras reales vía la Edge Function
-  features/       # slice + saga + api de seguimiento (Redux)
-  components/     # componentes compartidos (layout, diálogos, filtros)
-  pages/seguimiento/  # pantallas: MisVisitas, RegistrarVisita, RevisarVisitas, HistorialObra, MapaSeguimiento
-  utils/seguimiento/  # comparator y filtro de visitas (lógica pura)
+  types/        Tipos del dominio (camelCase) y tipos generados de la BD
+  utils/        Lógica pura, sin React ni Supabase; cada archivo con su .test.ts
+  lib/          Clientes de terceros (supabaseClient)
+  api/          Lectura de obras reales del Visor (vía Edge Function)
+  features/     Acceso a datos de Supabase (*Api.ts), Redux slice, hooks de dominio
+  hooks/        Hooks genéricos de UI
+  components/   Piezas reutilizables (layout/, seguimiento/, seguimiento/mapa/)
+  pages/        Una pantalla por ruta
+  theme/        Tema MUI y colores (contraste AA verificado)
 supabase/
-  schema.sql               # esquema + RLS + seed
-  functions/obras-proxy/    # Edge Function proxy hacia la API real
+  migrations/   Esquema versionado — única fuente de verdad de la BD
+  seed.sql      Usuarios de prueba (solo local)
+  functions/    Edge Function obras-proxy
+scripts/        Utilidades operativas contra la BD real (ver abajo)
+docker/         SonarQube local
+docs/           Documentación de traspaso
 ```
+
+## Documentación
+
+- [Base de datos](docs/base-de-datos.md): modelo, tabla ↔ código, **cómo crear una tabla nueva y migrar datos**, cómo aplicar a producción.
+- [Calidad de código con SonarQube](docs/calidad-sonarqube.md)
+- [Operación y scripts](docs/operacion.md): variables de entorno, deploy, scripts de mantenimiento.
