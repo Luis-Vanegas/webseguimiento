@@ -1,0 +1,41 @@
+# SonarQube local para analizar este repo. Independiente de la app y de Supabase.
+#
+#   npm run sonar:up     -> levanta el servidor en http://localhost:9000 (admin / admin la 1ª vez)
+#   npm run sonar:scan   -> analiza el código (necesita SONAR_TOKEN, ver docs/calidad-sonarqube.md)
+#   npm run sonar:down   -> lo apaga (los datos quedan en el volumen)
+#
+# ponytail: base H2 embebida de la imagen — sirve para uso local de un dev.
+# Si se comparte el servidor entre varios, agregar un Postgres propio.
+name: webseguimiento-sonarqube
+
+services:
+  sonarqube:
+    image: sonarqube:community
+    ports:
+      - "9000:9000"
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9000/api/system/status | grep -q '\"status\":\"UP\"'"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+
+  scanner:
+    image: sonarsource/sonar-scanner-cli
+    profiles: ["scan"]
+    depends_on:
+      sonarqube:
+        condition: service_healthy
+    environment:
+      SONAR_HOST_URL: http://sonarqube:9000
+      SONAR_TOKEN: ${SONAR_TOKEN:-} # solo lo usa el scanner; ver docs/calidad-sonarqube.md
+    volumes:
+      - ..:/usr/src
+
+volumes:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
