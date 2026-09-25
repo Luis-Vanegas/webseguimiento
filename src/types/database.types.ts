@@ -297,6 +297,9 @@ export type Database = {
           obra_id: number
           observaciones: string
           porcentaje_avance_campo: number
+          porcentaje_pagado: number | null
+          porcentaje_programado: number | null
+          proximo_frente: string | null
           revisado_por: string | null
           updated_at: string
           visto_gerencia: boolean
@@ -313,6 +316,9 @@ export type Database = {
           obra_id: number
           observaciones?: string
           porcentaje_avance_campo: number
+          porcentaje_pagado?: number | null
+          porcentaje_programado?: number | null
+          proximo_frente?: string | null
           revisado_por?: string | null
           updated_at?: string
           visto_gerencia?: boolean
@@ -329,6 +335,9 @@ export type Database = {
           obra_id?: number
           observaciones?: string
           porcentaje_avance_campo?: number
+          porcentaje_pagado?: number | null
+          porcentaje_programado?: number | null
+          proximo_frente?: string | null
           revisado_por?: string | null
           updated_at?: string
           visto_gerencia?: boolean

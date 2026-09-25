@@ -86,6 +86,12 @@ export interface VisitaSeguimiento {
   createdAt: string
   updatedAt: string
   vistoGerencia: boolean
+  // Métricas opcionales contra un cronograma/presupuesto de referencia — solo
+  // existen cuando el ingeniero las carga (ver informe consolidado). Opcionales
+  // en el tipo (no solo nullable) para no tocar cada fixture de test existente.
+  porcentajeProgramado?: number | null
+  porcentajePagado?: number | null
+  proximoFrente?: string | null
   alertas?: AlertaVisita[]
   fotos?: FotoVisita[]
 }

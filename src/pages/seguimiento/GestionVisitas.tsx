@@ -3,6 +3,7 @@ import {
   Alert,
   Avatar,
   Box,
+  Button,
   Card,
   Checkbox,
   Chip,
@@ -22,6 +23,7 @@ import {
 } from '@mui/material'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import InsightsIcon from '@mui/icons-material/Insights'
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
@@ -29,6 +31,7 @@ import { listarTodasLasVisitas, marcarVistoGerencia } from '../../features/segui
 import { useDatosFiltro } from '../../features/seguimiento/useDatosFiltro'
 import { FiltrosVisitasBar } from '../../components/seguimiento/FiltrosVisitasBar'
 import { DetalleVisitaDialog } from '../../components/seguimiento/DetalleVisitaDialog'
+import { InformeConsolidadoVisitas } from '../../components/seguimiento/InformeConsolidadoVisitas'
 import { BarraAvance } from '../../components/seguimiento/BarraAvance'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { useEsMovil } from '../../hooks/useEsMovil'
@@ -101,10 +104,20 @@ export function GestionVisitas() {
 
   return (
     <Box sx={{ width: '100%', maxWidth: 1400 }}>
-      <PageHeader
-        titulo="Gestión de visitas"
-        subtitulo="Resumen ejecutivo de las visitas registradas por todo el equipo"
-      />
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
+        <PageHeader
+          titulo="Gestión de visitas"
+          subtitulo="Resumen ejecutivo de las visitas registradas por todo el equipo"
+        />
+        <Button
+          startIcon={<PictureAsPdfIcon />}
+          onClick={() => window.print()}
+          disabled={visitasOrdenadas.length === 0}
+          sx={{ flexShrink: 0, mt: 0.5 }}
+        >
+          Descargar informe
+        </Button>
+      </Box>
 
       {mostrarGuia && (
         <Alert severity="info" onClose={descartarGuia} sx={{ mb: 2.5 }}>
@@ -279,6 +292,13 @@ export function GestionVisitas() {
           </Typography>
         </Box>
       )}
+
+      <InformeConsolidadoVisitas
+        visitas={visitasOrdenadas}
+        nombreObra={nombreObra}
+        direccionObra={(obraId) => obraPorId.get(obraId)?.direccion}
+        tiposAlerta={tiposAlerta}
+      />
 
       {visitaSeleccionada && (
         <DetalleVisitaDialog

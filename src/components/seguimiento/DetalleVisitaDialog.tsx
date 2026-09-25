@@ -32,6 +32,9 @@ export interface CambiosVisitaEditables {
   observaciones: string
   fechaProximaVisita: string | null
   fechaVisita: string
+  porcentajeProgramado: number | null
+  porcentajePagado: number | null
+  proximoFrente: string | null
 }
 
 interface DetalleVisitaDialogProps {
@@ -73,6 +76,9 @@ export function DetalleVisitaDialog({
   const [observaciones, setObservaciones] = useState(visita.observaciones)
   const [proximaVisita, setProximaVisita] = useState(visita.fechaProximaVisita ?? '')
   const [fechaVisita, setFechaVisita] = useState(visita.fechaVisita)
+  const [programado, setProgramado] = useState(visita.porcentajeProgramado?.toString() ?? '')
+  const [pagado, setPagado] = useState(visita.porcentajePagado?.toString() ?? '')
+  const [proximoFrente, setProximoFrente] = useState(visita.proximoFrente ?? '')
 
   const nombreTipoAlerta = (id: string) =>
     tiposAlerta.find((t) => t.id === id)?.nombre ?? 'Alerta'
@@ -83,6 +89,9 @@ export function DetalleVisitaDialog({
       observaciones,
       fechaProximaVisita: proximaVisita || null,
       fechaVisita,
+      porcentajeProgramado: programado === '' ? null : Number(programado),
+      porcentajePagado: pagado === '' ? null : Number(pagado),
+      proximoFrente: proximoFrente || null,
     })
   }
 
@@ -160,12 +169,39 @@ export function DetalleVisitaDialog({
                   InputLabelProps={{ shrink: true }}
                   sx={{ flex: '1 1 140px' }}
                 />
+                <TextField
+                  label="% programado (opcional)"
+                  type="number"
+                  value={programado}
+                  onChange={(e) => setProgramado(e.target.value)}
+                  sx={{ flex: '1 1 140px' }}
+                />
+                <TextField
+                  label="% pagado (opcional)"
+                  type="number"
+                  value={pagado}
+                  onChange={(e) => setPagado(e.target.value)}
+                  sx={{ flex: '1 1 140px' }}
+                />
+                <TextField
+                  label="Próximo frente (opcional)"
+                  value={proximoFrente}
+                  onChange={(e) => setProximoFrente(e.target.value)}
+                  sx={{ flex: '1 1 200px' }}
+                />
               </>
             ) : (
               <>
                 <Dato etiqueta="Fecha de la visita" valor={visita.fechaVisita} />
                 <Dato etiqueta="Avance observado" valor={`${visita.porcentajeAvanceCampo}%`} />
                 <Dato etiqueta="Próxima visita" valor={visita.fechaProximaVisita ?? '—'} />
+                {visita.porcentajeProgramado != null && (
+                  <Dato etiqueta="Programado" valor={`${visita.porcentajeProgramado}%`} />
+                )}
+                {visita.porcentajePagado != null && (
+                  <Dato etiqueta="Pagado" valor={`${visita.porcentajePagado}%`} />
+                )}
+                {visita.proximoFrente && <Dato etiqueta="Próximo frente" valor={visita.proximoFrente} />}
               </>
             )}
           </Box>

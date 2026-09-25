@@ -74,6 +74,9 @@ export interface NuevaVisitaInput {
   fechaProximaVisita: string | null
   porcentajeAvanceCampo: number
   observaciones: string
+  porcentajeProgramado: number | null
+  porcentajePagado: number | null
+  proximoFrente: string | null
   alertas: { tipoAlertaId: string; detalle: string | null; severidad: string }[]
 }
 
@@ -97,6 +100,9 @@ export async function crearVisita(input: NuevaVisitaInput): Promise<VisitaSeguim
       fecha_proxima_visita: input.fechaProximaVisita,
       porcentaje_avance_campo: input.porcentajeAvanceCampo,
       observaciones: input.observaciones,
+      porcentaje_programado: input.porcentajeProgramado,
+      porcentaje_pagado: input.porcentajePagado,
+      proximo_frente: input.proximoFrente,
       estado,
     })
     .select()
@@ -222,6 +228,9 @@ export interface EditarVisitaInput {
     observaciones: string
     fechaProximaVisita: string | null
     fechaVisita: string
+    porcentajeProgramado: number | null
+    porcentajePagado: number | null
+    proximoFrente: string | null
   }>
   comentario?: string
 }
@@ -234,6 +243,9 @@ export async function editarVisita(input: EditarVisitaInput): Promise<VisitaSegu
       observaciones: input.cambios.observaciones,
       fecha_proxima_visita: input.cambios.fechaProximaVisita,
       fecha_visita: input.cambios.fechaVisita,
+      porcentaje_programado: input.cambios.porcentajeProgramado,
+      porcentaje_pagado: input.cambios.porcentajePagado,
+      proximo_frente: input.cambios.proximoFrente,
     })
     .eq('id', input.id)
     .select()
@@ -380,6 +392,9 @@ function mapVisitaRow(row: VisitaRow): VisitaSeguimiento {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     vistoGerencia: row.visto_gerencia ?? false,
+    porcentajeProgramado: row.porcentaje_programado === null ? null : Number(row.porcentaje_programado),
+    porcentajePagado: row.porcentaje_pagado === null ? null : Number(row.porcentaje_pagado),
+    proximoFrente: row.proximo_frente,
     alertas: (row.alertas_visita ?? []).map((a) => ({
       id: a.id,
       visitaId: a.visita_id,

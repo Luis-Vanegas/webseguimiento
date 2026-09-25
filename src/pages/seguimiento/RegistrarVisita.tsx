@@ -47,6 +47,23 @@ function crearEsquemaVisita(idAlertaOtra: string | undefined) {
       .max(100)
       .required('Obligatorio'),
     observaciones: yup.string().default(''),
+    porcentajeProgramado: yup
+      .number()
+      .transform((valor, original) => (original === '' ? null : valor))
+      .typeError('Ingresá un número')
+      .min(0)
+      .max(100)
+      .nullable()
+      .defined(),
+    porcentajePagado: yup
+      .number()
+      .transform((valor, original) => (original === '' ? null : valor))
+      .typeError('Ingresá un número')
+      .min(0)
+      .max(100)
+      .nullable()
+      .defined(),
+    proximoFrente: yup.string().nullable().defined(),
     alertas: yup
       .array(
         yup.object({
@@ -125,6 +142,9 @@ export function RegistrarVisita() {
       fechaProximaVisita: null,
       porcentajeAvanceCampo: 0,
       observaciones: '',
+      porcentajeProgramado: null,
+      porcentajePagado: null,
+      proximoFrente: null,
       alertas: [],
     },
   })
@@ -161,6 +181,9 @@ export function RegistrarVisita() {
       createdAt: '',
       updatedAt: '',
       vistoGerencia: false,
+      porcentajeProgramado: null,
+      porcentajePagado: null,
+      proximoFrente: null,
       alertas: (alertasForm ?? []).map((a, i) => ({
         id: `borrador-${i}`,
         visitaId: 'borrador',
@@ -190,6 +213,9 @@ export function RegistrarVisita() {
           fechaProximaVisita: datos.fechaProximaVisita || null,
           porcentajeAvanceCampo: datos.porcentajeAvanceCampo,
           observaciones: datos.observaciones ?? '',
+          porcentajeProgramado: datos.porcentajeProgramado ?? null,
+          porcentajePagado: datos.porcentajePagado ?? null,
+          proximoFrente: datos.proximoFrente || null,
           alertas: (datos.alertas ?? []).map((a) => ({
             tipoAlertaId: a.tipoAlertaId,
             detalle: a.detalle ?? null,
@@ -313,6 +339,30 @@ export function RegistrarVisita() {
           error={!!errors.porcentajeAvanceCampo}
           helperText={errors.porcentajeAvanceCampo?.message}
         />
+
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
+          <TextField
+            label="% programado (opcional)"
+            type="number"
+            sx={{ flex: '1 1 160px' }}
+            {...register('porcentajeProgramado')}
+            error={!!errors.porcentajeProgramado}
+            helperText={errors.porcentajeProgramado?.message ?? 'Para comparar contra el cronograma de referencia'}
+          />
+          <TextField
+            label="% pagado (opcional)"
+            type="number"
+            sx={{ flex: '1 1 160px' }}
+            {...register('porcentajePagado')}
+            error={!!errors.porcentajePagado}
+            helperText={errors.porcentajePagado?.message}
+          />
+          <TextField
+            label="Próximo frente (opcional)"
+            sx={{ flex: '2 1 220px' }}
+            {...register('proximoFrente')}
+          />
+        </Box>
 
         <Controller
           control={control}

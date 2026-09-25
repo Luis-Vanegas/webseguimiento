@@ -9,6 +9,8 @@
 const ETIQUETA_CAMPO: Record<string, string> = {
   fechaVisita: 'Fecha de visita',
   porcentajeAvanceCampo: '% de avance observado en campo',
+  porcentajeProgramado: '% programado',
+  porcentajePagado: '% pagado',
   alertas: 'Descripción de la alerta',
 }
 

@@ -56,7 +56,13 @@ create table visitas_seguimiento (
   -- Marca independiente del flujo de revisión de ingeniería: gerencia (rol
   -- 'visualizador') la usa para llevar registro de qué ya miró, sin tocar
   -- 'estado' ni el historial de revisión.
-  visto_gerencia boolean not null default false
+  visto_gerencia boolean not null default false,
+  -- Métricas opcionales para el informe consolidado: el ingeniero las carga
+  -- cuando hay cronograma/presupuesto de referencia. Nullable porque no toda
+  -- obra los tiene (ej. etapa inicial, sin línea base todavía).
+  porcentaje_programado numeric,
+  porcentaje_pagado numeric,
+  proximo_frente text
 );
 
 create index visitas_seguimiento_obra_id_idx on visitas_seguimiento (obra_id);

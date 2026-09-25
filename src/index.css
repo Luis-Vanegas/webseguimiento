@@ -14,10 +14,13 @@ body {
     visibility: hidden;
   }
   #ficha-visita-imprimible,
-  #ficha-visita-imprimible * {
+  #ficha-visita-imprimible *,
+  #informe-consolidado-imprimible,
+  #informe-consolidado-imprimible * {
     visibility: visible;
   }
-  #ficha-visita-imprimible {
+  #ficha-visita-imprimible,
+  #informe-consolidado-imprimible {
     position: absolute;
     top: 0;
     left: 0;
