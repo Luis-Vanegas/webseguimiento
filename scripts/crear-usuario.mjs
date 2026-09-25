@@ -11,7 +11,7 @@
 //
 // Uso:
 //   SUPABASE_URL=https://tu-proyecto.supabase.co SUPABASE_SERVICE_ROLE_KEY=xxx \
-//     node scripts/crear-usuario.mjs --email=daniel.calvache@medellin.gov.co --password=123456 --nombre="Daniel Calvache" --rol=ingeniero
+//     node scripts/crear-usuario.mjs --email=usuario@ejemplo.com --password=<clave-segura> --nombre="Nombre Apellido" --rol=ingeniero
 
 import { createClient } from '@supabase/supabase-js'
 import { createInterface } from 'node:readline/promises'
