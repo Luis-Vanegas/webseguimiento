@@ -28,6 +28,15 @@ async function resolverUrl(storagePath: string): Promise<string> {
   return URL.createObjectURL(blobJpeg)
 }
 
+// Misma caché fuera de React: el editor de informes pone las fotos en un
+// contentEditable armado como HTML, donde no hay componentes que usen el hook.
+export function urlFotoCacheada(storagePath: string): Promise<string> {
+  const promesa = urlCache.get(storagePath) ?? resolverUrl(storagePath)
+  urlCache.set(storagePath, promesa)
+  promesa.catch(() => urlCache.delete(storagePath)) // no dejar cacheado un fallo: el próximo intento reintenta
+  return promesa
+}
+
 // Extraído para que CarruselFotos.tsx pueda resolver la URL de una foto
 // arbitraria (no solo la del thumbnail) compartiendo el mismo urlCache.
 // `habilitado` (default true) deja el fetch en pausa — lo usan los
@@ -44,14 +53,11 @@ export function useFotoUrl(storagePath: string, habilitado = true) {
     setUrl(null)
     setError(false)
 
-    urlCache.set(storagePath, urlCache.get(storagePath) ?? resolverUrl(storagePath))
-    urlCache
-      .get(storagePath)!
+    urlFotoCacheada(storagePath)
       .then((u) => {
         if (activo) setUrl(u)
       })
       .catch(() => {
-        urlCache.delete(storagePath) // no dejar cacheado un fallo: el próximo intento reintenta
         if (activo) setError(true)
       })
 

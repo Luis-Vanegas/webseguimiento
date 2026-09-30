@@ -31,7 +31,7 @@ import { listarTodasLasVisitas, marcarVistoGerencia } from '../../features/segui
 import { useDatosFiltro } from '../../features/seguimiento/useDatosFiltro'
 import { FiltrosVisitasBar } from '../../components/seguimiento/FiltrosVisitasBar'
 import { DetalleVisitaDialog } from '../../components/seguimiento/DetalleVisitaDialog'
-import { InformeConsolidadoVisitas } from '../../components/seguimiento/InformeConsolidadoVisitas'
+import { EditorInforme } from '../../components/seguimiento/EditorInforme'
 import { BarraAvance } from '../../components/seguimiento/BarraAvance'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { useEsMovil } from '../../hooks/useEsMovil'
@@ -62,6 +62,10 @@ export function GestionVisitas() {
     useDatosFiltro()
   const [filtros, setFiltros] = useState(FILTROS_VACIOS)
   const [visitaSeleccionada, setVisitaSeleccionada] = useState<VisitaSeguimiento | null>(null)
+  const [informeAbierto, setInformeAbierto] = useState(false)
+  // Visitas marcadas para el informe; sin ninguna marcada, entran todas las
+  // que quedan con los filtros actuales.
+  const [paraInforme, setParaInforme] = useState<Set<string>>(new Set())
   const [mostrarGuia, setMostrarGuia] = useState(() => localStorage.getItem(CLAVE_GUIA_VISTA) !== '1')
 
   function descartarGuia() {
@@ -89,6 +93,19 @@ export function GestionVisitas() {
   // resumen se recalcula para esa porción — no hace falta pedir más datos.
   const resumen = useMemo(() => resumirVisitas(visitasFiltradas), [visitasFiltradas])
 
+  // Solo cuentan las marcadas que siguen visibles: una marcada que después
+  // quedó afuera por un filtro no entra al informe.
+  const marcadasVisibles = visitasOrdenadas.filter((v) => paraInforme.has(v.id))
+  const visitasInforme = marcadasVisibles.length ? marcadasVisibles : visitasOrdenadas
+
+  function alternarParaInforme(id: string) {
+    setParaInforme((actual) => {
+      const nuevo = new Set(actual)
+      if (!nuevo.delete(id)) nuevo.add(id)
+      return nuevo
+    })
+  }
+
   const nombreObra = (obraId: number) => obraPorId.get(obraId)?.nombre ?? `Obra ${obraId}`
   const nombreAutor = (autorId: string) => nombrePorAutor.get(autorId) ?? 'Autor desconocido'
 
@@ -111,11 +128,11 @@ export function GestionVisitas() {
         />
         <Button
           startIcon={<PictureAsPdfIcon />}
-          onClick={() => window.print()}
-          disabled={visitasOrdenadas.length === 0}
+          onClick={() => setInformeAbierto(true)}
+          disabled={visitasInforme.length === 0}
           sx={{ flexShrink: 0, mt: 0.5 }}
         >
-          Descargar informe
+          Redactar informe{marcadasVisibles.length ? ` (${marcadasVisibles.length})` : ''}
         </Button>
       </Box>
 
@@ -192,6 +209,17 @@ export function GestionVisitas() {
           <Table>
             <TableHead>
               <TableRow>
+                <TableCell padding="checkbox" title="Elegir visitas para el informe">
+                  <Checkbox
+                    size="small"
+                    checked={visitasOrdenadas.length > 0 && marcadasVisibles.length === visitasOrdenadas.length}
+                    indeterminate={marcadasVisibles.length > 0 && marcadasVisibles.length < visitasOrdenadas.length}
+                    onChange={(e) =>
+                      setParaInforme(e.target.checked ? new Set(visitasOrdenadas.map((v) => v.id)) : new Set())
+                    }
+                    inputProps={{ 'aria-label': 'Elegir todas para el informe' }}
+                  />
+                </TableCell>
                 <TableCell align="center" sx={{ width: 64 }}>
                   Visto
                 </TableCell>
@@ -215,6 +243,14 @@ export function GestionVisitas() {
                     onClick={() => setVisitaSeleccionada(visita)}
                     sx={{ cursor: 'pointer', bgcolor: visita.vistoGerencia ? FONDO_VISTO : 'inherit' }}
                   >
+                    <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        size="small"
+                        checked={paraInforme.has(visita.id)}
+                        onChange={() => alternarParaInforme(visita.id)}
+                        inputProps={{ 'aria-label': 'Incluir en el informe' }}
+                      />
+                    </TableCell>
                     <TableCell padding="checkbox" align="center" onClick={(e) => e.stopPropagation()}>
                       <ToggleVisto
                         visto={visita.vistoGerencia}
@@ -293,12 +329,16 @@ export function GestionVisitas() {
         </Box>
       )}
 
-      <InformeConsolidadoVisitas
-        visitas={visitasOrdenadas}
-        nombreObra={nombreObra}
-        direccionObra={(obraId) => obraPorId.get(obraId)?.direccion}
-        tiposAlerta={tiposAlerta}
-      />
+      {informeAbierto && (
+        <EditorInforme
+          visitas={visitasInforme}
+          nombreObra={nombreObra}
+          direccionObra={(obraId) => obraPorId.get(obraId)?.direccion}
+          proyectoObra={(obraId) => proyectoEstrategicoPorObra.get(obraId)}
+          tiposAlerta={tiposAlerta}
+          onCerrar={() => setInformeAbierto(false)}
+        />
+      )}
 
       {visitaSeleccionada && (
         <DetalleVisitaDialog

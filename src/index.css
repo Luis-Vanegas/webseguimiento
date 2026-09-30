@@ -15,16 +15,189 @@ body {
   }
   #ficha-visita-imprimible,
   #ficha-visita-imprimible *,
-  #informe-consolidado-imprimible,
-  #informe-consolidado-imprimible * {
+  #editor-informe,
+  #editor-informe * {
     visibility: visible;
   }
-  #ficha-visita-imprimible,
-  #informe-consolidado-imprimible {
+  #ficha-visita-imprimible {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
+  }
+  .no-imprimir {
+    display: none !important;
+  }
+}
+
+/* ---- Editor de informe consolidado (EditorInforme.tsx) ----
+   Va en un portal directo en <body> y ocupa la pantalla entera: todo lo
+   demás sale del flujo con display:none, no con visibility:hidden, que deja
+   el alto de la app y lo imprime como hojas en blanco al final del PDF. */
+body:has(> #editor-informe) > :not(#editor-informe) {
+  display: none;
+}
+
+.informe-hoja {
+  page: informe;
+  box-sizing: border-box;
+  width: 216mm; /* carta */
+  min-height: 279mm;
+  margin: 24px auto;
+  padding: 14mm 16mm;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  color: #222;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.informe-doc:focus {
+  outline: none;
+}
+.informe-doc h2,
+.informe-doc h3,
+.informe-doc h4 {
+  font-weight: 700;
+}
+.informe-doc h2 {
+  font-size: 20px;
+  margin: 10px 0 2px;
+}
+.informe-doc h3 {
+  font-size: 15px;
+  margin: 16px 0 6px;
+}
+.informe-doc h4 {
+  font-size: 14px;
+  margin: 12px 0 2px;
+}
+.informe-doc p {
+  margin: 0 0 6px;
+  text-align: justify;
+}
+.informe-doc ul,
+.informe-doc ol {
+  margin: 4px 0 6px;
+  padding-left: 22px;
+}
+/* El preflight de Tailwind les saca la viñeta y el número. */
+.informe-doc ul {
+  list-style: disc;
+}
+.informe-doc ol {
+  list-style: decimal;
+}
+.informe-doc img {
+  max-width: 100%;
+}
+.informe-doc table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 6px 0 10px;
+}
+.informe-doc td,
+.informe-doc th {
+  border: 1px solid #d6d6d6;
+  padding: 4px 8px;
+  vertical-align: top;
+}
+.informe-encabezado {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 2px solid #222;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+.informe-encabezado-texto {
+  margin-left: auto;
+  text-align: right;
+  color: #666;
+}
+.informe-encabezado-texto strong {
+  color: #222;
+  font-size: 15px;
+}
+.informe-subtitulo {
+  color: #666;
+}
+.informe-metricas th {
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+  text-align: center;
+}
+.informe-metricas td {
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+}
+.informe-fotos td {
+  width: 50%;
+  text-align: center;
+}
+.informe-foto {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: #eee;
+}
+.informe-doc .informe-pie {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+}
+.informe-alerta-obra {
+  border-bottom: 1px solid #ddd;
+}
+.informe-referencia {
+  font-size: 12px;
+  color: #888;
+}
+.salto-pagina {
+  border: 0;
+  border-top: 2px dashed #bbb;
+  margin: 16px 0;
+}
+
+/* Pie en cada hoja con número de página. Los recuadros de margen de @page
+   solo los dibuja Chrome/Edge; en otros navegadores el PDF sale sin número. */
+@page informe {
+  size: letter;
+  margin: 14mm 16mm 16mm;
+  @bottom-center {
+    content: 'Seguimiento técnico de obras | Página ' counter(page) ' de ' counter(pages);
+    font: 9pt sans-serif;
+    color: #666;
+  }
+}
+
+@media print {
+  .informe-hoja {
+    width: auto;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+  .informe-hoja + .informe-hoja {
+    break-before: page;
+  }
+  .salto-pagina {
+    break-after: page;
+    border: 0;
+    margin: 0;
+  }
+  .informe-doc tr,
+  .informe-doc img {
+    break-inside: avoid;
+  }
+  .informe-doc {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 }
 
