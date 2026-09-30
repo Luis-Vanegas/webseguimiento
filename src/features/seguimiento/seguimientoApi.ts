@@ -392,8 +392,10 @@ function mapVisitaRow(row: VisitaRow): VisitaSeguimiento {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     vistoGerencia: row.visto_gerencia ?? false,
-    porcentajeProgramado: row.porcentaje_programado === null ? null : Number(row.porcentaje_programado),
-    porcentajePagado: row.porcentaje_pagado === null ? null : Number(row.porcentaje_pagado),
+    // `== null` y no `=== null`: si la migración de estas columnas no está
+    // aplicada en la base, llegan undefined y Number(undefined) daba NaN.
+    porcentajeProgramado: row.porcentaje_programado == null ? null : Number(row.porcentaje_programado),
+    porcentajePagado: row.porcentaje_pagado == null ? null : Number(row.porcentaje_pagado),
     proximoFrente: row.proximo_frente,
     alertas: (row.alertas_visita ?? []).map((a) => ({
       id: a.id,
