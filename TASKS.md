@@ -4,7 +4,7 @@
 - [ ] Crear `.env.example` en la raíz (la sesión de refactor no tuvo permiso de escritura). Contenido en `docs/operacion.md` → sección "Variables de entorno" (URL local `http://127.0.0.1:54321` + anon key demo de `supabase status`).
 
 ## 🔵 Para Claude Code (arquitectura, lógica compleja, decisiones)
-- [ ] URGENTE: producción no tiene la migración `20260924105717_metricas_visita.sql` (faltan `porcentaje_programado`, `porcentaje_pagado`, `proximo_frente`; verificado el 2026-09-30). Aplicarla con `supabase db push`. Hasta entonces, registrar/editar visitas con el código de `main` probablemente falla.
+- [x] Aplicada en producción la migración de métricas (`porcentaje_programado`, `porcentaje_pagado`, `proximo_frente`) vía MCP de Supabase el 2026-09-30, con el nombre `metricas_visita`.
 - [ ] Verificar que producción coincide con `supabase/migrations/` (`supabase link` + `supabase db diff --linked`) y luego `supabase migration repair 20260701000000 --status applied`. Bloqueado: el MCP de Supabase no tiene permiso sobre el proyecto y hace falta `supabase login`.
 - [ ] Generar token de SonarQube local (`docs/calidad-sonarqube.md`) y correr `npm run sonar:scan`; priorizar issues altos y duplicaciones.
 - [ ] Partir `src/features/seguimiento/seguimientoApi.ts` (~390 líneas) por dominio: catálogos/usuarios vs visitas vs fotos.
