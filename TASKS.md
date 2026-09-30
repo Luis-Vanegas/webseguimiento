@@ -5,7 +5,7 @@
 
 ## 🔵 Para Claude Code (arquitectura, lógica compleja, decisiones)
 - [x] Aplicada en producción la migración de métricas (`porcentaje_programado`, `porcentaje_pagado`, `proximo_frente`) vía MCP de Supabase el 2026-09-30, con el nombre `metricas_visita`.
-- [ ] Verificar que producción coincide con `supabase/migrations/` (`supabase link` + `supabase db diff --linked`) y luego `supabase migration repair 20260701000000 --status applied`. Bloqueado: el MCP de Supabase no tiene permiso sobre el proyecto y hace falta `supabase login`.
+- [ ] Verificar que producción coincide con `supabase/migrations/` (`supabase link` + `supabase db diff --linked`) y luego `supabase migration repair 20260701000000 --status applied`. El MCP de Supabase ya tiene acceso (2026-09-30): el historial de producción tiene versiones `20260703…`/`20260706…` distintas a las locales, más `metricas_visita` aplicada a mano.
 - [ ] Generar token de SonarQube local (`docs/calidad-sonarqube.md`) y correr `npm run sonar:scan`; priorizar issues altos y duplicaciones.
 - [ ] Partir `src/features/seguimiento/seguimientoApi.ts` (~390 líneas) por dominio: catálogos/usuarios vs visitas vs fotos.
 - [ ] Tests para la capa de integración (`*Api.ts`, thunks de Redux): hoy sin cobertura.
