@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { Box, Button, Divider, IconButton } from '@mui/material'
+import { Box, Button, Divider, IconButton, Typography } from '@mui/material'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import FormatBoldIcon from '@mui/icons-material/FormatBold'
 import FormatItalicIcon from '@mui/icons-material/FormatItalic'
 import FormatUnderlinedIcon from '@mui/icons-material/FormatUnderlined'
@@ -16,6 +17,7 @@ import NoteAddIcon from '@mui/icons-material/NoteAdd'
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import CloseIcon from '@mui/icons-material/Close'
 import { TextoConFormato } from './TextoConFormato'
+import { FotoVisitaImg } from './FotoVisitaImg'
 import { urlFotoCacheada } from '../../hooks/useFotoUrl'
 import { severidadMaxima } from '../../utils/seguimiento/alertas.util'
 import {
@@ -70,6 +72,10 @@ export function EditorInforme({
   const intervaloPdf = useRef<ReturnType<typeof setInterval>>()
   const [preparando, setPreparando] = useState(false)
   const [sinGuardar, setSinGuardar] = useState(false)
+  // Paso previo al borrador nuevo: el ingeniero elige qué fotos de cada
+  // visita van al registro fotográfico (ninguna marcada de entrada).
+  const [eligiendoFotos, setEligiendoFotos] = useState(false)
+  const [fotosElegidas, setFotosElegidas] = useState<Set<string>>(new Set())
 
   const grupo = nombreGrupoInforme(visitas.map((v) => proyectoObra(v.obraId)))
   const fechaLarga = new Date().toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -82,24 +88,46 @@ export function EditorInforme({
     const continuar =
       borrador !== null &&
       window.confirm('Tenés un informe sin terminar. ¿Lo continuás?\n\nCancelar arma uno nuevo con las visitas elegidas.')
-    // innerHTML seguro: o es markup de renderToStaticMarkup (texto escapado) o
-    // el borrador que este mismo editor guardó en el localStorage del origen.
-    ref.current.innerHTML = continuar
-      ? borrador
-      : renderToStaticMarkup(
-          <DocumentoInforme
-            visitas={visitas}
-            nombreObra={nombreObra}
-            direccionObra={direccionObra}
-            tiposAlerta={tiposAlerta}
-            encabezado={<Encabezado grupo={grupo} fecha={fechaLarga} />}
-          />,
-        )
+    if (!continuar) {
+      setEligiendoFotos(true)
+      return
+    }
+    // innerHTML seguro: es el borrador que este mismo editor guardó en el
+    // localStorage del origen.
+    ref.current.innerHTML = borrador
     prepararImagenes(ref.current)
-    guardar()
     // Solo al montar: después el contenido es del usuario.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  function armarBorrador() {
+    if (!ref.current) return
+    const visitasConFotosElegidas = visitas.map((v) => ({
+      ...v,
+      fotos: v.fotos?.filter((f) => fotosElegidas.has(f.id)),
+    }))
+    // innerHTML seguro: markup de renderToStaticMarkup, que escapa el texto.
+    ref.current.innerHTML = renderToStaticMarkup(
+      <DocumentoInforme
+        visitas={visitasConFotosElegidas}
+        nombreObra={nombreObra}
+        direccionObra={direccionObra}
+        tiposAlerta={tiposAlerta}
+        encabezado={<Encabezado grupo={grupo} fecha={fechaLarga} />}
+      />,
+    )
+    prepararImagenes(ref.current)
+    guardar()
+    setEligiendoFotos(false)
+  }
+
+  function alternarFoto(id: string) {
+    setFotosElegidas((actual) => {
+      const nuevo = new Set(actual)
+      if (!nuevo.delete(id)) nuevo.add(id)
+      return nuevo
+    })
+  }
 
   // Si se cierra el editor mientras espera las fotos, que no quede un
   // window.print() pendiente que imprima la app sin el informe.
@@ -247,6 +275,16 @@ export function EditorInforme({
   // tarde, y el efecto de arriba encontraba el ref todavía en null.
   return createPortal(
     <Box id="editor-informe" sx={{ bgcolor: '#e9ebee', minHeight: '100vh', '@media print': { bgcolor: '#fff' } }}>
+      {eligiendoFotos && (
+        <SelectorFotos
+          visitas={visitas}
+          nombreObra={nombreObra}
+          elegidas={fotosElegidas}
+          onAlternar={alternarFoto}
+          onArmar={armarBorrador}
+          onCerrar={onCerrar}
+        />
+      )}
       <Box
         className="no-imprimir"
         onMouseDown={sinPerderSeleccion}
@@ -254,7 +292,7 @@ export function EditorInforme({
           position: 'sticky',
           top: 0,
           zIndex: 1,
-          display: 'flex',
+          display: eligiendoFotos ? 'none' : 'flex',
           flexWrap: 'wrap',
           alignItems: 'center',
           gap: 0.5,
@@ -344,6 +382,7 @@ export function EditorInforme({
       <div
         ref={ref}
         className="informe-doc"
+        hidden={eligiendoFotos}
         contentEditable
         suppressContentEditableWarning
         spellCheck
@@ -352,6 +391,109 @@ export function EditorInforme({
       />
     </Box>,
     document.body,
+  )
+}
+
+function SelectorFotos({
+  visitas,
+  nombreObra,
+  elegidas,
+  onAlternar,
+  onArmar,
+  onCerrar,
+}: {
+  visitas: VisitaSeguimiento[]
+  nombreObra: (obraId: number) => string
+  elegidas: Set<string>
+  onAlternar: (id: string) => void
+  onArmar: () => void
+  onCerrar: () => void
+}) {
+  return (
+    <Box sx={{ maxWidth: 960, mx: 'auto', p: 3 }}>
+      <Box
+        sx={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          py: 1.5,
+          mb: 1,
+          bgcolor: '#e9ebee',
+        }}
+      >
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="h6">Elegí las fotos del registro fotográfico</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Tocá una foto para incluirla. Las que no marques no entran al informe.
+          </Typography>
+        </Box>
+        <Button variant="contained" onClick={onArmar}>
+          Armar informe ({elegidas.size} {elegidas.size === 1 ? 'foto' : 'fotos'})
+        </Button>
+        <IconButton title="Cerrar" onClick={onCerrar}>
+          <CloseIcon />
+        </IconButton>
+      </Box>
+
+      {visitas.map((visita) => {
+        const fotos = [...(visita.fotos ?? [])].sort((a, b) => a.orden - b.orden)
+        return (
+          <Box key={visita.id} sx={{ mb: 3 }}>
+            <Typography sx={{ fontWeight: 700, mb: 1 }}>
+              {nombreObra(visita.obraId)} · {formatearFechaNumerica(visita.fechaVisita)}
+            </Typography>
+            {fotos.length === 0 ? (
+              <Typography variant="body2" color="text.secondary">
+                Sin fotos en esta visita.
+              </Typography>
+            ) : (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {fotos.map((foto) => {
+                  const elegida = elegidas.has(foto.id)
+                  return (
+                    <Box
+                      key={foto.id}
+                      role="checkbox"
+                      aria-checked={elegida}
+                      aria-label="Incluir foto en el informe"
+                      tabIndex={0}
+                      onClick={() => onAlternar(foto.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === ' ' || e.key === 'Enter') {
+                          e.preventDefault()
+                          onAlternar(foto.id)
+                        }
+                      }}
+                      sx={{
+                        position: 'relative',
+                        borderRadius: 1,
+                        outline: elegida ? '3px solid' : '3px solid transparent',
+                        outlineColor: elegida ? 'primary.main' : 'transparent',
+                        opacity: elegida ? 1 : 0.75,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {/* onAbrir vacío: anula el zoom de la miniatura; el clic lo maneja el
+                          recuadro, así también se puede tocar una foto que no cargó. */}
+                      <FotoVisitaImg storagePath={foto.storagePath} onAbrir={() => {}} />
+                      {elegida && (
+                        <CheckCircleIcon
+                          color="primary"
+                          sx={{ position: 'absolute', top: 4, right: 4, bgcolor: '#fff', borderRadius: '50%' }}
+                        />
+                      )}
+                    </Box>
+                  )
+                })}
+              </Box>
+            )}
+          </Box>
+        )
+      })}
+    </Box>
   )
 }
 
