@@ -41,14 +41,15 @@ const ETIQUETA_ROL: Record<RolUsuario, string> = {
 }
 
 // roles omitido = visible para todos. "Mis visitas"/"Revisar" son flujos de
-// campo, no aplican a un visualizador; "Gestión" es al revés, solo para él.
+// campo, no aplican a un visualizador. "Gestión" es de gerencia (visualizador)
+// y del ingeniero, que arma ahí el informe consolidado.
 const ITEMS: { to: string; label: string; icon: JSX.Element; roles?: RolUsuario[] }[] = [
   { to: '/seguimiento/calendario', label: 'Calendario', icon: <CalendarMonthIcon /> },
   { to: '/seguimiento/mis-visitas', label: 'Mis visitas', icon: <AssignmentIcon />, roles: ['ingeniero', 'visitador'] },
   { to: '/seguimiento/revisar', label: 'Revisar visitas', icon: <RateReviewIcon />, roles: ['ingeniero', 'visitador'] },
   { to: '/seguimiento/mapa', label: 'Mapa de obras', icon: <MapIcon /> },
   { to: '/seguimiento/linea-tiempo', label: 'Línea de tiempo', icon: <TimelineIcon /> },
-  { to: '/seguimiento/gestion', label: 'Gestión', icon: <AssessmentIcon />, roles: ['visualizador'] },
+  { to: '/seguimiento/gestion', label: 'Gestión', icon: <AssessmentIcon />, roles: ['visualizador', 'ingeniero'] },
 ]
 
 export function SeguimientoLayout() {

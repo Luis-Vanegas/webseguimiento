@@ -29,6 +29,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { listarTodasLasVisitas, marcarVistoGerencia } from '../../features/seguimiento/seguimientoSlice'
 import { useDatosFiltro } from '../../features/seguimiento/useDatosFiltro'
+import { useUsuarioActual } from '../../features/auth/useUsuarioActual'
 import { FiltrosVisitasBar } from '../../components/seguimiento/FiltrosVisitasBar'
 import { DetalleVisitaDialog } from '../../components/seguimiento/DetalleVisitaDialog'
 import { EditorInforme } from '../../components/seguimiento/EditorInforme'
@@ -58,6 +59,10 @@ export function GestionVisitas() {
   const esMovil = useEsMovil()
   const dispatch = useAppDispatch()
   const { todasLasVisitas, cargando } = useAppSelector((state) => state.seguimiento)
+  // El ingeniero también entra acá para armar el informe, pero la marca
+  // "Visto" es de gerencia: solo el visualizador la ve y la cambia.
+  const { usuario } = useUsuarioActual()
+  const esGerencia = usuario?.rol === 'visualizador'
   const { proyectoEstrategicoPorObra, proyectosEstrategicos, tiposAlerta, obraPorId, nombrePorAutor, usuarios } =
     useDatosFiltro()
   const [filtros, setFiltros] = useState(FILTROS_VACIOS)
@@ -136,7 +141,7 @@ export function GestionVisitas() {
         </Button>
       </Box>
 
-      {mostrarGuia && (
+      {mostrarGuia && esGerencia && (
         <Alert severity="info" onClose={descartarGuia} sx={{ mb: 2.5 }}>
           Acá ves todas las visitas registradas por el equipo. Podés marcarlas como revisadas, pero no podés
           editarlas ni crear nuevas — eso lo hacen ingeniería y el equipo de campo desde el mapa.
@@ -179,12 +184,14 @@ export function GestionVisitas() {
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                  <Box onClick={(e) => e.stopPropagation()} sx={{ mt: -0.75, ml: -0.75 }}>
-                    <ToggleVisto
-                      visto={visita.vistoGerencia}
-                      onChange={(visto) => toggleVisto(visita, visto)}
-                    />
-                  </Box>
+                  {esGerencia && (
+                    <Box onClick={(e) => e.stopPropagation()} sx={{ mt: -0.75, ml: -0.75 }}>
+                      <ToggleVisto
+                        visto={visita.vistoGerencia}
+                        onChange={(visto) => toggleVisto(visita, visto)}
+                      />
+                    </Box>
+                  )}
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1 }}>
                       <Typography sx={{ fontWeight: 600, fontSize: 14, lineHeight: 1.3, minWidth: 0 }}>
@@ -220,9 +227,11 @@ export function GestionVisitas() {
                     inputProps={{ 'aria-label': 'Elegir todas para el informe' }}
                   />
                 </TableCell>
-                <TableCell align="center" sx={{ width: 64 }}>
-                  Visto
-                </TableCell>
+                {esGerencia && (
+                  <TableCell align="center" sx={{ width: 64 }}>
+                    Visto
+                  </TableCell>
+                )}
                 <TableCell>Obra y autor</TableCell>
                 <TableCell sx={{ width: 120 }}>Fecha</TableCell>
                 <TableCell sx={{ width: 180 }}>Avance campo</TableCell>
@@ -251,12 +260,14 @@ export function GestionVisitas() {
                         inputProps={{ 'aria-label': 'Incluir en el informe' }}
                       />
                     </TableCell>
-                    <TableCell padding="checkbox" align="center" onClick={(e) => e.stopPropagation()}>
-                      <ToggleVisto
-                        visto={visita.vistoGerencia}
-                        onChange={(visto) => toggleVisto(visita, visto)}
-                      />
-                    </TableCell>
+                    {esGerencia && (
+                      <TableCell padding="checkbox" align="center" onClick={(e) => e.stopPropagation()}>
+                        <ToggleVisto
+                          visto={visita.vistoGerencia}
+                          onChange={(visto) => toggleVisto(visita, visto)}
+                        />
+                      </TableCell>
+                    )}
                     <TableCell sx={{ maxWidth: 360 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
                         <Avatar
@@ -349,7 +360,7 @@ export function GestionVisitas() {
           tiposAlerta={tiposAlerta}
           soloLectura
           vistoGerencia={visitaSeleccionada.vistoGerencia}
-          onCambiarVisto={guardarVistaSeleccionada}
+          onCambiarVisto={esGerencia ? guardarVistaSeleccionada : undefined}
           onCerrar={() => setVisitaSeleccionada(null)}
           onGuardar={() => {}}
         />
