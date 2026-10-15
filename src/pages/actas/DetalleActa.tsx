@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   Alert,
   Box,
@@ -34,10 +34,12 @@ import { DialogoEliminarActa } from '../../components/actas/detalle/DialogoElimi
 import { DialogoCompromiso } from '../../components/actas/detalle/DialogoCompromiso'
 import { DialogoEliminarCompromiso } from '../../components/actas/detalle/DialogoEliminarCompromiso'
 import { TablaCompromisos } from '../../components/actas/detalle/TablaCompromisos'
+import type { AvisoActa } from '../../components/actas/tablero/NuevaActaDialog'
 
 export function DetalleActa() {
   const { actaId } = useParams<{ actaId: string }>()
   const navigate = useNavigate()
+  const avisoInicial = (useLocation().state as { aviso?: AvisoActa } | null)?.aviso ?? null
 
   const [acta, setActa] = useState<Acta | null>(null)
   const [compromisos, setCompromisos] = useState<Compromiso[]>([])
@@ -46,10 +48,11 @@ export function DetalleActa() {
   const [noEncontrada, setNoEncontrada] = useState(false)
 
   // Feedback temporal
+  // Starts with the notice sent by "Nueva acta" (e.g. how many commitments were saved).
   const [notificacion, setNotificacion] = useState<{
-    severidad: 'success' | 'error'
+    severidad: 'success' | 'warning' | 'error'
     mensaje: string
-  } | null>(null)
+  } | null>(avisoInicial)
 
   // Diálogos
   const [dialogoEditarActa, setDialogoEditarActa] = useState(false)
@@ -96,6 +99,11 @@ export function DetalleActa() {
   useEffect(() => {
     cargarDatos()
   }, [cargarDatos])
+
+  // Drop the creation notice from history so a reload does not show it again.
+  useEffect(() => {
+    if (avisoInicial) navigate('.', { replace: true, state: null })
+  }, [avisoInicial, navigate])
 
   // Guardar cambios en el Acta
   const manejarGuardarActa = async (cambios: Partial<ActaNueva>) => {

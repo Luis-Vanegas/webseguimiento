@@ -1,13 +1,9 @@
-import { useState } from 'react'
 import {
   Box,
   Button,
   Chip,
-  CircularProgress,
   IconButton,
-  MenuItem,
   Paper,
-  Select,
   Table,
   TableBody,
   TableCell,
@@ -24,12 +20,9 @@ import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined'
 import EventOutlinedIcon from '@mui/icons-material/EventOutlined'
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
-import {
-  ESTADOS_COMPROMISO,
-  type Compromiso,
-  type EstadoCompromiso,
-} from '../../../types/actas.types'
+import type { Compromiso, EstadoCompromiso } from '../../../types/actas.types'
 import { diasRestantes, semaforo } from '../../../utils/actas/tablero.util'
+import { SelectorEstado } from '../SelectorEstado'
 
 interface TablaCompromisosProps {
   compromisos: Compromiso[]
@@ -49,16 +42,6 @@ function formatearFecha(fecha: string | null): string {
   return fecha
 }
 
-const ESTILOS_ESTADO: Record<
-  EstadoCompromiso,
-  { bg: string; color: string; border: string }
-> = {
-  Pendiente: { bg: '#f1f5f9', color: '#334155', border: '#cbd5e1' },
-  'En progreso': { bg: '#e0f2fe', color: '#0369a1', border: '#7dd3fc' },
-  Crítica: { bg: '#fee2e2', color: '#b91c1c', border: '#fca5a5' },
-  Completada: { bg: '#dcfce7', color: '#15803d', border: '#86efac' },
-}
-
 export function TablaCompromisos({
   compromisos,
   onNuevoCompromiso,
@@ -66,18 +49,6 @@ export function TablaCompromisos({
   onEliminarCompromiso,
   onCambiarEstado,
 }: TablaCompromisosProps) {
-  const [actualizandoId, setActualizandoId] = useState<string | null>(null)
-
-  const manejarCambioEstado = async (c: Compromiso, nuevoEstado: EstadoCompromiso) => {
-    if (c.estado === nuevoEstado) return
-    setActualizandoId(c.id)
-    try {
-      await onCambiarEstado(c, nuevoEstado)
-    } finally {
-      setActualizandoId(null)
-    }
-  }
-
   const renderChipSemaforo = (c: Compromiso) => {
     const sem = semaforo(c)
     const dias = diasRestantes(c)
@@ -129,39 +100,9 @@ export function TablaCompromisos({
     )
   }
 
-  const renderSelectorEstado = (c: Compromiso) => {
-    const estilo = ESTILOS_ESTADO[c.estado]
-    const cargando = actualizandoId === c.id
-
-    return (
-      <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-        <Select
-          size="small"
-          value={c.estado}
-          onChange={(e) => manejarCambioEstado(c, e.target.value as EstadoCompromiso)}
-          disabled={cargando}
-          sx={{
-            fontSize: '0.8125rem',
-            fontWeight: 600,
-            borderRadius: 2,
-            minWidth: 130,
-            bgcolor: estilo.bg,
-            color: estilo.color,
-            border: `1px solid ${estilo.border}`,
-            '& .MuiSelect-select': { py: 0.5, px: 1.25 },
-            '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-          }}
-        >
-          {ESTADOS_COMPROMISO.map((est) => (
-            <MenuItem key={est} value={est} sx={{ fontSize: '0.8125rem' }}>
-              {est}
-            </MenuItem>
-          ))}
-        </Select>
-        {cargando && <CircularProgress size={16} />}
-      </Box>
-    )
-  }
+  const renderSelectorEstado = (c: Compromiso) => (
+    <SelectorEstado compromiso={c} onCambiar={onCambiarEstado} />
+  )
 
   return (
     <Box sx={{ mt: 3 }}>

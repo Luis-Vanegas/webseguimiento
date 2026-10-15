@@ -1,7 +1,12 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { claveDeDate } from '../../../utils/seguimiento/fechas.util.ts'
-import { FILTROS_COMPROMISOS_VACIOS, fechaLegible, filasCompromisos } from './filasCompromisos.ts'
+import {
+  FILTROS_COMPROMISOS_VACIOS,
+  compromisosDeBorrador,
+  fechaLegible,
+  filasCompromisos,
+} from './filasCompromisos.ts'
 import type { Compromiso } from '../../../types/actas.types.ts'
 
 const enDias = (n: number) => claveDeDate(new Date(Date.now() + n * 86_400_000))
@@ -41,6 +46,58 @@ test('filters by estado, origen and accent-insensitive text', () => {
   )
   assert.deepEqual(filasCompromisos(compromisos, origenes, { ...f, texto: 'jose' }).map((c) => c.id), ['3'])
   assert.deepEqual(filasCompromisos(compromisos, origenes, { ...f, texto: 'LEJANA' }).map((c) => c.id), ['2'])
+})
+
+test('sorts by the chosen column and direction, empty values always last', () => {
+  const f = FILTROS_COMPROMISOS_VACIOS
+  const ids = (orden: Parameters<typeof filasCompromisos>[3]) =>
+    filasCompromisos(compromisos, origenes, f, orden).map((c) => c.id)
+
+  assert.deepEqual(ids({ campo: 'dias', dir: 'desc' }).slice(0, 2), ['2', '3'])
+  assert.deepEqual(ids({ campo: 'origen', dir: 'asc' })[0], '2')
+  assert.deepEqual(ids({ campo: 'origen', dir: 'desc' }).at(-1), '2')
+  assert.deepEqual(ids({ campo: 'vence', dir: 'asc' }), ['4', '3', '2', '1'])
+  assert.deepEqual(ids({ campo: 'vence', dir: 'desc' }), ['2', '3', '4', '1'])
+})
+
+test('sorts estado by urgency: Crítica, En progreso, Pendiente, Completada', () => {
+  const lista: Compromiso[] = [
+    { ...base, id: 'p', actividad: 'p', estado: 'Pendiente' },
+    { ...base, id: 'h', actividad: 'h', estado: 'Completada' },
+    { ...base, id: 'c', actividad: 'c', estado: 'Crítica' },
+    { ...base, id: 'e', actividad: 'e', estado: 'En progreso' },
+  ]
+  const orden = { campo: 'estado', dir: 'asc' } as const
+  assert.deepEqual(
+    filasCompromisos(lista, origenes, FILTROS_COMPROMISOS_VACIOS, orden).map((c) => c.id),
+    ['c', 'e', 'p', 'h'],
+  )
+})
+
+test('compromisosDeBorrador trims fields and skips rows without actividad', () => {
+  const borrador = [
+    { actividad: '  Enviar informe ', responsable: ' Ana ', fechaVencimiento: '2026-11-01' },
+    { actividad: '   ', responsable: 'Nadie', fechaVencimiento: '' },
+    { actividad: 'Revisar planos', responsable: '', fechaVencimiento: '' },
+  ]
+  assert.deepEqual(compromisosDeBorrador(borrador, 'acta-1'), [
+    {
+      actaId: 'acta-1',
+      actividad: 'Enviar informe',
+      responsable: 'Ana',
+      fechaVencimiento: '2026-11-01',
+      estado: 'Pendiente',
+      criterioFecha: null,
+    },
+    {
+      actaId: 'acta-1',
+      actividad: 'Revisar planos',
+      responsable: null,
+      fechaVencimiento: null,
+      estado: 'Pendiente',
+      criterioFecha: null,
+    },
+  ])
 })
 
 test('fechaLegible formats ISO dates', () => {
