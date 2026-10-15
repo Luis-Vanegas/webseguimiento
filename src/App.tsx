@@ -15,6 +15,8 @@ import { MapaSeguimiento } from './pages/seguimiento/MapaSeguimiento'
 import { Calendario } from './pages/seguimiento/Calendario'
 import { GestionVisitas } from './pages/seguimiento/GestionVisitas'
 import { LineaTiempoPortafolio } from './pages/seguimiento/LineaTiempoPortafolio'
+import { TableroActas } from './pages/actas/TableroActas'
+import { DetalleActa } from './pages/actas/DetalleActa'
 
 function App() {
   return (
@@ -26,6 +28,9 @@ function App() {
             <Routes>
               <Route path="/" element={<Navigate to="/seguimiento/calendario" replace />} />
               <Route path="/seguimiento/login" element={<LoginSeguimiento />} />
+              {/* Actas: public test module, no login and no link from Seguimiento. */}
+              <Route path="/actas" element={<TableroActas />} />
+              <Route path="/actas/:actaId" element={<DetalleActa />} />
               <Route element={<RutaProtegida />}>
                 <Route path="/seguimiento" element={<SeguimientoLayout />}>
                   <Route path="mis-visitas" element={<MisVisitas />} />

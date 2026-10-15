@@ -1,6 +1,7 @@
 # Tareas del proyecto
 
 ## 🟢 Para Antigravity (rápidas, mecánicas, acotadas)
+- [ ] **Actas T4** (rama `feat/actas`, spec en `odd/tasks/actas.md` → S6): crear `supabase/seed-actas.sql` con los datos de la hoja "Datos" de `Tablero_Control_Actividades.xlsx`. Un `insert into actas` por cada par (ORIGEN, FECHA INICIO) y sus `insert into compromisos` (usar CTE o `uuid` fijos). Las filas "Acta de reunón" no se insertan como compromisos. Saltar filas vacías (T-28..T-30). Envolver todo en `begin; … commit;`. No tocar otros archivos ni commitear.
 - [ ] Crear `.env.example` en la raíz (la sesión de refactor no tuvo permiso de escritura). Contenido en `docs/operacion.md` → sección "Variables de entorno" (URL local `http://127.0.0.1:54321` + anon key demo de `supabase status`).
 
 ## 🔵 Para Claude Code (arquitectura, lógica compleja, decisiones)

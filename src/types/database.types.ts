@@ -34,6 +34,74 @@ export type Database = {
   }
   public: {
     Tables: {
+      actas: {
+        Row: {
+          asistentes: string | null
+          created_at: string
+          fecha: string
+          id: string
+          notas: string | null
+          origen: string
+        }
+        Insert: {
+          asistentes?: string | null
+          created_at?: string
+          fecha: string
+          id?: string
+          notas?: string | null
+          origen: string
+        }
+        Update: {
+          asistentes?: string | null
+          created_at?: string
+          fecha?: string
+          id?: string
+          notas?: string | null
+          origen?: string
+        }
+        Relationships: []
+      }
+      compromisos: {
+        Row: {
+          acta_id: string
+          actividad: string
+          created_at: string
+          criterio_fecha: string | null
+          estado: string
+          fecha_vencimiento: string | null
+          id: string
+          responsable: string | null
+        }
+        Insert: {
+          acta_id: string
+          actividad: string
+          created_at?: string
+          criterio_fecha?: string | null
+          estado?: string
+          fecha_vencimiento?: string | null
+          id?: string
+          responsable?: string | null
+        }
+        Update: {
+          acta_id?: string
+          actividad?: string
+          created_at?: string
+          criterio_fecha?: string | null
+          estado?: string
+          fecha_vencimiento?: string | null
+          id?: string
+          responsable?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compromisos_acta_id_fkey"
+            columns: ["acta_id"]
+            isOneToOne: false
+            referencedRelation: "actas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alertas_visita: {
         Row: {
           detalle: string | null
