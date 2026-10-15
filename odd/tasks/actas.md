@@ -20,8 +20,8 @@ Rama: `feat/actas` · Entrega: ask-on-risk · Tests: `npm test` (node:test) + `n
 | ID | Specs | Ruta / dueño | Superficie de edición | Estado | Commit |
 |----|-------|--------------|------------------------|--------|--------|
 | T1 | S1, S2 | inline · orquestador (Claude Code) | migración, tipos, API, util, `App.tsx` | ✅ | ver Log L3 |
-| T2 | S5, S1 | agente A (Orca) | `src/pages/actas/TableroActas.tsx`, `src/components/actas/tablero/**` | ⬜ | |
-| T3 | S3, S4 | agente B (Orca) | `src/pages/actas/DetalleActa.tsx`, `src/components/actas/detalle/**` | ⬜ | |
+| T2 | S5, S1 | delegado · Orca worker Claude | `src/pages/actas/TableroActas.tsx`, `src/components/actas/tablero/**` | ✅ revisado, sin mergear | `98e75f6` (Luis-Vanegas/actas-t2-tablero) |
+| T3 | S3, S4 | delegado · Orca worker Antigravity (Gemini 3.8 Flash High) | `src/pages/actas/DetalleActa.tsx`, `src/components/actas/detalle/**` | ✅ revisado, sin mergear | `6d2c06a` (Luis-Vanegas/actas-t3-detalle) |
 | T4 | S6 | Antigravity | `supabase/seed-actas.sql` (nuevo) | ⬜ | |
 | T5 | S2 | orquestador, con confirmación del usuario | aplicar migración + seed en producción | ⬜ | |
 | T6 | todos | orquestador | revisión de costura: `npm test`, `typecheck`, `lint`, `build`; prueba en navegador | ⬜ | |
@@ -32,3 +32,4 @@ Reglas para agentes: trabajar solo dentro de su superficie; no correr formatters
 - **L1** (2026-10-15, pedido original): "Estoy en orca, quiero que te ayudes con los dmas modelos a crear este modulo, sin login ni nada, pestaña aparte de seguimiento, el modulo ya fue subido a proudccion por lo cual ya lo creado no se va ver o usar, pero como todo esta subido a verce y esta conectado a una bd, usaremos para creacion de un modulo, te dejare un excel que es el usaremos para este modulo, es algo para poder ver todo lo relacionado y actas, y todo." Contexto pegado: "para que me ayude a pensar en una solución para hacer las actas ahí y llevar pendientes, responsables y fechas."
 - **L2** (2026-10-15): "sii, creamos un link aparte, lo usamos mientras asi, que nada lleve a tablero de seguimiento,como te mencione usaremo este entorno, sera de prueba. Quiero probar el uso de ORCA, como manejar el tema con los demas agentes y tu eres el orquestador". Decisión: acceso abierto a `anon` en las dos tablas nuevas (documentado en la migración).
 - **L3** (2026-10-15): T1 listo. `tablero.test.ts` 3/3 verde; `typecheck` OK. Páginas de T2/T3 quedan como placeholder enrutado. Sin espejo en `postgres/esquema.sql`: ese archivo es la entrega Azure del módulo de seguimiento y este módulo es de prueba.
+- **L4** (2026-10-15): Run Orca `run_0f9820f4fc3d`. T3 con Codex falló: "You've hit your usage limit … try again at Oct 18th, 2026 2:54 PM"; dispatch abandonado y relanzado con Antigravity. Copilot CLI no devuelve respuesta (`AI Credits 0`). Revisión del orquestador: ambos diffs dentro de su superficie, `typecheck` OK en ambos worktrees, tests de T2 6/6. Advertencia T3: "no encontrada" se detecta por texto del error; un id que no es uuid muestra error en vez de "Acta no encontrada". Pendiente: merge a `feat/actas` (requiere OK del usuario), T4, T5, T6.
