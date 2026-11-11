@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import ToggleButton from '@mui/material/ToggleButton'
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
+import EditNoteIcon from '@mui/icons-material/EditNote'
+import TableViewIcon from '@mui/icons-material/TableView'
+import { CargaMasiva } from './CargaMasiva'
 import {
   Alert,
   Autocomplete,
@@ -42,28 +47,14 @@ import {
   parsearPorcentaje,
   sumaPorcentajes,
   validarAportes,
+  validarCampos,
   valorAportado,
   type AporteBorrador,
+  type Campos,
 } from '../../utils/estrategicos/reporte.util'
 import { COLOR_ACENTO, COLOR_SIDEBAR } from '../../theme/theme'
 
 const VIGENCIAS = ['2024', '2025', '2026']
-const RE_BPIN = /^\d{6,20}$/
-const RE_CORREO = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
-
-interface Campos {
-  vigencia: string
-  cenGestor: number | null
-  codBpin: string
-  codSap: string
-  nomProyecto: string
-  pptoInicial: number | null
-  totalPptoActual: number | null
-  ejeFinanciera: number | null
-  reportadoPor: string
-  correo: string
-  observaciones: string
-}
 
 const camposVacios = (base?: Partial<Campos>): Campos => ({
   vigencia: '2026',
@@ -81,21 +72,6 @@ const camposVacios = (base?: Partial<Campos>): Campos => ({
 })
 const aporteVacio = (): AporteBorrador => ({ proyectoEstrategicoId: null, porcentaje: '' })
 
-function validarCampos(c: Campos): Partial<Record<keyof Campos, string>> {
-  const e: Partial<Record<keyof Campos, string>> = {}
-  if (!c.vigencia) e.vigencia = 'Elige la vigencia.'
-  if (c.cenGestor === null) e.cenGestor = 'Elige la dependencia.'
-  if (!RE_BPIN.test(c.codBpin)) e.codBpin = 'Solo números (6 a 20 dígitos).'
-  if (c.codSap && !/^\d{1,12}$/.test(c.codSap)) e.codSap = 'Solo números.'
-  if (c.nomProyecto.trim().length < 3) e.nomProyecto = 'Escribe el nombre del proyecto.'
-  if (c.pptoInicial === null) e.pptoInicial = 'Obligatorio (escribe 0 si no aplica).'
-  if (c.totalPptoActual === null) e.totalPptoActual = 'Obligatorio.'
-  if (c.ejeFinanciera === null) e.ejeFinanciera = 'Obligatorio.'
-  if (c.reportadoPor.trim().length < 3) e.reportadoPor = 'Escribe tu nombre.'
-  if (c.correo && !RE_CORREO.test(c.correo.trim())) e.correo = 'Correo no válido.'
-  return e
-}
-
 const filtroProyectos = createFilterOptions<ProyectoInversion>({
   stringify: (p) => `${p.codBpin} ${p.codSap ?? ''} ${p.nombre}`,
   limit: 30,
@@ -105,6 +81,19 @@ export function FormularioEstrategicos() {
   const { token } = useParams<{ token: string }>()
   const navigate = useNavigate()
   const modoEdicion = Boolean(token)
+  // ?modo=masivo en la URL: así se puede compartir el link directo a la carga por Excel.
+  const [params, setParams] = useSearchParams()
+  const masivo = !modoEdicion && params.get('modo') === 'masivo'
+  const selectorModo = (
+    <Paper elevation={0} sx={{ p: 0.75, mb: 2.5, borderRadius: 3, border: '1px solid #e3e8ef' }}>
+      <ToggleButtonGroup exclusive fullWidth value={masivo ? 'masivo' : 'uno'}
+        onChange={(_, v) => v && setParams(v === 'masivo' ? { modo: 'masivo' } : {}, { replace: true })}
+        sx={{ '& .MuiToggleButton-root': { border: 0, borderRadius: '10px !important', py: 1.25, textTransform: 'none', fontWeight: 700, gap: 1 } }}>
+        <ToggleButton value="uno"><EditNoteIcon fontSize="small" />Un proyecto</ToggleButton>
+        <ToggleButton value="masivo"><TableViewIcon fontSize="small" />Varios proyectos (Excel)</ToggleButton>
+      </ToggleButtonGroup>
+    </Paper>
+  )
 
   const [catalogos, setCatalogos] = useState<{
     dependencias: Dependencia[]
@@ -288,6 +277,11 @@ export function FormularioEstrategicos() {
           <Paper sx={{ p: 6, display: 'grid', placeItems: 'center', maxWidth: 760, mx: 'auto' }}>
             <CircularProgress />
           </Paper>
+        ) : masivo ? (
+          <Box sx={{ maxWidth: 880, mx: 'auto' }}>
+            {selectorModo}
+            <CargaMasiva catalogo={catalogos} />
+          </Box>
         ) : resultado ? (
           <PantallaExito resultado={resultado} onOtro={registrarOtro} onCorregir={() => {
             setResultado(null)
@@ -295,6 +289,7 @@ export function FormularioEstrategicos() {
           }} />
         ) : (
           <>
+            {!modoEdicion && selectorModo}
             {modoEdicion && reporteId && (
               <Alert severity={anulado ? 'warning' : 'info'} sx={{ mb: 2 }}
                 action={!anulado && (

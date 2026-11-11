@@ -62,3 +62,36 @@ export function validarAportes(aportes: AporteBorrador[]): {
 }
 
 export const codigoReporte = (id: number) => `REP-${String(id).padStart(4, '0')}`
+
+/** Campos del proyecto (sin aportes). Compartido por el formulario y la carga masiva. */
+export interface Campos {
+  vigencia: string
+  cenGestor: number | null
+  codBpin: string
+  codSap: string
+  nomProyecto: string
+  pptoInicial: number | null
+  totalPptoActual: number | null
+  ejeFinanciera: number | null
+  reportadoPor: string
+  correo: string
+  observaciones: string
+}
+
+const RE_BPIN = /^\d{6,20}$/
+const RE_CORREO = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
+
+export function validarCampos(c: Campos): Partial<Record<keyof Campos, string>> {
+  const e: Partial<Record<keyof Campos, string>> = {}
+  if (!/^\d{4}$/.test(c.vigencia) || Number(c.vigencia) < 2020 || Number(c.vigencia) > 2035) e.vigencia = 'Elige la vigencia.'
+  if (c.cenGestor === null) e.cenGestor = 'Elige la dependencia.'
+  if (!RE_BPIN.test(c.codBpin)) e.codBpin = 'Solo números (6 a 20 dígitos).'
+  if (c.codSap && !/^\d{1,12}$/.test(c.codSap)) e.codSap = 'Solo números.'
+  if (c.nomProyecto.trim().length < 3) e.nomProyecto = 'Escribe el nombre del proyecto.'
+  if (c.pptoInicial === null) e.pptoInicial = 'Obligatorio (escribe 0 si no aplica).'
+  if (c.totalPptoActual === null) e.totalPptoActual = 'Obligatorio.'
+  if (c.ejeFinanciera === null) e.ejeFinanciera = 'Obligatorio.'
+  if (c.reportadoPor.trim().length < 3) e.reportadoPor = 'Escribe tu nombre.'
+  if (c.correo && !RE_CORREO.test(c.correo.trim())) e.correo = 'Correo no válido.'
+  return e
+}
