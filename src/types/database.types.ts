@@ -151,53 +151,27 @@ export type Database = {
         }
         Relationships: []
       }
-      est_proyectos_inversion: {
-        Row: {
-          cen_gestor: number | null
-          cod_bpin: string
-          cod_sap: string | null
-          nombre: string
-        }
-        Insert: {
-          cen_gestor?: number | null
-          cod_bpin: string
-          cod_sap?: string | null
-          nombre: string
-        }
-        Update: {
-          cen_gestor?: number | null
-          cod_bpin?: string
-          cod_sap?: string | null
-          nombre?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "est_proyectos_inversion_cen_gestor_fkey"
-            columns: ["cen_gestor"]
-            isOneToOne: false
-            referencedRelation: "est_dependencias"
-            referencedColumns: ["cen_gestor"]
-          },
-        ]
-      }
       est_reporte_aportes: {
         Row: {
           id: number
           porcentaje: number
           proyecto_estrategico_id: number
           reporte_id: number
+          valor_aportado: number | null
         }
         Insert: {
           id?: never
           porcentaje: number
           proyecto_estrategico_id: number
           reporte_id: number
+          valor_aportado?: number | null
         }
         Update: {
           id?: never
           porcentaje?: number
           proyecto_estrategico_id?: number
           reporte_id?: number
+          valor_aportado?: number | null
         }
         Relationships: [
           {
@@ -219,8 +193,8 @@ export type Database = {
       est_reportes: {
         Row: {
           cen_gestor: number
-          cod_bpin: string
-          cod_sap: string | null
+          cod_bpin: string | null
+          cod_sap: string
           correo: string | null
           created_at: string
           eje_financiera: number
@@ -237,8 +211,8 @@ export type Database = {
         }
         Insert: {
           cen_gestor: number
-          cod_bpin: string
-          cod_sap?: string | null
+          cod_bpin?: string | null
+          cod_sap: string
           correo?: string | null
           created_at?: string
           eje_financiera: number
@@ -255,8 +229,8 @@ export type Database = {
         }
         Update: {
           cen_gestor?: number
-          cod_bpin?: string
-          cod_sap?: string | null
+          cod_bpin?: string | null
+          cod_sap?: string
           correo?: string | null
           created_at?: string
           eje_financiera?: number
@@ -590,7 +564,6 @@ export type Database = {
       est_v_consolidado: {
         Row: {
           cen_gestor: number | null
-          cod_bpin: string | null
           cod_sap: string | null
           correo: string | null
           created_at: string | null

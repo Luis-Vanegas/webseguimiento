@@ -73,14 +73,14 @@ export function CargaMasiva({ catalogo }: { catalogo: Catalogo }) {
   function descargarResultados() {
     const base = window.location.origin
     const csv = aCsv([
-      ['reporte', 'vigencia', 'cod_bpin', 'nom_proyecto', 'filas_excel', 'estado', 'enlace_correccion', 'detalle'],
+      ['reporte', 'vigencia', 'cod_sap', 'nom_proyecto', 'filas_excel', 'estado', 'enlace_correccion', 'detalle'],
       ...grupos.map((g) => {
         const r = resultados?.get(g.clave)
         const estado = !r ? (g.errores.length ? 'No enviado (errores)' : 'No enviado') : r.ok ? 'Enviado' : 'Rechazado'
         return [
           r?.ok ? codigoReporte(r.id) : '',
           g.campos.vigencia,
-          g.campos.codBpin,
+          g.campos.codSap,
           g.campos.nomProyecto,
           g.filas.join(', '),
           estado,
@@ -102,8 +102,9 @@ export function CargaMasiva({ catalogo }: { catalogo: Catalogo }) {
     <Box>
       <Paso numero={1} titulo="Descarga la plantilla">
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Una fila por cada proyecto estratégico. Si un proyecto de inversión aporta a varios, repite sus datos en varias filas.
-          Las dependencias y proyectos estratégicos se eligen de listas desplegables.
+          Una fila por cada proyecto estratégico. Si un proyecto de inversión aporta a varios, repite sus datos (mismo código SAP)
+          en varias filas. Escribe el porcentaje o el presupuesto que aporta: el otro se calcula. La suma de porcentajes de un
+          proyecto de inversión no puede superar el 100 %.
         </Typography>
         <Button variant="outlined" startIcon={<DownloadIcon />} href="/plantilla-proyectos-estrategicos.xlsx" download>
           Descargar plantilla Excel
@@ -208,15 +209,15 @@ function TarjetaGrupo({ grupo: g, resultado }: { grupo: GrupoCarga; resultado?: 
         <Box sx={{ minWidth: 0, flex: 1 }}>
           <Typography fontWeight={700} sx={{ overflowWrap: 'anywhere' }}>{g.campos.nomProyecto || '(sin nombre)'}</Typography>
           <Typography variant="caption" color="text.secondary" component="p">
-            {g.campos.vigencia} · BPIN {g.campos.codBpin || '—'} · {g.dependencia || 'sin dependencia'} · fila{g.filas.length > 1 ? 's' : ''} {g.filas.join(', ')}
+            {g.campos.vigencia} · SAP {g.campos.codSap || '—'} · {g.dependencia || 'sin dependencia'} · fila{g.filas.length > 1 ? 's' : ''} {g.filas.join(', ')}
           </Typography>
           <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mt: 1 }}>
             {g.aportes.map((a, i) => {
               const p = parsearPorcentaje(a.porcentaje)
-              const valor = p !== null && g.campos.ejeFinanciera !== null ? Math.round((g.campos.ejeFinanciera * p) / 100) : null
+              const pct = p === null ? '?' : p.toLocaleString('es-CO', { maximumFractionDigits: 2 })
               return (
                 <Chip key={i} size="small" variant="outlined"
-                  label={`${g.nombresEstrategicos[i] || '—'} · ${a.porcentaje || '?'} %${valor !== null ? ` · $ ${formatearMonto(valor)}` : ''}`}
+                  label={`${g.nombresEstrategicos[i] || '—'} · ${pct} %${a.valor !== null ? ` · $ ${formatearMonto(a.valor)}` : ''}`}
                   sx={{ maxWidth: '100%' }} />
               )
             })}

@@ -1,10 +1,7 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import ToggleButton from '@mui/material/ToggleButton'
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
-import EditNoteIcon from '@mui/icons-material/EditNote'
-import TableViewIcon from '@mui/icons-material/TableView'
+import { useEffect, useState, type ReactNode } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { CargaMasiva } from './CargaMasiva'
+import { resolverAporte } from '../../utils/estrategicos/cargaMasiva.util'
 import {
   Alert,
   Autocomplete,
@@ -23,7 +20,6 @@ import {
   TextField,
   Tooltip,
   Typography,
-  createFilterOptions,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
@@ -38,7 +34,6 @@ import {
   obtenerReporte,
   type Dependencia,
   type ProyectoEstrategico,
-  type ProyectoInversion,
 } from '../../features/estrategicos/estrategicosApi'
 import {
   codigoReporte,
@@ -48,7 +43,6 @@ import {
   sumaPorcentajes,
   validarAportes,
   validarCampos,
-  valorAportado,
   type AporteBorrador,
   type Campos,
 } from '../../utils/estrategicos/reporte.util'
@@ -59,7 +53,6 @@ const VIGENCIAS = ['2024', '2025', '2026']
 const camposVacios = (base?: Partial<Campos>): Campos => ({
   vigencia: '2026',
   cenGestor: null,
-  codBpin: '',
   codSap: '',
   nomProyecto: '',
   pptoInicial: null,
@@ -70,38 +63,23 @@ const camposVacios = (base?: Partial<Campos>): Campos => ({
   observaciones: '',
   ...base,
 })
-const aporteVacio = (): AporteBorrador => ({ proyectoEstrategicoId: null, porcentaje: '' })
-
-const filtroProyectos = createFilterOptions<ProyectoInversion>({
-  stringify: (p) => `${p.codBpin} ${p.codSap ?? ''} ${p.nombre}`,
-  limit: 30,
-})
+// En la corrección se puede escribir el % o el valor (como en la plantilla).
+type AporteForm = AporteBorrador & { valor: number | null }
+const aporteVacio = (): AporteForm => ({ proyectoEstrategicoId: null, porcentaje: '', valor: null })
 
 export function FormularioEstrategicos() {
   const { token } = useParams<{ token: string }>()
   const navigate = useNavigate()
   const modoEdicion = Boolean(token)
-  // ?modo=masivo en la URL: así se puede compartir el link directo a la carga por Excel.
-  const [params, setParams] = useSearchParams()
-  const masivo = !modoEdicion && params.get('modo') === 'masivo'
-  const selectorModo = (
-    <Paper elevation={0} sx={{ p: 0.75, mb: 2.5, borderRadius: 3, border: '1px solid #e3e8ef' }}>
-      <ToggleButtonGroup exclusive fullWidth value={masivo ? 'masivo' : 'uno'}
-        onChange={(_, v) => v && setParams(v === 'masivo' ? { modo: 'masivo' } : {}, { replace: true })}
-        sx={{ '& .MuiToggleButton-root': { border: 0, borderRadius: '10px !important', py: 1.25, textTransform: 'none', fontWeight: 700, gap: 1 } }}>
-        <ToggleButton value="uno"><EditNoteIcon fontSize="small" />Un proyecto</ToggleButton>
-        <ToggleButton value="masivo"><TableViewIcon fontSize="small" />Varios proyectos (Excel)</ToggleButton>
-      </ToggleButtonGroup>
-    </Paper>
-  )
+  // Registrar es solo por Excel; el formulario individual queda únicamente para corregir con el enlace.
+  const masivo = !modoEdicion
 
   const [catalogos, setCatalogos] = useState<{
     dependencias: Dependencia[]
     estrategicos: ProyectoEstrategico[]
-    proyectos: ProyectoInversion[]
   } | null>(null)
   const [campos, setCampos] = useState<Campos>(camposVacios())
-  const [aportes, setAportes] = useState<AporteBorrador[]>([aporteVacio()])
+  const [aportes, setAportes] = useState<AporteForm[]>([aporteVacio()])
   const [reporteId, setReporteId] = useState<number | null>(null)
   const [anulado, setAnulado] = useState(false)
   const [errorCarga, setErrorCarga] = useState<string | null>(null)
@@ -128,7 +106,6 @@ export function FormularioEstrategicos() {
           setCampos({
             vigencia: String(rep.vigencia),
             cenGestor: rep.cen_gestor,
-            codBpin: rep.cod_bpin,
             codSap: rep.cod_sap ?? '',
             nomProyecto: rep.nom_proyecto,
             pptoInicial: Number(rep.ppto_inicial),
@@ -141,7 +118,8 @@ export function FormularioEstrategicos() {
           setAportes(
             rep.aportes.map((a) => ({
               proyectoEstrategicoId: a.proyecto_estrategico_id,
-              porcentaje: String(a.porcentaje).replace('.', ','),
+              porcentaje: String(Number(a.porcentaje)).replace('.', ','),
+              valor: a.valor_aportado === null ? null : Number(a.valor_aportado),
             })),
           )
         }
@@ -153,25 +131,25 @@ export function FormularioEstrategicos() {
   }, [token])
 
   const errores = validarCampos(campos)
-  const erroresAportes = validarAportes(aportes)
+  // Completa % o valor (el que falte) antes de validar, igual que en la carga masiva.
+  const resueltos = aportes.map((a) => {
+    const r = resolverAporte(a.porcentaje, a.valor, campos.ejeFinanciera)
+    return { ...a, porcentaje: r.porcentaje, valor: r.valor }
+  })
+  const erroresAportes = validarAportes(resueltos)
   const hayErrores = Object.keys(errores).length > 0 || Object.keys(erroresAportes.porFila).length > 0 || !!erroresAportes.general
-  const suma = sumaPorcentajes(aportes)
+  const suma = sumaPorcentajes(resueltos)
   const err = (k: keyof Campos) => (intentado ? errores[k] : undefined)
   const set = <K extends keyof Campos>(k: K, v: Campos[K]) => setCampos((c) => ({ ...c, [k]: v }))
   // Avance por sección para el resumen lateral (escritorio) y la barra inferior (móvil).
   const seccionesListas = [
-    !errores.vigencia && !errores.cenGestor && !errores.codBpin && !errores.codSap && !errores.nomProyecto,
+    !errores.vigencia && !errores.cenGestor && !errores.codSap && !errores.nomProyecto,
     !errores.pptoInicial && !errores.totalPptoActual && !errores.ejeFinanciera,
     Object.keys(erroresAportes.porFila).length === 0 && !erroresAportes.general,
     !errores.reportadoPor && !errores.correo,
   ]
-  const totalAportado = aportes.reduce((s, a) => s + (valorAportado(campos.ejeFinanciera, a.porcentaje) ?? 0), 0)
+  const totalAportado = resueltos.reduce((s, a) => s + (a.valor ?? 0), 0)
   const textoBoton = modoEdicion ? 'Guardar corrección' : 'Enviar reporte'
-
-  const proyectosDeDependencia = useMemo(
-    () => (catalogos?.proyectos ?? []).filter((p) => campos.cenGestor === null || p.cenGestor === campos.cenGestor),
-    [catalogos, campos.cenGestor],
-  )
 
   async function enviar() {
     setIntentado(true)
@@ -187,8 +165,7 @@ export function FormularioEstrategicos() {
         {
           vigencia: Number(campos.vigencia),
           cen_gestor: campos.cenGestor!,
-          cod_bpin: campos.codBpin,
-          cod_sap: campos.codSap || null,
+          cod_sap: campos.codSap,
           nom_proyecto: campos.nomProyecto,
           ppto_inicial: campos.pptoInicial!,
           total_ppto_actual: campos.totalPptoActual!,
@@ -196,9 +173,10 @@ export function FormularioEstrategicos() {
           reportado_por: campos.reportadoPor,
           correo: campos.correo || null,
           observaciones: campos.observaciones || null,
-          aportes: aportes.map((a) => ({
+          aportes: resueltos.map((a) => ({
             proyecto_estrategico_id: a.proyectoEstrategicoId!,
             porcentaje: parsearPorcentaje(a.porcentaje)!,
+            valor_aportado: a.valor ?? 0,
           })),
         },
         token,
@@ -226,15 +204,8 @@ export function FormularioEstrategicos() {
     }
   }
 
-  function registrarOtro() {
-    // Conserva lo que se repite entre proyectos de la misma dependencia.
-    setCampos((c) =>
-      camposVacios({ vigencia: c.vigencia, cenGestor: c.cenGestor, reportadoPor: c.reportadoPor, correo: c.correo }),
-    )
-    setAportes([aporteVacio()])
-    setIntentado(false)
-    setResultado(null)
-    if (modoEdicion) navigate('/estrategicos')
+  function volverACarga() {
+    navigate('/estrategicos')
     window.scrollTo({ top: 0 })
   }
 
@@ -253,11 +224,11 @@ export function FormularioEstrategicos() {
             Seguimiento del gasto de inversión en proyectos estratégicos
           </Typography>
           <Typography sx={{ mt: 1.5, opacity: 0.8, maxWidth: 640 }}>
-            Registra, por cada proyecto de inversión, cuánto aporta a cada proyecto estratégico. Un formulario por
-            proyecto y vigencia. Al enviar recibirás un código y un enlace para corregirlo.
+            Reporta, con la plantilla Excel, cuánto aporta cada proyecto de inversión a cada proyecto estratégico.
+            Al enviar recibirás un código y un enlace de corrección por proyecto.
           </Typography>
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 2.5 }}>
-            {['Corte: septiembre 2026', '4 secciones · ~5 minutos', 'Puedes corregir después'].map((t) => (
+            {['Corte: septiembre 2026', 'Carga masiva por Excel', 'Puedes corregir después'].map((t) => (
               <Box key={t} sx={{
                 px: 1.5, py: 0.5, borderRadius: 99, fontSize: 13, border: '1px solid rgba(255,255,255,0.25)',
                 bgcolor: 'rgba(255,255,255,0.06)',
@@ -271,7 +242,7 @@ export function FormularioEstrategicos() {
         {errorCarga ? (
           <Paper sx={{ p: 4, maxWidth: 760, mx: 'auto' }}>
             <Alert severity="error">{errorCarga}</Alert>
-            <Button sx={{ mt: 2 }} onClick={() => navigate('/estrategicos')}>Ir al formulario nuevo</Button>
+            <Button sx={{ mt: 2 }} onClick={() => navigate('/estrategicos')}>Ir a la carga masiva</Button>
           </Paper>
         ) : !catalogos ? (
           <Paper sx={{ p: 6, display: 'grid', placeItems: 'center', maxWidth: 760, mx: 'auto' }}>
@@ -279,17 +250,12 @@ export function FormularioEstrategicos() {
           </Paper>
         ) : masivo ? (
           <Box sx={{ maxWidth: 880, mx: 'auto' }}>
-            {selectorModo}
             <CargaMasiva catalogo={catalogos} />
           </Box>
         ) : resultado ? (
-          <PantallaExito resultado={resultado} onOtro={registrarOtro} onCorregir={() => {
-            setResultado(null)
-            if (!modoEdicion) navigate(`/estrategicos/editar/${resultado.token}`)
-          }} />
+          <PantallaExito resultado={resultado} onOtro={volverACarga} onCorregir={() => setResultado(null)} />
         ) : (
           <>
-            {!modoEdicion && selectorModo}
             {modoEdicion && reporteId && (
               <Alert severity={anulado ? 'warning' : 'info'} sx={{ mb: 2 }}
                 action={!anulado && (
@@ -331,43 +297,10 @@ export function FormularioEstrategicos() {
                   )}
                 />
               </Box>
-              <Box sx={{ display: 'grid', gap: 2, mt: 2, gridTemplateColumns: { xs: '1fr', sm: '1fr 160px' } }}>
-                <Autocomplete
-                  freeSolo
-                  options={proyectosDeDependencia}
-                  filterOptions={filtroProyectos}
-                  inputValue={campos.codBpin}
-                  onInputChange={(_, v, motivo) => motivo === 'input' && set('codBpin', v.replace(/\D/g, ''))}
-                  onChange={(_, p) => {
-                    if (!p || typeof p === 'string') return
-                    setCampos((c) => ({
-                      ...c,
-                      codBpin: p.codBpin,
-                      codSap: p.codSap ?? '',
-                      nomProyecto: p.nombre,
-                      cenGestor: c.cenGestor ?? p.cenGestor,
-                    }))
-                  }}
-                  getOptionLabel={(p) => (typeof p === 'string' ? p : p.codBpin)}
-                  renderOption={(props, p) => (
-                    <li {...props} key={p.codBpin}>
-                      <Box>
-                        <Typography variant="body2">{p.nombre}</Typography>
-                        <Typography variant="caption" color="text.secondary">BPIN {p.codBpin} · SAP {p.codSap}</Typography>
-                      </Box>
-                    </li>
-                  )}
-                  renderInput={(p) => (
-                    <TextField {...p} label="Código del proyecto de inversión (BPIN)" required
-                      inputProps={{ ...p.inputProps, inputMode: 'numeric' }}
-                      error={!!err('codBpin')}
-                      helperText={err('codBpin') ?? 'Escribe el código o parte del nombre para buscarlo.'} />
-                  )}
-                />
-                <TextField label="Código SAP" value={campos.codSap} inputProps={{ inputMode: 'numeric' }}
-                  onChange={(e) => set('codSap', e.target.value.replace(/\D/g, ''))}
-                  error={!!err('codSap')} helperText={err('codSap')} />
-              </Box>
+              <TextField fullWidth sx={{ mt: 2 }} label="Código SAP (proyecto de inversión)" required value={campos.codSap}
+                inputProps={{ inputMode: 'numeric' }}
+                onChange={(e) => set('codSap', e.target.value.replace(/\D/g, ''))}
+                error={!!err('codSap')} helperText={err('codSap')} />
               <TextField fullWidth multiline sx={{ mt: 2 }} label="Nombre del proyecto" required value={campos.nomProyecto}
                 onChange={(e) => set('nomProyecto', e.target.value)} error={!!err('nomProyecto')} helperText={err('nomProyecto')} />
             </Seccion>
@@ -386,13 +319,12 @@ export function FormularioEstrategicos() {
             </Seccion>
 
             <Seccion numero={3} titulo="Aporte a proyectos estratégicos" lista={seccionesListas[2]}
-              ayuda="Agrega todos los proyectos estratégicos a los que aporta este proyecto. El valor se calcula sobre la ejecución financiera.">
+              ayuda="Escribe el % o el presupuesto que aporta: el otro se calcula sobre la ejecución financiera. La suma no puede superar el 100 %.">
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                 {aportes.map((a, i) => {
                   const errFila = intentado ? erroresAportes.porFila[i] : undefined
-                  const valor = valorAportado(campos.ejeFinanciera, a.porcentaje)
                   const elegidos = new Set(aportes.map((x) => x.proyectoEstrategicoId))
-                  const cambiar = (cambio: Partial<AporteBorrador>) =>
+                  const cambiar = (cambio: Partial<AporteForm>) =>
                     setAportes((lista) => lista.map((x, j) => (j === i ? { ...x, ...cambio } : x)))
                   return (
                     <Box key={i} sx={{
@@ -418,10 +350,11 @@ export function FormularioEstrategicos() {
                         error={!!errFila && !!a.proyectoEstrategicoId}
                         onChange={(e) => cambiar({ porcentaje: e.target.value.replace(/[^\d.,]/g, '') })}
                         InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }} />
-                      <Box sx={{ pt: 0.25, minWidth: 0 }}>
-                        <Typography variant="caption" color="text.secondary">Valor aportado</Typography>
-                        <Typography variant="body2" fontWeight={600} noWrap>{valor === null ? '—' : `$ ${formatearMonto(valor)}`}</Typography>
-                      </Box>
+                      <TextField size="small" label="Presupuesto que aporta" sx={{ bgcolor: '#fff' }}
+                        value={formatearMonto(a.valor)} inputProps={{ inputMode: 'numeric' }}
+                        placeholder={resueltos[i].valor === null ? '' : formatearMonto(resueltos[i].valor)}
+                        onChange={(e) => cambiar({ valor: parsearMonto(e.target.value) })}
+                        InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }} />
                       <Tooltip title="Quitar">
                         <span>
                           <IconButton aria-label={`Quitar proyecto estratégico ${i + 1}`} disabled={aportes.length === 1}
@@ -597,7 +530,7 @@ function PantallaExito({ resultado, onOtro, onCorregir }: {
         ),
       }} onFocus={(e) => e.target.select()} />
       <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'center', mt: 3, flexWrap: 'wrap' }}>
-        <Button variant="contained" onClick={onOtro} sx={{ bgcolor: COLOR_SIDEBAR }}>Registrar otro proyecto</Button>
+        <Button variant="contained" onClick={onOtro} sx={{ bgcolor: COLOR_SIDEBAR }}>Ir a la carga masiva</Button>
         <Button variant="outlined" onClick={onCorregir}>Corregir este reporte</Button>
       </Box>
     </Paper>

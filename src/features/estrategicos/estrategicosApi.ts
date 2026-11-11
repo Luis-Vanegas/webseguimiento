@@ -9,19 +9,18 @@ export interface ProyectoEstrategico {
   id: number
   nombre: string
 }
-export interface ProyectoInversion {
-  codBpin: string
-  codSap: string | null
-  nombre: string
-  cenGestor: number | null
+
+export interface AportePayload {
+  proyecto_estrategico_id: number
+  porcentaje: number
+  valor_aportado: number
 }
 
 /** Lo que viaja a est_guardar_reporte (nombres de columna de la BD). */
 export interface ReportePayload {
   vigencia: number
   cen_gestor: number
-  cod_bpin: string
-  cod_sap: string | null
+  cod_sap: string
   nom_proyecto: string
   ppto_inicial: number
   total_ppto_actual: number
@@ -29,12 +28,13 @@ export interface ReportePayload {
   reportado_por: string
   correo: string | null
   observaciones: string | null
-  aportes: { proyecto_estrategico_id: number; porcentaje: number }[]
+  aportes: AportePayload[]
 }
-export interface ReporteGuardado extends ReportePayload {
+export interface ReporteGuardado extends Omit<ReportePayload, 'aportes'> {
   id: number
   estado: 'activo' | 'anulado'
   updated_at: string
+  aportes: { proyecto_estrategico_id: number; porcentaje: number; valor_aportado: number | null }[]
 }
 
 function sinError<T>({ data, error }: { data: T | null; error: { message: string } | null }): T {
@@ -43,17 +43,13 @@ function sinError<T>({ data, error }: { data: T | null; error: { message: string
 }
 
 export async function cargarCatalogos() {
-  const [deps, est, proys] = await Promise.all([
+  const [deps, est] = await Promise.all([
     supabase.from('est_dependencias').select('*').order('nombre'),
     supabase.from('est_proyectos_estrategicos').select('*').order('nombre'),
-    supabase.from('est_proyectos_inversion').select('*').order('nombre'),
   ])
   return {
     dependencias: sinError(deps).map((d): Dependencia => ({ cenGestor: d.cen_gestor, nombre: d.nombre })),
     estrategicos: sinError(est).map((e): ProyectoEstrategico => ({ id: e.id, nombre: e.nombre })),
-    proyectos: sinError(proys).map(
-      (p): ProyectoInversion => ({ codBpin: p.cod_bpin, codSap: p.cod_sap, nombre: p.nombre, cenGestor: p.cen_gestor }),
-    ),
   }
 }
 
