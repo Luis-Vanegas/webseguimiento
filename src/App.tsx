@@ -17,6 +17,7 @@ import { GestionVisitas } from './pages/seguimiento/GestionVisitas'
 import { LineaTiempoPortafolio } from './pages/seguimiento/LineaTiempoPortafolio'
 import { TableroActas } from './pages/actas/TableroActas'
 import { DetalleActa } from './pages/actas/DetalleActa'
+import { FormularioEstrategicos } from './pages/estrategicos/FormularioEstrategicos'
 
 function App() {
   return (
@@ -31,6 +32,9 @@ function App() {
               {/* Actas: public test module, no login and no link from Seguimiento. */}
               <Route path="/actas" element={<TableroActas />} />
               <Route path="/actas/:actaId" element={<DetalleActa />} />
+              {/* Formulario público de recolección: lo llenan las dependencias, sin login. */}
+              <Route path="/estrategicos" element={<FormularioEstrategicos />} />
+              <Route path="/estrategicos/editar/:token" element={<FormularioEstrategicos />} />
               <Route element={<RutaProtegida />}>
                 <Route path="/seguimiento" element={<SeguimientoLayout />}>
                   <Route path="mis-visitas" element={<MisVisitas />} />

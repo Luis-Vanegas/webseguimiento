@@ -7,30 +7,10 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.18"
   }
   public: {
     Tables: {
@@ -60,6 +40,45 @@ export type Database = {
           origen?: string
         }
         Relationships: []
+      }
+      alertas_visita: {
+        Row: {
+          detalle: string | null
+          id: string
+          severidad: string
+          tipo_alerta_id: string
+          visita_id: string
+        }
+        Insert: {
+          detalle?: string | null
+          id?: string
+          severidad: string
+          tipo_alerta_id: string
+          visita_id: string
+        }
+        Update: {
+          detalle?: string | null
+          id?: string
+          severidad?: string
+          tipo_alerta_id?: string
+          visita_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alertas_visita_tipo_alerta_id_fkey"
+            columns: ["tipo_alerta_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_alerta"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alertas_visita_visita_id_fkey"
+            columns: ["visita_id"]
+            isOneToOne: false
+            referencedRelation: "visitas_seguimiento"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       compromisos: {
         Row: {
@@ -102,42 +121,163 @@ export type Database = {
           },
         ]
       }
-      alertas_visita: {
+      est_dependencias: {
         Row: {
-          detalle: string | null
-          id: string
-          severidad: string
-          tipo_alerta_id: string
-          visita_id: string
+          cen_gestor: number
+          nombre: string
         }
         Insert: {
-          detalle?: string | null
-          id?: string
-          severidad: string
-          tipo_alerta_id: string
-          visita_id: string
+          cen_gestor: number
+          nombre: string
         }
         Update: {
-          detalle?: string | null
-          id?: string
-          severidad?: string
-          tipo_alerta_id?: string
-          visita_id?: string
+          cen_gestor?: number
+          nombre?: string
+        }
+        Relationships: []
+      }
+      est_proyectos_estrategicos: {
+        Row: {
+          id: number
+          nombre: string
+        }
+        Insert: {
+          id?: never
+          nombre: string
+        }
+        Update: {
+          id?: never
+          nombre?: string
+        }
+        Relationships: []
+      }
+      est_proyectos_inversion: {
+        Row: {
+          cen_gestor: number | null
+          cod_bpin: string
+          cod_sap: string | null
+          nombre: string
+        }
+        Insert: {
+          cen_gestor?: number | null
+          cod_bpin: string
+          cod_sap?: string | null
+          nombre: string
+        }
+        Update: {
+          cen_gestor?: number | null
+          cod_bpin?: string
+          cod_sap?: string | null
+          nombre?: string
         }
         Relationships: [
           {
-            foreignKeyName: "alertas_visita_tipo_alerta_id_fkey"
-            columns: ["tipo_alerta_id"]
+            foreignKeyName: "est_proyectos_inversion_cen_gestor_fkey"
+            columns: ["cen_gestor"]
             isOneToOne: false
-            referencedRelation: "tipos_alerta"
+            referencedRelation: "est_dependencias"
+            referencedColumns: ["cen_gestor"]
+          },
+        ]
+      }
+      est_reporte_aportes: {
+        Row: {
+          id: number
+          porcentaje: number
+          proyecto_estrategico_id: number
+          reporte_id: number
+        }
+        Insert: {
+          id?: never
+          porcentaje: number
+          proyecto_estrategico_id: number
+          reporte_id: number
+        }
+        Update: {
+          id?: never
+          porcentaje?: number
+          proyecto_estrategico_id?: number
+          reporte_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "est_reporte_aportes_proyecto_estrategico_id_fkey"
+            columns: ["proyecto_estrategico_id"]
+            isOneToOne: false
+            referencedRelation: "est_proyectos_estrategicos"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "alertas_visita_visita_id_fkey"
-            columns: ["visita_id"]
+            foreignKeyName: "est_reporte_aportes_reporte_id_fkey"
+            columns: ["reporte_id"]
             isOneToOne: false
-            referencedRelation: "visitas_seguimiento"
+            referencedRelation: "est_reportes"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      est_reportes: {
+        Row: {
+          cen_gestor: number
+          cod_bpin: string
+          cod_sap: string | null
+          correo: string | null
+          created_at: string
+          eje_financiera: number
+          estado: string
+          id: number
+          nom_proyecto: string
+          observaciones: string | null
+          ppto_inicial: number
+          reportado_por: string
+          token: string
+          total_ppto_actual: number
+          updated_at: string
+          vigencia: number
+        }
+        Insert: {
+          cen_gestor: number
+          cod_bpin: string
+          cod_sap?: string | null
+          correo?: string | null
+          created_at?: string
+          eje_financiera: number
+          estado?: string
+          id?: never
+          nom_proyecto: string
+          observaciones?: string | null
+          ppto_inicial: number
+          reportado_por: string
+          token?: string
+          total_ppto_actual: number
+          updated_at?: string
+          vigencia: number
+        }
+        Update: {
+          cen_gestor?: number
+          cod_bpin?: string
+          cod_sap?: string | null
+          correo?: string | null
+          created_at?: string
+          eje_financiera?: number
+          estado?: string
+          id?: never
+          nom_proyecto?: string
+          observaciones?: string | null
+          ppto_inicial?: number
+          reportado_por?: string
+          token?: string
+          total_ppto_actual?: number
+          updated_at?: string
+          vigencia?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "est_reportes_cen_gestor_fkey"
+            columns: ["cen_gestor"]
+            isOneToOne: false
+            referencedRelation: "est_dependencias"
+            referencedColumns: ["cen_gestor"]
           },
         ]
       }
@@ -250,6 +390,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      museum_rooms: {
+        Row: {
+          content: Json
+          room: string
+          updated_by: string | null
+        }
+        Insert: {
+          content: Json
+          room: string
+          updated_by?: string | null
+        }
+        Update: {
+          content?: Json
+          room?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       puntos_referencia_obra: {
         Row: {
@@ -429,9 +587,45 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      est_v_consolidado: {
+        Row: {
+          cen_gestor: number | null
+          cod_bpin: string | null
+          cod_sap: string | null
+          correo: string | null
+          created_at: string | null
+          dependencia: string | null
+          eje_financiera: number | null
+          nom_proyecto: string | null
+          observaciones: string | null
+          porcentaje: number | null
+          ppto_inicial: number | null
+          proyecto_estrategico: string | null
+          reportado_por: string | null
+          reporte: string | null
+          total_ppto_actual: number | null
+          updated_at: string | null
+          valor_aportado: number | null
+          vigencia: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "est_reportes_cen_gestor_fkey"
+            columns: ["cen_gestor"]
+            isOneToOne: false
+            referencedRelation: "est_dependencias"
+            referencedColumns: ["cen_gestor"]
+          },
+        ]
+      }
     }
     Functions: {
+      est_anular_reporte: { Args: { p_token: string }; Returns: undefined }
+      est_guardar_reporte: {
+        Args: { p: Json; p_token?: string }
+        Returns: Json
+      }
+      est_obtener_reporte: { Args: { p_token: string }; Returns: Json }
       rol_actual: { Args: never; Returns: string }
     }
     Enums: {
@@ -451,12 +645,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -480,11 +674,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -505,11 +699,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -530,11 +724,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -547,11 +741,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -561,11 +755,7 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },
 } as const
-
